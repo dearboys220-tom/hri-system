@@ -1,59 +1,195 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# HRI System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi Laravel 12 menggunakan Laravel Sail, Inertia.js, dan MySQL 8.4.
 
-## About Laravel
+------------------------------------------------------------------------
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+# Teknologi & Versi
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+  Teknologi                      Versi
+  ------------------------------ ------------------------
+  - PHP                            \^8.2
+  - Laravel                        \^12.0
+  - Laravel Sail                   \^1.41
+  - Inertia.js (Laravel Adapter)   \^2.0
+  - MySQL                          8.4
+  - Docker                         Compose v2
+  - Node.js                        18+ (direkomendasikan)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+------------------------------------------------------------------------
 
-## Learning Laravel
+# Environment Development
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Project ini menggunakan Laravel Sail sebagai environment development
+berbasis Docker.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+> Docker Desktop dan WSL2 (untuk pengguna Windows) wajib terinstall.
 
-## Laravel Sponsors
+------------------------------------------------------------------------
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Persyaratan
 
-### Premium Partners
+Pastikan sudah menginstall:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+-   Docker Desktop
+-   WSL2 (khusus Windows)
+-   Git
 
-## Contributing
+Cek apakah Docker sudah terinstall:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+``` bash
+docker compose version
+```
 
-## Code of Conduct
+Cek WSL:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+``` bash
+wsl --status
+```
 
-## Security Vulnerabilities
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+------------------------------------------------------------------------
 
-## License
+# Cara Instalasi
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Clone Repository
+
+``` bash
+git clone <repository-url>
+cd <nama-folder-project>
+```
+
+## Install Dependency PHP
+
+``` bash
+composer install
+```
+
+## Copy File Environment
+
+``` bash
+cp .env.example .env
+```
+
+## Generate App Key
+
+``` bash
+php artisan key:generate
+```
+
+## Jalankan Laravel Sail
+
+``` bash
+./vendor/bin/sail up -d
+```
+
+Windows PowerShell:
+
+``` bash
+vendor\bin\sail up -d
+```
+
+## Jalankan Migrasi Database
+
+``` bash
+./vendor/bin/sail artisan migrate
+```
+
+## Install Dependency Frontend
+
+``` bash
+./vendor/bin/sail npm install
+```
+
+## Jalankan Vite Dev Server
+
+``` bash
+./vendor/bin/sail npm run dev
+```
+
+------------------------------------------------------------------------
+
+# Akses Aplikasi
+
+Buka di browser:
+
+http://localhost
+
+Jika kamu mengubah `APP_PORT` di file `.env`, sesuaikan port yang
+digunakan.
+
+------------------------------------------------------------------------
+
+# Menghentikan Container
+
+``` bash
+./vendor/bin/sail down
+```
+
+------------------------------------------------------------------------
+
+# Masuk ke Shell Container
+
+``` bash
+./vendor/bin/sail shell
+```
+
+------------------------------------------------------------------------
+
+# Perintah yang Sering Digunakan
+
+Menjalankan perintah artisan:
+
+``` bash
+./vendor/bin/sail artisan <command>
+```
+
+Menjalankan perintah npm:
+
+``` bash
+./vendor/bin/sail npm <command>
+```
+
+Contoh:
+
+``` bash
+./vendor/bin/sail artisan migrate:fresh --seed
+```
+
+## Cek Status Container
+
+``` bash
+./vendor/bin/sail ps
+```
+
+------------------------------------------------------------------------
+
+# File Penting
+
+-   `compose.yml` → Konfigurasi Docker (Laravel Sail)
+-   `.env` → Konfigurasi environment (jangan di-commit)
+-   `composer.json` → Dependency PHP
+-   `package.json` → Dependency Frontend
+
+------------------------------------------------------------------------
+
+# Catatan Penting
+
+-   Jangan commit file `.env`
+-   Jangan commit folder `vendor/`
+-   Jangan commit folder `node_modules/`
+-   Pastikan Docker dalam keadaan running sebelum menjalankan Sail
+-   Project menggunakan Docker Compose v2 (`compose.yml`)
+- Jangan gunakan MySQL dari XAMPP.
+- Database project berjalan di dalam container Docker (MySQL 8.4).
+- Pastikan Docker dalam keadaan running sebelum menjalankan Sail.
+
+------------------------------------------------------------------------
+
+# Arsitektur Project
+
+-   Laravel menangani backend dan business logic
+-   Inertia.js sebagai penghubung backend dan frontend (SPA)
+-   Vite untuk bundling dan Hot Module Reload (HMR)
+-   MySQL berjalan di dalam container Docker
+-   Laravel Sail mengelola seluruh service Docker

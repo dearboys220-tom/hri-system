@@ -27,9 +27,7 @@ return new class extends Migration
 
             $table->text('message');
 
-            $table->boolean('is_read')->default(false);
-            $table->timestamp('read_at')->nullable();
-
+            
             $table->timestamps();
 
             $table->index(['company_id']);

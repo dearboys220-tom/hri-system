@@ -108,7 +108,7 @@ const updatePopupPosition = () => {
 
   popupStyle.value = {
     top: rect.top + window.scrollY + rect.height / 2 + 'px',
-    left: rect.left - 360 + 'px', // 340 width + margin
+    left: rect.left - 360 + 'px',
     transform: 'translateY(-50%)'
   }
 }
