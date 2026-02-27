@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Auth\ApplicantAuthController;
+use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -13,6 +15,14 @@ Route::get('/login', function () {
 Route::get('/register/company', function () {
     return Inertia::render('Auth/RegisterCompany');
 })->name('register.company');
+
+Route::prefix('auth/applicant')->group(function () {
+    Route::get('/google', [ApplicantAuthController::class, 'redirectToGoogle']);
+    Route::get('/google/callback', [ApplicantAuthController::class, 'handleGoogleCallback']);
+});
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
 
 Route::prefix('admin')
     ->name('admin.')
@@ -37,5 +47,6 @@ Route::prefix('admin')
             });
 
     });
+    
 
 require __DIR__.'/auth.php';

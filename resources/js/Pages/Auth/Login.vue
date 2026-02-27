@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useForm, Link, usePage } from '@inertiajs/vue3'
+import { useForm, Link, usePage, router } from '@inertiajs/vue3'
 import {
   EnvelopeIcon,
   LockClosedIcon,
@@ -28,7 +28,7 @@ const submit = () => {
 }
 
 const loginGoogle = () => {
-  window.location.href = '/auth/google'
+  window.location.href = '/auth/applicant/google'
 }
 
 const leftContent = computed(() => {

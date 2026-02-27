@@ -5,6 +5,7 @@ import {
   BookOpenIcon
 } from '@heroicons/vue/24/outline'
 import Button from './Button.vue';
+import { Link } from '@inertiajs/vue3';
 
 defineProps({
   title: {
@@ -65,15 +66,16 @@ defineProps({
             <BookOpenIcon class="w-4 h-4" />
             Panduan
           </Button>
-
-          <Button
-            variant="danger"
-            size="sm"
-            class="flex-1 md:flex-none"
+          <Link
+            :href="route('logout')"
+            method="post"
+            as="button"
           >
-            <ArrowRightOnRectangleIcon class="w-4 h-4" />
-            Keluar
-          </Button>
+            <Button variant="danger" size="sm">
+              <ArrowRightOnRectangleIcon class="w-4 h-4" />
+              Keluar
+            </Button>
+          </Link>
         </div>
 
       </div>

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('nationality', 100)->nullable();
             $table->string('phone_number', 50)->nullable();
             $table->string('whatsapp_number', 50)->nullable();
-            $table->text('current_address', 50);
+            $table->text('current_address', 50)->nullable();
             $table->string('linkedin')->nullable();
             $table->string('instagram')->nullable();
             $table->text('self_pr')->nullable();
