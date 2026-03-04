@@ -58,6 +58,22 @@ class User extends Authenticatable
     {
         return $this->role_type === RoleType::COMPANY;
     }
+    public function isStaff(): bool
+    {
+        return in_array($this->role_type, RoleType::staffRoles());
+    }
+    public function isAdmin(): bool
+    {
+        return $this->role_type === RoleType::ADMIN;
+    }
+    public function isInvestigator(): bool
+    {
+        return $this->role_type === RoleType::INVESTIGATOR;
+    }
+    public function isReviewer(): bool
+    {
+        return $this->role_type === RoleType::REVIEWER;
+    }
 
     /**
      * The attributes that should be hidden for serialization.

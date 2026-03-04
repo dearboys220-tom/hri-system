@@ -114,8 +114,20 @@ const updatePopupPosition = () => {
 }
 
 watch(mode, async () => {
+  form.reset()
+  form.clearErrors()
+  showPassword.value = false
+
   await nextTick()
   updateHeight()
+})
+
+watch(() => form.email, () => {
+  form.clearErrors()
+})
+
+watch(() => form.password, () => {
+  form.clearErrors()
 })
 
 onMounted(() => {
@@ -138,7 +150,7 @@ const page = usePage()
     <h2 class="text-2xl font-semibold mb-8 text-gray-800">
       Masuk Akun
     </h2>
-        <div class="relative flex bg-gray-200 rounded-full p-1 mb-10 overflow-hidden">
+        <div class="relative flex bg-gray-200 rounded-full p-1 mb-6 overflow-hidden">
 
           <!-- Indicator -->
           <div
@@ -182,6 +194,14 @@ const page = usePage()
             @submit.prevent="submit"
             class="space-y-6 absolute w-full"
           >
+            <Transition name="error">
+              <div
+                v-if="form.errors.email"
+                class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl"
+              >
+                {{ form.errors.email }}
+              </div>
+            </Transition>
             <div class="relative">
               <EnvelopeIcon class="w-5 h-5 absolute left-3 top-3 text-gray-400" />
               <input
@@ -228,7 +248,7 @@ const page = usePage()
           >
               <button
                   @click="loginGoogle"
-                  class="w-full flex items-center justify-center gap-3 border border-gray-300 py-3 rounded-xl hover:bg-gray-50 transition mb-8"
+                  class="w-full flex items-center justify-center gap-3 border border-gray-300 py-3 rounded-xl hover:bg-gray-50 transition"
               >
                   <img
                   src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -459,5 +479,17 @@ const page = usePage()
 .popup-leave-to {
   opacity: 0;
   transform: translateX(10px);
+}
+.error-enter-active,
+.error-leave-active {
+  transition: all 0.25s ease;
+}
+.error-enter-from {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+.error-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 </style>

@@ -82,7 +82,7 @@ class ApplicantAuthController extends Controller
 
             DB::commit();
 
-            Auth::login($user);
+            Auth::guard('web')->login($user);
 
             return redirect()->route('applicant.dashboard');
 

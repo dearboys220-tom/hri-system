@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\RoleType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
@@ -33,7 +34,22 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->route($this->redirectRoute($request->user()));
+    }
+    private function redirectRoute($user): string
+    {
+        return match ($user->role_type) {
+
+            RoleType::ADMIN => 'admin.dashboard',
+            RoleType::INVESTIGATOR => 'investigator.dashboard',
+            RoleType::REVIEWER => 'reviewer.dashboard',
+
+            RoleType::COMPANY => 'company.dashboard',
+
+            RoleType::APPLICANT => 'applicant.dashboard',
+
+            default => 'login',
+        };
     }
 
     /**

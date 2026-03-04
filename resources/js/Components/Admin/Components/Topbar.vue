@@ -5,7 +5,8 @@ import {
   BookOpenIcon
 } from '@heroicons/vue/24/outline'
 import Button from './Button.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 defineProps({
   title: {
@@ -16,6 +17,14 @@ defineProps({
     type: String,
     default: 'Penyelidikan'
   }
+})
+
+const page = usePage()
+
+const logoutRoute = computed(() => {
+  return page.props.auth.guard === 'staff'
+    ? route('logout-staff')
+    : route('logout')
 })
 </script>
 
@@ -67,7 +76,7 @@ defineProps({
             Panduan
           </Button>
           <Link
-            :href="route('logout')"
+            :href="logoutRoute"
             method="post"
             as="button"
           >
