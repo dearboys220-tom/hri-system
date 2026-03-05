@@ -6,7 +6,11 @@ defineProps({
   title: String,
   description: String,
   image: String,
-  gradient: String
+  gradient: String,
+  showLeft: {
+    type: Boolean,
+    default: true
+  },
 })
 const page = usePage()
 </script>
@@ -15,7 +19,7 @@ const page = usePage()
   <div :key="page.component" class="flex min-h-screen">
 
     <!-- LEFT -->
-    <div class="hidden z-0 md:flex md:w-[65%] relative">
+    <div v-if="showLeft" class="hidden z-0 md:flex relative" :class="showLeft ? 'md:w-[65%]' : 'md:w-0'">
 
       <div
         class="absolute inset-0 bg-cover bg-center transition-all duration-500"
@@ -44,7 +48,8 @@ const page = usePage()
 
     </div>
 
-    <div class="relative w-full md:w-[35%] bg-gradient-to-br from-white to-gray-100 z-20">
+    <div class="relative bg-gradient-to-br from-white to-gray-100 z-20"
+    :class="showLeft ? 'w-full md:w-[35%]' : 'w-full'">
         <div class="h-screen flex">
             <div
             :class="[
