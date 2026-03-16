@@ -13,6 +13,16 @@ Route::get('/login', function () {
 Route::get('/register/company', [CompanyController::class, 'create'])->name('register.company');
 Route::post('/register/company', [CompanyController::class, 'store'])->name('register.company.store');
 
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
 Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
