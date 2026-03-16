@@ -14,9 +14,25 @@ Route::get('/register/company', [CompanyController::class, 'create'])->name('reg
 Route::post('/register/company', [CompanyController::class, 'store'])->name('register.company.store');
 
 Route::middleware('auth')->group(function () {
+    // 共通ダッシュボード（fallback）
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    // 企業会員
+    Route::get('/company/dashboard', function () {
+        return Inertia::render('Company/Dashboard');
+    })->name('company.dashboard');
+
+    // 個人会員
+    Route::get('/applicant/dashboard', function () {
+        return Inertia::render('Applicant/Dashboard');
+    })->name('applicant.dashboard');
+
+    // 管理チーム
+    Route::get('/admin/dashboard', function () {
+        return Inertia::render('Admin/Admin/Dashboard');
+    })->name('admin.dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
