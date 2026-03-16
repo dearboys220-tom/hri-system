@@ -5,6 +5,7 @@ use App\Http\Controllers\CompanyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Auth\StaffAuthController;
 
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
@@ -57,5 +58,15 @@ Route::prefix('admin')
                 })->name('index');
             });
     });
+
+    // スタッフ用ログイン
+Route::middleware('guest')->group(function () {
+    Route::get('/staff/login', [StaffAuthController::class, 'create'])->name('staff.login');
+    Route::post('/staff/login', [StaffAuthController::class, 'store'])->name('staff.login.store');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::post('/staff/logout', [StaffAuthController::class, 'destroy'])->name('staff.logout');
+});
 
 require __DIR__.'/auth.php';

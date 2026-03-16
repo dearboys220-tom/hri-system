@@ -4,7 +4,8 @@ import {
   ArrowRightOnRectangleIcon,
   BookOpenIcon
 } from '@heroicons/vue/24/outline'
-import Button from './Button.vue';
+import Button from './Button.vue'
+import { useForm, usePage } from '@inertiajs/vue3'
 
 defineProps({
   title: {
@@ -16,6 +17,14 @@ defineProps({
     default: 'Penyelidikan'
   }
 })
+
+const page = usePage()
+const userName = page.props.auth?.user?.name ?? 'Staff'
+
+const logoutForm = useForm({})
+const logout = () => {
+  logoutForm.post(route('staff.logout'))
+}
 </script>
 
 <template>
@@ -48,7 +57,7 @@ defineProps({
         >
           Penanggung Jawab:
           <span class="font-semibold text-white">
-            Etest02
+            {{ userName }}
           </span>
         </div>
 
@@ -70,6 +79,7 @@ defineProps({
             variant="danger"
             size="sm"
             class="flex-1 md:flex-none"
+            @click="logout"
           >
             <ArrowRightOnRectangleIcon class="w-4 h-4" />
             Keluar

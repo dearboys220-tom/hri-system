@@ -1,26 +1,26 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, usePage } from '@inertiajs/vue3';
-
-const user = usePage().props.auth.user;
+import { usePage } from '@inertiajs/vue3'
+const { props } = usePage()
 </script>
 
 <template>
-    <Head title="Dashboard Admin" />
-    <AuthenticatedLayout>
-        <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Dashboard Admin
-            </h2>
-        </template>
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
-                        Selamat datang, {{ user.name }}! ⚙️
-                    </div>
-                </div>
+    <div style="padding: 40px;">
+        <h1>Dashboard Admin</h1>
+        <p>Selamat datang, {{ $page.props.auth.user.name }}! 🔑</p>
+
+        <div style="margin-top: 30px; display: flex; gap: 20px;">
+            <div style="background: #fee2e2; padding: 20px; border-radius: 8px; min-width: 160px;">
+                <div style="font-size: 14px; color: #666;">Menunggu Persetujuan</div>
+                <div style="font-size: 32px; font-weight: bold;">0</div>
+            </div>
+            <div style="background: #fef9c3; padding: 20px; border-radius: 8px; min-width: 160px;">
+                <div style="font-size: 14px; color: #666;">Sedang Investigasi</div>
+                <div style="font-size: 32px; font-weight: bold;">0</div>
+            </div>
+            <div style="background: #dcfce7; padding: 20px; border-radius: 8px; min-width: 160px;">
+                <div style="font-size: 14px; color: #666;">Terverifikasi</div>
+                <div style="font-size: 32px; font-weight: bold;">0</div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </div>
 </template>
