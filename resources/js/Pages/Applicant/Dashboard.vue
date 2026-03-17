@@ -12,156 +12,194 @@ const props = defineProps({
 
 const user = usePage().props.auth.user;
 
-// 認証ステータスの表示設定
 const statusConfig = {
-    Terverifikasi: { label: 'Terverifikasi', color: 'bg-green-100 text-green-800' },
-    pending_payment: { label: 'Menunggu Pembayaran', color: 'bg-yellow-100 text-yellow-800' },
-    under_investigation: { label: 'Sedang Investigasi', color: 'bg-blue-100 text-blue-800' },
-    under_review: { label: 'Sedang Direview', color: 'bg-purple-100 text-purple-800' },
-    pending_admin: { label: 'Menunggu Persetujuan', color: 'bg-orange-100 text-orange-800' },
-    Ditolak: { label: 'Ditolak', color: 'bg-red-100 text-red-800' },
-    'Perlu Koreksi': { label: 'Perlu Koreksi', color: 'bg-red-100 text-red-800' },
+    Terverifikasi:       { label: 'Terverifikasi ✓', color: 'text-green-700 bg-green-100 border-green-300' },
+    pending_payment:     { label: 'Menunggu Pembayaran', color: 'text-yellow-700 bg-yellow-100 border-yellow-300' },
+    under_investigation: { label: 'Sedang Investigasi', color: 'text-blue-700 bg-blue-100 border-blue-300' },
+    under_review:        { label: 'Sedang Direview', color: 'text-purple-700 bg-purple-100 border-purple-300' },
+    pending_admin:       { label: 'Menunggu Persetujuan', color: 'text-orange-700 bg-orange-100 border-orange-300' },
+    Ditolak:             { label: 'Ditolak', color: 'text-red-700 bg-red-100 border-red-300' },
+    'Perlu Koreksi':     { label: 'Perlu Koreksi', color: 'text-red-700 bg-red-100 border-red-300' },
 };
 
 const getStatus = (status) =>
-    statusConfig[status] ?? { label: status ?? 'Belum Mengajukan', color: 'bg-gray-100 text-gray-600' };
+    statusConfig[status] ?? { label: 'Belum Mengajukan', color: 'text-gray-500 bg-gray-100 border-gray-300' };
+
+// ステップ完了チェック
+const step1Done = () => !!props.profile?.nik && !!props.profile?.ktp_card;
+const step2Done = () => !!props.latestRequest;
+const step3Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
 </script>
 
 <template>
-    <Head title="Dashboard Member" />
+    <Head title="Dashboard" />
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                Dashboard Member
-            </h2>
+            <h2 class="text-xl font-semibold leading-tight text-gray-800">Dashboard</h2>
         </template>
 
         <div class="py-8">
-            <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-6">
-
-                <!-- 無料期間バナー -->
-                <div
-                    v-if="isFreeAvailable"
-                    class="bg-green-50 border border-green-300 rounded-lg p-4 flex items-center gap-3"
-                >
-                    <span class="text-2xl">🎁</span>
-                    <div>
-                        <p class="font-semibold text-green-800">
-                            Sertifikasi GRATIS tersedia!
-                        </p>
-                        <p class="text-sm text-green-700">
-                            Masa gratis berakhir dalam <strong>{{ daysRemaining }} hari</strong>.
-                            Segera ajukan sertifikasi sebelum masa gratis habis.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- 無料期間終了バナー -->
-                <div
-                    v-else-if="profile && !profile.free_certification_used && daysRemaining === 0"
-                    class="bg-gray-50 border border-gray-300 rounded-lg p-4 flex items-center gap-3"
-                >
-                    <span class="text-2xl">⏰</span>
-                    <p class="text-sm text-gray-600">
-                        Masa sertifikasi gratis telah berakhir. Biaya sertifikasi: <strong>Rp 35.000</strong>.
-                    </p>
-                </div>
+            <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-6">
 
                 <!-- プロフィールカード -->
-                <div class="bg-white shadow-sm rounded-lg p-6">
-                    <div class="flex items-center gap-4">
-                        <!-- アバター -->
-                        <div class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600">
-                            {{ user.name.charAt(0).toUpperCase() }}
-                        </div>
-                        <!-- 情報 -->
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900">{{ user.name }}</h3>
-                            <p class="text-sm text-gray-500">{{ user.email }}</p>
-                            <p v-if="profile?.member_id" class="text-xs text-gray-400 mt-1">
-                                ID Anggota: <span class="font-mono font-semibold">{{ profile.member_id }}</span>
-                            </p>
-                        </div>
-                        <!-- 認証ステータス -->
-                        <div class="ml-auto">
-                            <span
-                                class="px-3 py-1 rounded-full text-sm font-medium"
-                                :class="getStatus(profile?.certification_status).color"
-                            >
-                                {{ getStatus(profile?.certification_status).label }}
-                            </span>
-                        </div>
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-5">
+                    <div class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600 shrink-0">
+                        {{ user.name.charAt(0).toUpperCase() }}
                     </div>
-                </div>
-
-                <!-- ステータスカード一覧 -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                    <!-- 認証申請カード -->
-                    <div class="bg-white shadow-sm rounded-lg p-6">
-                        <h4 class="text-sm font-semibold text-gray-500 mb-3">Status Sertifikasi HRI</h4>
-
-                        <div v-if="latestRequest">
-                            <span
-                                class="inline-block px-3 py-1 rounded-full text-sm font-medium mb-3"
-                                :class="getStatus(latestRequest.survey_status).color"
-                            >
-                                {{ getStatus(latestRequest.survey_status).label }}
-                            </span>
-                            <p class="text-xs text-gray-400">
-                                Diajukan: {{ new Date(latestRequest.created_at).toLocaleDateString('id-ID') }}
-                            </p>
-                        </div>
-
-                        <div v-else>
-                            <p class="text-sm text-gray-500 mb-4">Belum ada pengajuan sertifikasi.</p>
-                        </div>
-
-                        <!-- 申請ボタン -->
-                        <div class="mt-4">
-                            <Link
-                                v-if="!latestRequest || ['Terverifikasi','Ditolak'].includes(latestRequest?.survey_status)"
-                                href="/applicant/certification/apply"
-                                class="inline-block bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-                            >
-                                {{ isFreeAvailable ? 'Ajukan Sertifikasi (GRATIS)' : 'Ajukan Sertifikasi' }}
-                            </Link>
-                            <span v-else class="text-xs text-gray-400">
-                                Pengajuan sedang diproses.
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- 求人応募カード -->
-                    <div class="bg-white shadow-sm rounded-lg p-6">
-                        <h4 class="text-sm font-semibold text-gray-500 mb-3">Lamaran Pekerjaan</h4>
-                        <p class="text-3xl font-bold text-indigo-600">{{ applicationCount }}</p>
-                        <p class="text-sm text-gray-500 mt-1">Total lamaran yang diajukan</p>
-                        <div class="mt-4">
-                            <Link
-                                href="/applicant/applications"
-                                class="text-sm text-indigo-600 hover:underline"
-                            >
-                                Lihat riwayat lamaran →
-                            </Link>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- KTP未登録の警告 -->
-                <div
-                    v-if="profile && !profile.nik"
-                    class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 flex items-center gap-3"
-                >
-                    <span class="text-2xl">⚠️</span>
-                    <div>
-                        <p class="font-semibold text-yellow-800">Verifikasi identitas belum dilengkapi</p>
-                        <p class="text-sm text-yellow-700">
-                            Lengkapi NIK dan foto KTP untuk mengajukan sertifikasi.
-                            <Link href="/applicant/identity" class="underline font-medium">Lengkapi sekarang →</Link>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-lg font-bold text-gray-900 truncate">{{ user.name }}</h2>
+                        <p class="text-sm text-gray-400 truncate">{{ user.email }}</p>
+                        <p v-if="profile?.member_id" class="text-xs text-gray-400 mt-1">
+                            ID: <span class="font-mono font-semibold text-gray-600">{{ profile.member_id }}</span>
                         </p>
                     </div>
+                    <span
+                        class="shrink-0 px-3 py-1 rounded-full text-xs font-semibold border"
+                        :class="getStatus(latestRequest?.survey_status).color"
+                    >
+                        {{ getStatus(latestRequest?.survey_status).label }}
+                    </span>
+                </div>
+
+                <!-- 無料バナー -->
+                <div
+                    v-if="isFreeAvailable"
+                    class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-5 flex items-center gap-4 text-white shadow"
+                >
+                    <span class="text-3xl">🎁</span>
+                    <div class="flex-1">
+                        <p class="font-bold text-lg">Sertifikasi GRATIS!</p>
+                        <p class="text-sm opacity-90">Berakhir dalam <strong>{{ daysRemaining }} hari</strong>. Ajukan sekarang sebelum masa gratis habis.</p>
+                    </div>
+                    <Link
+                        href="/applicant/certification/apply"
+                        class="shrink-0 bg-white text-emerald-700 font-semibold text-sm px-5 py-2 rounded-xl hover:bg-emerald-50 transition"
+                    >
+                        Ajukan
+                    </Link>
+                </div>
+
+                <!-- ステップガイド -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="font-bold text-gray-800 text-base mb-6">Langkah Sertifikasi HRI</h3>
+
+                    <div class="space-y-4">
+
+                        <!-- STEP 1 -->
+                        <div class="flex items-start gap-4">
+                            <div class="shrink-0 flex flex-col items-center">
+                                <div
+                                    class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+                                    :class="step1Done() ? 'bg-green-500 text-white' : 'bg-indigo-600 text-white'"
+                                >
+                                    {{ step1Done() ? '✓' : '1' }}
+                                </div>
+                                <div class="w-0.5 h-8 bg-gray-200 mt-1"></div>
+                            </div>
+                            <div class="flex-1 pb-2">
+                                <div class="flex items-center justify-between">
+                                    <p class="font-semibold text-gray-800 text-sm">Verifikasi Identitas</p>
+                                    <span v-if="step1Done()" class="text-xs text-green-600 font-medium">Selesai ✓</span>
+                                    <Link v-else href="/applicant/identity" class="text-xs text-indigo-600 font-medium hover:underline">
+                                        Lengkapi →
+                                    </Link>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Upload foto KTP dan isi NIK Anda</p>
+                            </div>
+                        </div>
+
+                        <!-- STEP 2 -->
+                        <div class="flex items-start gap-4">
+                            <div class="shrink-0 flex flex-col items-center">
+                                <div
+                                    class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+                                    :class="step2Done() ? 'bg-green-500 text-white' : step1Done() ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'"
+                                >
+                                    {{ step2Done() ? '✓' : '2' }}
+                                </div>
+                                <div class="w-0.5 h-8 bg-gray-200 mt-1"></div>
+                            </div>
+                            <div class="flex-1 pb-2">
+                                <div class="flex items-center justify-between">
+                                    <p class="font-semibold text-sm" :class="step1Done() ? 'text-gray-800' : 'text-gray-400'">
+                                        Isi & Ajukan CV
+                                    </p>
+                                    <span v-if="step2Done()" class="text-xs text-green-600 font-medium">Selesai ✓</span>
+                                    <Link v-else-if="step1Done()" href="/applicant/cv" class="text-xs text-indigo-600 font-medium hover:underline">
+                                        Isi CV →
+                                    </Link>
+                                    <span v-else class="text-xs text-gray-300">Belum bisa diakses</span>
+                                </div>
+                                <p class="text-xs mt-1" :class="step1Done() ? 'text-gray-400' : 'text-gray-300'">
+                                    Lengkapi riwayat pendidikan, pekerjaan, dan sertifikasi
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- STEP 3 -->
+                        <div class="flex items-start gap-4">
+                            <div class="shrink-0">
+                                <div
+                                    class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
+                                    :class="step3Done() ? 'bg-green-500 text-white' : step2Done() ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'"
+                                >
+                                    {{ step3Done() ? '✓' : '3' }}
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <p class="font-semibold text-sm" :class="step2Done() ? 'text-gray-800' : 'text-gray-400'">
+                                        Sertifikasi HRI
+                                    </p>
+                                    <span v-if="step3Done()" class="text-xs text-green-600 font-semibold">Terverifikasi ✓</span>
+                                    <span v-else-if="step2Done() && latestRequest" class="text-xs font-medium px-2 py-0.5 rounded-full border" :class="getStatus(latestRequest.survey_status).color">
+                                        {{ getStatus(latestRequest.survey_status).label }}
+                                    </span>
+                                    <Link
+                                        v-else-if="step2Done()"
+                                        href="/applicant/certification/apply"
+                                        class="text-xs text-indigo-600 font-medium hover:underline"
+                                    >
+                                        {{ isFreeAvailable ? 'Ajukan (GRATIS) →' : 'Ajukan →' }}
+                                    </Link>
+                                    <span v-else class="text-xs text-gray-300">Belum bisa diakses</span>
+                                </div>
+                                <p class="text-xs mt-1" :class="step2Done() ? 'text-gray-400' : 'text-gray-300'">
+                                    Proses investigasi dan verifikasi oleh tim HRI
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 下部2カード -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+                    <!-- 求人応募 -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-gray-800">Riwayat Lamaran</h3>
+                            <Link href="/applicant/applications" class="text-xs text-indigo-600 hover:underline">Lihat semua →</Link>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <p class="text-4xl font-bold text-indigo-600">{{ applicationCount }}</p>
+                            <p class="text-sm text-gray-400 mb-1">lamaran diajukan</p>
+                        </div>
+                    </div>
+
+                    <!-- 求人検索 -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="font-semibold text-gray-800 mb-2">Cari Lowongan</h3>
+                        <p class="text-sm text-gray-400 mb-4">Temukan pekerjaan yang sesuai dengan keahlian Anda.</p>
+                        <Link
+                            href="/jobs"
+                            class="block text-center bg-indigo-600 text-white text-sm px-4 py-2 rounded-xl hover:bg-indigo-700 transition"
+                        >
+                            Lihat Lowongan
+                        </Link>
+                    </div>
+
                 </div>
 
             </div>

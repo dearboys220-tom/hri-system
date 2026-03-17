@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Auth\StaffAuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
-use App\Http\Controllers\ApplicantController;
+use App\Http\Controllers\Applicant\DashboardController as ApplicantDashboardController;
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\CvController;
 
@@ -30,7 +30,7 @@ Route::middleware('auth')->group(function () {
     })->name('company.dashboard');
 
     // 個人会員
-    Route::get('/applicant/dashboard', [ApplicantController::class, 'dashboard'])
+    Route::get('/applicant/dashboard', [ApplicantDashboardController::class, 'index'])
         ->name('applicant.dashboard');
 
     // 管理チーム
