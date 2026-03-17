@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Auth\StaffAuthController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
@@ -67,6 +68,12 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/staff/logout', [StaffAuthController::class, 'destroy'])->name('staff.logout');
+});
+
+// Google OAuth（個人会員のみ）
+Route::middleware('guest')->group(function () {
+    Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 });
 
 require __DIR__.'/auth.php';
