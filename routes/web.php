@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Auth\StaffAuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ApplicantController;
+use App\Http\Controllers\ConsentController;
 
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
@@ -35,6 +36,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', function () {
         return Inertia::render('Admin/Admin/Dashboard');
     })->name('admin.dashboard');
+
+    Route::get('/applicant/consent', [ConsentController::class, 'show'])->name('applicant.consent');
+    Route::post('/applicant/consent', [ConsentController::class, 'store'])->name('applicant.consent.store');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

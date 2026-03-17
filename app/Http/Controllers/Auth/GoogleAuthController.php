@@ -63,6 +63,11 @@ class GoogleAuthController extends Controller
         Auth::login($user);
         request()->session()->regenerate();
 
+        // 未同意の場合は同意画面へ
+        if (!$user->agreed_terms_at || !$user->agreed_investigation_at) {
+            return redirect()->route('applicant.consent');
+        }
+
         return redirect()->route('applicant.dashboard');
     }
 

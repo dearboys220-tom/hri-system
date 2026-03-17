@@ -26,6 +26,9 @@ class User extends Authenticatable
         'google_id',
         'google_token',
         'email_verified_at',
+        'agreed_terms_at',
+        'agreed_investigation_at',
+        'terms_version',
     ];
 
     /**
