@@ -8,6 +8,7 @@ class CompanyProfile extends Model
 {
     protected $fillable = [
         'user_id',
+        'member_id',
         'company_name',
         'nib',
         'pic_name',

@@ -16,20 +16,13 @@ use Inertia\Response;
 
 class CompanyController extends Controller
 {
-    /**
-     * 企業会員登録フォームを表示
-     */
     public function create(): Response
     {
         return Inertia::render('Auth/RegisterCompany');
     }
 
-    /**
-     * 企業会員登録処理
-     */
     public function store(Request $request): RedirectResponse
     {
-        // バリデーション
         $request->validate([
             'company_name'  => 'required|string|max:255',
             'nib'           => 'required|string|max:255',
@@ -41,14 +34,12 @@ class CompanyController extends Controller
             'power_letter'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
-        // ファイルアップロード処理
         $aktaPath = null;
         if ($request->hasFile('power_letter')) {
             $aktaPath = $request->file('power_letter')
                 ->store('company_docs', 'public');
         }
 
-        // usersテーブルにレコード作成
         $user = User::create([
             'name'      => $request->company_name,
             'email'     => $request->company_email,
@@ -56,9 +47,9 @@ class CompanyController extends Controller
             'role_type' => 'company',
         ]);
 
-        // company_profilesテーブルにレコード作成
         CompanyProfile::create([
             'user_id'                       => $user->id,
+            'member_id'                     => $this->generateMemberId(),
             'company_name'                  => $request->company_name,
             'nib'                           => $request->nib,
             'pic_name'                      => $request->person_name,
@@ -74,6 +65,15 @@ class CompanyController extends Controller
         event(new Registered($user));
         Auth::login($user);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('company.dashboard');
+    }
+
+    private function generateMemberId(): string
+    {
+        do {
+            $code = 'HRIC-' . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 7));
+        } while (CompanyProfile::where('member_id', $code)->exists());
+
+        return $code;
     }
 }

@@ -71,11 +71,13 @@ class GoogleAuthController extends Controller
         return redirect()->route('applicant.dashboard');
     }
 
-    // 会員ID自動採番（HRI-00001 形式）
+    // 会員ID自動採番（HRI- 7桁英数字）
     private function generateMemberId(): string
     {
-        $last = ApplicantProfile::orderByDesc('id')->first();
-        $nextNumber = $last ? (intval(substr($last->member_id, 4)) + 1) : 1;
-        return 'HRI-' . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+        do {
+            $code = 'HRIM-' . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 7));
+        } while (ApplicantProfile::where('member_id', $code)->exists());
+        
+        return $code;
     }
 }
