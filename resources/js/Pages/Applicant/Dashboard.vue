@@ -44,11 +44,16 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
 
                 <!-- プロフィールカード -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-5">
-                    <div class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600 shrink-0">
-                        {{ user.name.charAt(0).toUpperCase() }}
+                    <div class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600 shrink-0 overflow-hidden">
+                        <img
+                            v-if="profile?.profile_photo"
+                            :src="`/storage/${profile.profile_photo}`"
+                            class="w-full h-full object-cover"
+                        />
+                        <span v-else>{{ (profile?.full_name || user.name).charAt(0).toUpperCase() }}</span>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h2 class="text-lg font-bold text-gray-900 truncate">{{ user.name }}</h2>
+                        <h2 class="text-lg font-bold text-gray-900 truncate">{{ profile?.full_name || user.name }}</h2>
                         <p class="text-sm text-gray-400 truncate">{{ user.email }}</p>
                         <p v-if="profile?.member_id" class="text-xs text-gray-400 mt-1">
                             ID: <span class="font-mono font-semibold text-gray-600">{{ profile.member_id }}</span>
@@ -100,7 +105,10 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                             <div class="flex-1 pb-2">
                                 <div class="flex items-center justify-between">
                                     <p class="font-semibold text-gray-800 text-sm">Isi Formulir CV</p>
-                                    <span v-if="step1Done()" class="text-xs text-green-600 font-medium">Selesai ✓</span>
+                                    <span v-if="step1Done() && step3Done()" class="text-xs text-green-600 font-medium">Selesai ✓</span>
+                                    <Link v-else-if="step1Done()" href="/applicant/cv" class="text-xs text-green-600 font-medium hover:underline">
+                                        Selesai ✓ (Edit)
+                                    </Link>
                                     <Link v-else href="/applicant/cv" class="text-xs text-indigo-600 font-medium hover:underline">
                                         Isi CV →
                                     </Link>
@@ -125,7 +133,10 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                                     <p class="font-semibold text-sm" :class="step1Done() ? 'text-gray-800' : 'text-gray-400'">
                                         Verifikasi Identitas
                                     </p>
-                                    <span v-if="step2Done()" class="text-xs text-green-600 font-medium">Selesai ✓</span>
+                                    <span v-if="step2Done() && step3Done()" class="text-xs text-green-600 font-medium">Selesai ✓</span>
+                                    <Link v-else-if="step2Done()" href="/applicant/identity" class="text-xs text-green-600 font-medium hover:underline">
+                                        Selesai ✓ (Edit)
+                                    </Link>
                                     <Link v-else-if="step1Done()" href="/applicant/identity" class="text-xs text-indigo-600 font-medium hover:underline">
                                         Lengkapi →
                                     </Link>
@@ -168,6 +179,13 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                                 <p class="text-xs mt-1" :class="step2Done() ? 'text-gray-400' : 'text-gray-300'">
                                     Proses investigasi dan verifikasi oleh tim HRI
                                 </p>
+                                <Link
+                                    v-if="step3Done()"
+                                    href="/applicant/confirmation"
+                                    class="text-xs text-indigo-500 hover:underline mt-1 inline-block"
+                                >
+                                    Lihat CV saya →
+                                </Link>
                             </div>
                         </div>
 

@@ -22,10 +22,8 @@ const showingNavigationDropdown = ref(false);
                         <div class="flex">
                             <!-- Logo -->
                             <div class="flex shrink-0 items-center">
-                                <Link :href="route('dashboard')">
-                                    <ApplicationLogo
-                                        class="block h-9 w-auto fill-current text-gray-800"
-                                    />
+                                <Link :href="$page.props.auth.user.role_type === 'applicant' ? '/applicant/dashboard' : '/dashboard'">
+                                    <img src="/images/logo.png" alt="HRI" class="h-9 w-auto" />
                                 </Link>
                             </div>
 
@@ -34,7 +32,7 @@ const showingNavigationDropdown = ref(false);
                                 class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
                             >
                                 <NavLink
-                                    :href="route('dashboard')"
+                                    :href="$page.props.auth.user.role_type === 'applicant' ? '/applicant/dashboard' : '/dashboard'"
                                     :active="route().current('dashboard')"
                                 >
                                     Dashboard
@@ -72,15 +70,12 @@ const showingNavigationDropdown = ref(false);
 
                                     <template #content>
                                         <DropdownLink
-                                            :href="route('profile.edit')"
+                                            v-if="$page.props.auth.user.role_type === 'applicant'"
+                                            href="/applicant/profile"
                                         >
-                                            Profile
+                                            Profil Saya
                                         </DropdownLink>
-                                        <DropdownLink
-                                            :href="route('logout')"
-                                            method="post"
-                                            as="button"
-                                        >
+                                        <DropdownLink :href="route('logout')" method="post" as="button">
                                             Log Out
                                         </DropdownLink>
                                     </template>
@@ -141,7 +136,7 @@ const showingNavigationDropdown = ref(false);
                 >
                     <div class="space-y-1 pb-3 pt-2">
                         <ResponsiveNavLink
-                            :href="route('dashboard')"
+                            :href="$page.props.auth.user.role_type === 'applicant' ? '/applicant/dashboard' : '/dashboard'"
                             :active="route().current('dashboard')"
                         >
                             Dashboard
@@ -164,8 +159,14 @@ const showingNavigationDropdown = ref(false);
                         </div>
 
                         <div class="mt-3 space-y-1">
+                            <ResponsiveNavLink
+                                v-if="$page.props.auth.user.role_type === 'applicant'"
+                                href="/applicant/profile"
+                            >
+                                Profil Saya
+                            </ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('profile.edit')">
-                                Profile
+                                Pengaturan Akun
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 :href="route('logout')"

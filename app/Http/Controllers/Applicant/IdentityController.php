@@ -56,7 +56,7 @@ class IdentityController extends Controller
 
         $profile->update($data);
 
-        return redirect()->route('applicant.dashboard')
+        return redirect()->route('applicant.confirmation')
             ->with('success', 'Identitas berhasil disimpan.');
     }
 }

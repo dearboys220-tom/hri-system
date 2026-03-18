@@ -11,6 +11,11 @@ use App\Http\Controllers\Applicant\DashboardController as ApplicantDashboardCont
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\CvController;
 use App\Http\Controllers\Applicant\IdentityController;
+use App\Http\Controllers\Applicant\ConfirmationController;
+
+Route::get('/', function () {
+    return Inertia::render('Welcome');
+})->name('home');
 
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
@@ -55,7 +60,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/applicant/cv/certification/{id}', [CvController::class, 'updateCertification'])->name('applicant.cv.certification.update');
     Route::delete('/applicant/cv/certification/{id}', [CvController::class, 'destroyCertification'])->name('applicant.cv.certification.destroy');
     Route::get('/applicant/identity', [IdentityController::class, 'show'])->name('applicant.identity');
-    Route::post('/applicant/identity', [IdentityController::class, 'update'])->name('applicant.identity.update');    
+    Route::post('/applicant/identity', [IdentityController::class, 'update'])->name('applicant.identity.update');  
+    Route::get('/applicant/confirmation', [ConfirmationController::class, 'show'])->name('applicant.confirmation');
+    Route::post('/applicant/confirmation', [ConfirmationController::class, 'store'])->name('applicant.confirmation.store');
+    Route::get('/applicant/profile', [App\Http\Controllers\Applicant\ProfileController::class, 'show'])->name('applicant.profile');
+    Route::post('/applicant/profile', [App\Http\Controllers\Applicant\ProfileController::class, 'update'])->name('applicant.profile.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

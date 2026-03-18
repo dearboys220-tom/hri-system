@@ -267,7 +267,15 @@ class CvController extends Controller
             'profile_photo'    => ['nullable', 'image', 'max:2048'],
         ]);
         
-        $profile = \App\Models\ApplicantProfile::where('user_id', Auth::id())->first();
+        $profile = \App\Models\ApplicantProfile::firstOrCreate(
+            ['user_id' => Auth::id()],
+            [
+                'member_id'                     => 'HRIM-' . strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 7)),
+                'free_certification_used'       => false,
+                'free_certification_expires_at' => now()->addDays(90),
+                'certification_status'          => 'not_applied',
+            ]
+        );
         
         $data = $request->only([
             'full_name', 'gender', 'birth_date', 'nationality',
