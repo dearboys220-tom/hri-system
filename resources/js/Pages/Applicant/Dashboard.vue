@@ -25,10 +25,11 @@ const statusConfig = {
 const getStatus = (status) =>
     statusConfig[status] ?? { label: 'Belum Mengajukan', color: 'text-gray-500 bg-gray-100 border-gray-300' };
 
-// ステップ完了チェック
-const step1Done = () => !!props.profile?.nik && !!props.profile?.ktp_card;
-const step2Done = () => !!props.latestRequest;
-const step3Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
+// ステップ完了チェック（CV→本人確認→認証申請）
+const step1Done = () => !!props.profile?.full_name && !!props.profile?.phone_number;
+const step2Done = () => !!props.profile?.nik && !!props.profile?.ktp_card;
+const step3Done = () => !!props.latestRequest;
+const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
 </script>
 
 <template>
@@ -85,7 +86,7 @@ const step3Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
 
                     <div class="space-y-4">
 
-                        <!-- STEP 1 -->
+                        <!-- STEP 1：CV入力 -->
                         <div class="flex items-start gap-4">
                             <div class="shrink-0 flex flex-col items-center">
                                 <div
@@ -98,17 +99,17 @@ const step3Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                             </div>
                             <div class="flex-1 pb-2">
                                 <div class="flex items-center justify-between">
-                                    <p class="font-semibold text-gray-800 text-sm">Verifikasi Identitas</p>
+                                    <p class="font-semibold text-gray-800 text-sm">Isi Formulir CV</p>
                                     <span v-if="step1Done()" class="text-xs text-green-600 font-medium">Selesai ✓</span>
-                                    <Link v-else href="/applicant/identity" class="text-xs text-indigo-600 font-medium hover:underline">
-                                        Lengkapi →
+                                    <Link v-else href="/applicant/cv" class="text-xs text-indigo-600 font-medium hover:underline">
+                                        Isi CV →
                                     </Link>
                                 </div>
-                                <p class="text-xs text-gray-400 mt-1">Upload foto KTP dan isi NIK Anda</p>
+                                <p class="text-xs text-gray-400 mt-1">Lengkapi data diri, pendidikan, pengalaman, dan sertifikasi</p>
                             </div>
                         </div>
 
-                        <!-- STEP 2 -->
+                        <!-- STEP 2：本人確認 -->
                         <div class="flex items-start gap-4">
                             <div class="shrink-0 flex flex-col items-center">
                                 <div
@@ -122,37 +123,37 @@ const step3Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                             <div class="flex-1 pb-2">
                                 <div class="flex items-center justify-between">
                                     <p class="font-semibold text-sm" :class="step1Done() ? 'text-gray-800' : 'text-gray-400'">
-                                        Isi & Ajukan CV
+                                        Verifikasi Identitas
                                     </p>
                                     <span v-if="step2Done()" class="text-xs text-green-600 font-medium">Selesai ✓</span>
-                                    <Link v-else-if="step1Done()" href="/applicant/cv" class="text-xs text-indigo-600 font-medium hover:underline">
-                                        Isi CV →
+                                    <Link v-else-if="step1Done()" href="/applicant/identity" class="text-xs text-indigo-600 font-medium hover:underline">
+                                        Lengkapi →
                                     </Link>
                                     <span v-else class="text-xs text-gray-300">Belum bisa diakses</span>
                                 </div>
                                 <p class="text-xs mt-1" :class="step1Done() ? 'text-gray-400' : 'text-gray-300'">
-                                    Lengkapi riwayat pendidikan, pekerjaan, dan sertifikasi
+                                    Upload foto KTP dan isi NIK Anda
                                 </p>
                             </div>
                         </div>
 
-                        <!-- STEP 3 -->
+                        <!-- STEP 3：認証申請 -->
                         <div class="flex items-start gap-4">
                             <div class="shrink-0">
                                 <div
                                     class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-                                    :class="step3Done() ? 'bg-green-500 text-white' : step2Done() ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'"
+                                    :class="step4Done() ? 'bg-green-500 text-white' : step3Done() ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'"
                                 >
-                                    {{ step3Done() ? '✓' : '3' }}
+                                    {{ step4Done() ? '✓' : '3' }}
                                 </div>
                             </div>
                             <div class="flex-1">
                                 <div class="flex items-center justify-between">
                                     <p class="font-semibold text-sm" :class="step2Done() ? 'text-gray-800' : 'text-gray-400'">
-                                        Sertifikasi HRI
+                                        Ajukan Sertifikasi HRI
                                     </p>
-                                    <span v-if="step3Done()" class="text-xs text-green-600 font-semibold">Terverifikasi ✓</span>
-                                    <span v-else-if="step2Done() && latestRequest" class="text-xs font-medium px-2 py-0.5 rounded-full border" :class="getStatus(latestRequest.survey_status).color">
+                                    <span v-if="step4Done()" class="text-xs text-green-600 font-semibold">Terverifikasi ✓</span>
+                                    <span v-else-if="step3Done() && latestRequest" class="text-xs font-medium px-2 py-0.5 rounded-full border" :class="getStatus(latestRequest.survey_status).color">
                                         {{ getStatus(latestRequest.survey_status).label }}
                                     </span>
                                     <Link

@@ -10,178 +10,108 @@ const props = defineProps({
     certs: Array,
 });
 
-const activeTab = ref('education');
-const showEduForm = ref(false);
-const showWorkForm = ref(false);
-const showCertForm = ref(false);
-const editingEduId = ref(null);
-const editingWorkId = ref(null);
-const editingCertId = ref(null);
+const activeTab = ref('basic');
+
+// ===== 基本情報フォーム =====
+const basicForm = useForm({
+    full_name:       props.profile?.full_name ?? '',
+    gender:          props.profile?.gender ?? '',
+    birth_date:      props.profile?.birth_date ?? '',
+    nationality:     props.profile?.nationality ?? 'WNI',
+    marital_status:  props.profile?.marital_status ?? '',
+    phone_number:    props.profile?.phone_number ?? '',
+    whatsapp_number: props.profile?.whatsapp_number ?? '',
+    current_address: props.profile?.current_address ?? '',
+    self_pr:         props.profile?.self_pr ?? '',
+    profile_photo:   null,
+});
+
+const submitProfile = () => {
+    basicForm.post(route('applicant.cv.profile.update'), {
+        forceFormData: true,
+    });
+};
 
 // ===== 学歴フォーム =====
+const showEduForm = ref(false);
+const editingEduId = ref(null);
+
 const eduForm = useForm({
-    level: '',
-    school: '',
-    school_location: '',
-    major: '',
-    enrollment_date: '',
-    graduation_date: '',
-    graduation_status: '',
-    gpa: '',
-    achievements: '',
-    ijazah_transcript: null,
+    level: '', school: '', school_location: '', major: '',
+    enrollment_date: '', graduation_date: '', graduation_status: '',
+    gpa: '', achievements: '', ijazah_transcript: null,
 });
 
-const openEduForm = () => {
-    editingEduId.value = null;
-    eduForm.reset();
-    showEduForm.value = true;
-};
-
+const openEduForm = () => { editingEduId.value = null; eduForm.reset(); showEduForm.value = true; };
 const editEdu = (edu) => {
     editingEduId.value = edu.id;
-    eduForm.level = edu.level ?? '';
-    eduForm.school = edu.school ?? '';
-    eduForm.school_location = edu.school_location ?? '';
-    eduForm.major = edu.major ?? '';
-    eduForm.enrollment_date = edu.enrollment_date ?? '';
-    eduForm.graduation_date = edu.graduation_date ?? '';
-    eduForm.graduation_status = edu.graduation_status ?? '';
-    eduForm.gpa = edu.gpa ?? '';
-    eduForm.achievements = edu.achievements ?? '';
+    Object.keys(eduForm.data()).forEach(k => { if (edu[k] !== undefined) eduForm[k] = edu[k] ?? ''; });
     showEduForm.value = true;
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 };
-
 const submitEdu = () => {
-    if (editingEduId.value) {
-        eduForm.post(route('applicant.cv.education.update', editingEduId.value), {
-            forceFormData: true,
-            onSuccess: () => { eduForm.reset(); showEduForm.value = false; editingEduId.value = null; },
-        });
-    } else {
-        eduForm.post(route('applicant.cv.education.store'), {
-            forceFormData: true,
-            onSuccess: () => { eduForm.reset(); showEduForm.value = false; },
-        });
-    }
+    const url = editingEduId.value
+        ? route('applicant.cv.education.update', editingEduId.value)
+        : route('applicant.cv.education.store');
+    eduForm.post(url, {
+        forceFormData: true,
+        onSuccess: () => { eduForm.reset(); showEduForm.value = false; editingEduId.value = null; },
+    });
 };
-
-const deleteEdu = (id) => {
-    if (confirm('Hapus data pendidikan ini?')) {
-        router.delete(route('applicant.cv.education.destroy', id));
-    }
-};
+const deleteEdu = (id) => { if (confirm('Hapus data pendidikan ini?')) router.delete(route('applicant.cv.education.destroy', id)); };
 
 // ===== 職歴フォーム =====
+const showWorkForm = ref(false);
+const editingWorkId = ref(null);
+
 const workForm = useForm({
-    company: '',
-    company_address: '',
-    position: '',
-    employment_type: '',
-    start_date: '',
-    end_date: '',
-    duties: '',
-    resignation_reason: '',
-    achievements: '',
-    supervisor_name: '',
-    supervisor_position: '',
-    supervisor_contact: '',
-    employment_certificate: null,
+    company: '', company_address: '', position: '', employment_type: '',
+    start_date: '', end_date: '', duties: '', resignation_reason: '',
+    achievements: '', supervisor_name: '', supervisor_position: '',
+    supervisor_contact: '', employment_certificate: null,
 });
 
-const openWorkForm = () => {
-    editingWorkId.value = null;
-    workForm.reset();
-    showWorkForm.value = true;
-};
-
+const openWorkForm = () => { editingWorkId.value = null; workForm.reset(); showWorkForm.value = true; };
 const editWork = (work) => {
     editingWorkId.value = work.id;
-    workForm.company = work.company ?? '';
-    workForm.company_address = work.company_address ?? '';
-    workForm.position = work.position ?? '';
-    workForm.employment_type = work.employment_type ?? '';
-    workForm.start_date = work.start_date ?? '';
-    workForm.end_date = work.end_date ?? '';
-    workForm.duties = work.duties ?? '';
-    workForm.resignation_reason = work.resignation_reason ?? '';
-    workForm.achievements = work.achievements ?? '';
-    workForm.supervisor_name = work.supervisor_name ?? '';
-    workForm.supervisor_position = work.supervisor_position ?? '';
-    workForm.supervisor_contact = work.supervisor_contact ?? '';
+    Object.keys(workForm.data()).forEach(k => { if (work[k] !== undefined) workForm[k] = work[k] ?? ''; });
     showWorkForm.value = true;
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 };
-
 const submitWork = () => {
-    if (editingWorkId.value) {
-        workForm.post(route('applicant.cv.work.update', editingWorkId.value), {
-            forceFormData: true,
-            onSuccess: () => { workForm.reset(); showWorkForm.value = false; editingWorkId.value = null; },
-        });
-    } else {
-        workForm.post(route('applicant.cv.work.store'), {
-            forceFormData: true,
-            onSuccess: () => { workForm.reset(); showWorkForm.value = false; },
-        });
-    }
+    const url = editingWorkId.value
+        ? route('applicant.cv.work.update', editingWorkId.value)
+        : route('applicant.cv.work.store');
+    workForm.post(url, {
+        forceFormData: true,
+        onSuccess: () => { workForm.reset(); showWorkForm.value = false; editingWorkId.value = null; },
+    });
 };
-
-const deleteWork = (id) => {
-    if (confirm('Hapus data pekerjaan ini?')) {
-        router.delete(route('applicant.cv.work.destroy', id));
-    }
-};
+const deleteWork = (id) => { if (confirm('Hapus data pekerjaan ini?')) router.delete(route('applicant.cv.work.destroy', id)); };
 
 // ===== 資格フォーム =====
+const showCertForm = ref(false);
+const editingCertId = ref(null);
+
 const certForm = useForm({
-    name: '',
-    organization: '',
-    issued_date: '',
-    valid_until: '',
-    certificate_score: '',
-    notes: '',
-    certificate_file: null,
+    name: '', organization: '', issued_date: '', valid_until: '',
+    certificate_score: '', notes: '', certificate_file: null,
 });
 
-const openCertForm = () => {
-    editingCertId.value = null;
-    certForm.reset();
-    showCertForm.value = true;
-};
-
+const openCertForm = () => { editingCertId.value = null; certForm.reset(); showCertForm.value = true; };
 const editCert = (cert) => {
     editingCertId.value = cert.id;
-    certForm.name = cert.name ?? '';
-    certForm.organization = cert.organization ?? '';
-    certForm.issued_date = cert.issued_date ?? '';
-    certForm.valid_until = cert.valid_until ?? '';
-    certForm.certificate_score = cert.certificate_score ?? '';
-    certForm.notes = cert.notes ?? '';
+    Object.keys(certForm.data()).forEach(k => { if (cert[k] !== undefined) certForm[k] = cert[k] ?? ''; });
     showCertForm.value = true;
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 };
-
 const submitCert = () => {
-    if (editingCertId.value) {
-        certForm.post(route('applicant.cv.certification.update', editingCertId.value), {
-            forceFormData: true,
-            onSuccess: () => { certForm.reset(); showCertForm.value = false; editingCertId.value = null; },
-        });
-    } else {
-        certForm.post(route('applicant.cv.certification.store'), {
-            forceFormData: true,
-            onSuccess: () => { certForm.reset(); showCertForm.value = false; },
-        });
-    }
+    const url = editingCertId.value
+        ? route('applicant.cv.certification.update', editingCertId.value)
+        : route('applicant.cv.certification.store');
+    certForm.post(url, {
+        forceFormData: true,
+        onSuccess: () => { certForm.reset(); showCertForm.value = false; editingCertId.value = null; },
+    });
 };
-
-const deleteCert = (id) => {
-    if (confirm('Hapus data sertifikasi ini?')) {
-        router.delete(route('applicant.cv.certification.destroy', id));
-    }
-};
+const deleteCert = (id) => { if (confirm('Hapus data sertifikasi ini?')) router.delete(route('applicant.cv.certification.destroy', id)); };
 </script>
 
 <template>
@@ -195,68 +125,127 @@ const deleteCert = (id) => {
             <div class="mx-auto max-w-2xl px-4 space-y-4">
 
                 <!-- タブ -->
-                <div class="flex border-b border-gray-200 bg-white rounded-t-lg">
+                <div class="flex border-b border-gray-200 bg-white rounded-t-lg overflow-x-auto">
                     <button
                         v-for="tab in [
+                            { key: 'basic', label: 'Data Diri' },
                             { key: 'education', label: 'Pendidikan' },
                             { key: 'work', label: 'Pengalaman' },
                             { key: 'certification', label: 'Sertifikasi' },
                         ]"
                         :key="tab.key"
                         @click="activeTab = tab.key"
-                        class="flex-1 py-3 text-sm font-medium border-b-2 transition"
-                        :class="activeTab === tab.key
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-gray-500'"
+                        class="flex-1 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap"
+                        :class="activeTab === tab.key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'"
                     >
                         {{ tab.label }}
                     </button>
                 </div>
 
+                <!-- ===== 基本情報タブ ===== -->
+                <div v-if="activeTab === 'basic'" class="space-y-3">
+                    <div class="bg-white rounded-xl shadow-sm p-5 space-y-4">
+                        <h3 class="font-semibold text-gray-700">Informasi Dasar</h3>
+
+                        <div v-if="basicForm.wasSuccessful" class="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">
+                            ✅ Berhasil disimpan!
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
+                            <input v-model="basicForm.full_name" type="text" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm" />
+                            <p v-if="basicForm.errors.full_name" class="text-red-500 text-xs mt-1">{{ basicForm.errors.full_name }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Jenis Kelamin <span class="text-red-500">*</span></label>
+                            <select v-model="basicForm.gender" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm">
+                                <option value="">Pilih</option>
+                                <option value="Laki-laki">Laki-laki</option>
+                                <option value="Perempuan">Perempuan</option>
+                            </select>
+                            <p v-if="basicForm.errors.gender" class="text-red-500 text-xs mt-1">{{ basicForm.errors.gender }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Tanggal Lahir <span class="text-red-500">*</span></label>
+                            <input v-model="basicForm.birth_date" type="date" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm" />
+                            <p v-if="basicForm.errors.birth_date" class="text-red-500 text-xs mt-1">{{ basicForm.errors.birth_date }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Kewarganegaraan <span class="text-red-500">*</span></label>
+                            <select v-model="basicForm.nationality" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm">
+                                <option value="WNI">WNI</option>
+                                <option value="WNA">WNA</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Status Pernikahan <span class="text-red-500">*</span></label>
+                            <select v-model="basicForm.marital_status" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm">
+                                <option value="">Pilih</option>
+                                <option value="Belum Menikah">Belum Menikah</option>
+                                <option value="Menikah">Menikah</option>
+                                <option value="Cerai">Cerai</option>
+                            </select>
+                            <p v-if="basicForm.errors.marital_status" class="text-red-500 text-xs mt-1">{{ basicForm.errors.marital_status }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Nomor Telepon <span class="text-red-500">*</span></label>
+                            <input v-model="basicForm.phone_number" type="text" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm" />
+                            <p v-if="basicForm.errors.phone_number" class="text-red-500 text-xs mt-1">{{ basicForm.errors.phone_number }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Nomor WhatsApp</label>
+                            <input v-model="basicForm.whatsapp_number" type="text" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm" />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Alamat Saat Ini <span class="text-red-500">*</span></label>
+                            <textarea v-model="basicForm.current_address" rows="3" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm resize-none"></textarea>
+                            <p v-if="basicForm.errors.current_address" class="text-red-500 text-xs mt-1">{{ basicForm.errors.current_address }}</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Tentang Saya</label>
+                            <textarea v-model="basicForm.self_pr" rows="4" placeholder="Ceritakan tentang diri Anda..." class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm resize-none"></textarea>
+                        </div>
+
+                        <button
+                            @click="submitProfile"
+                            :disabled="basicForm.processing"
+                            class="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50"
+                        >
+                            {{ basicForm.processing ? 'Menyimpan...' : 'Simpan Data Diri' }}
+                        </button>
+                    </div>
+                </div>
+
                 <!-- ===== 学歴タブ ===== -->
                 <div v-if="activeTab === 'education'" class="space-y-3">
-
-                    <!-- 登録済みカード -->
-                    <div
-                        v-for="edu in educations"
-                        :key="edu.id"
-                        class="bg-white rounded-xl shadow-sm p-4"
-                    >
+                    <div v-for="edu in educations" :key="edu.id" class="bg-white rounded-xl shadow-sm p-4">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="font-semibold text-gray-800">{{ edu.school }}</p>
-                                <p class="text-sm text-gray-500">{{ edu.level }}{{ edu.major ? ' • ' + edu.major : '' }}</p>
-                                <p class="text-xs text-gray-400 mt-1">
-                                    {{ edu.enrollment_date ?? '?' }} ～ {{ edu.graduation_date ?? 'Sekarang' }}
-                                </p>
+                                <p class="text-sm text-gray-500">{{ edu.level }}{{ edu.major ? ' — ' + edu.major : '' }}</p>
+                                <p class="text-xs text-gray-400 mt-1">{{ edu.enrollment_date ?? '?' }} — {{ edu.graduation_date ?? 'Sekarang' }}</p>
                             </div>
                             <div class="flex gap-2 ml-2">
-                                <button
-                                    @click="editEdu(edu)"
-                                    class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg"
-                                >Edit</button>
-                                <button
-                                    @click="deleteEdu(edu.id)"
-                                    class="text-xs bg-red-50 text-red-500 px-3 py-1 rounded-lg"
-                                >Hapus</button>
+                                <button @click="editEdu(edu)" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg">Edit</button>
+                                <button @click="deleteEdu(edu.id)" class="text-xs bg-red-50 text-red-500 px-3 py-1 rounded-lg">Hapus</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 追加ボタン -->
-                    <button
-                        v-if="!showEduForm"
-                        @click="openEduForm"
-                        class="w-full py-4 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 font-medium text-sm hover:bg-indigo-50 transition"
-                    >
-                        ＋ Tambah Pendidikan
+                    <button v-if="!showEduForm" @click="openEduForm" class="w-full py-4 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 font-medium text-sm hover:bg-indigo-50 transition">
+                        + Tambah Pendidikan
                     </button>
 
-                    <!-- 入力フォーム -->
                     <div v-if="showEduForm" class="bg-white rounded-xl shadow-sm p-4 space-y-3">
-                        <h3 class="font-semibold text-gray-700">
-                            {{ editingEduId ? 'Edit Pendidikan' : 'Tambah Pendidikan' }}
-                        </h3>
+                        <h3 class="font-semibold text-gray-700">{{ editingEduId ? 'Edit Pendidikan' : 'Tambah Pendidikan' }}</h3>
 
                         <div>
                             <label class="block text-sm text-gray-600 mb-1">Pendidikan Terakhir <span class="text-red-500">*</span></label>
@@ -300,9 +289,7 @@ const deleteCert = (id) => {
                             <label class="block text-sm text-gray-600 mb-1">Status Kelulusan</label>
                             <select v-model="eduForm.graduation_status" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm">
                                 <option value="">Pilih</option>
-                                <option>Lulus</option>
-                                <option>Tidak Lulus</option>
-                                <option>Masih Bersekolah</option>
+                                <option>Lulus</option><option>Tidak Lulus</option><option>Masih Bersekolah</option>
                             </select>
                         </div>
 
@@ -318,23 +305,14 @@ const deleteCert = (id) => {
 
                         <div>
                             <label class="block text-sm text-gray-600 mb-1">Ijazah & Transkrip (PDF/JPG, maks 5MB)</label>
-                            <input type="file" accept=".pdf,.jpg,.jpeg,.png"
-                                @change="e => eduForm.ijazah_transcript = e.target.files[0]"
-                                class="w-full text-sm text-gray-500" />
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="e => eduForm.ijazah_transcript = e.target.files[0]" class="w-full text-sm text-gray-500" />
                         </div>
 
                         <div class="flex gap-3 pt-2">
-                            <button
-                                @click="submitEdu"
-                                :disabled="eduForm.processing"
-                                class="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-indigo-700 transition"
-                            >
+                            <button @click="submitEdu" :disabled="eduForm.processing" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-indigo-700 transition">
                                 {{ eduForm.processing ? 'Menyimpan...' : 'Simpan' }}
                             </button>
-                            <button
-                                @click="showEduForm = false; editingEduId = null; eduForm.reset()"
-                                class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl text-sm font-medium"
-                            >
+                            <button @click="showEduForm = false; editingEduId = null; eduForm.reset()" class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl text-sm font-medium">
                                 Batal
                             </button>
                         </div>
@@ -343,15 +321,12 @@ const deleteCert = (id) => {
 
                 <!-- ===== 職歴タブ ===== -->
                 <div v-if="activeTab === 'work'" class="space-y-3">
-
                     <div v-for="work in works" :key="work.id" class="bg-white rounded-xl shadow-sm p-4">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="font-semibold text-gray-800">{{ work.company }}</p>
-                                <p class="text-sm text-gray-500">{{ work.position }} • {{ work.employment_type }}</p>
-                                <p class="text-xs text-gray-400 mt-1">
-                                    {{ work.start_date }} ～ {{ work.end_date ?? 'Sekarang' }}
-                                </p>
+                                <p class="text-sm text-gray-500">{{ work.position }} — {{ work.employment_type }}</p>
+                                <p class="text-xs text-gray-400 mt-1">{{ work.start_date }} — {{ work.end_date ?? 'Sekarang' }}</p>
                             </div>
                             <div class="flex gap-2 ml-2">
                                 <button @click="editWork(work)" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg">Edit</button>
@@ -360,18 +335,12 @@ const deleteCert = (id) => {
                         </div>
                     </div>
 
-                    <button
-                        v-if="!showWorkForm"
-                        @click="openWorkForm"
-                        class="w-full py-4 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 font-medium text-sm hover:bg-indigo-50 transition"
-                    >
-                        ＋ Tambah Pengalaman Kerja
+                    <button v-if="!showWorkForm" @click="openWorkForm" class="w-full py-4 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 font-medium text-sm hover:bg-indigo-50 transition">
+                        + Tambah Pengalaman Kerja
                     </button>
 
                     <div v-if="showWorkForm" class="bg-white rounded-xl shadow-sm p-4 space-y-3">
-                        <h3 class="font-semibold text-gray-700">
-                            {{ editingWorkId ? 'Edit Pekerjaan' : 'Tambah Pekerjaan' }}
-                        </h3>
+                        <h3 class="font-semibold text-gray-700">{{ editingWorkId ? 'Edit Pekerjaan' : 'Tambah Pekerjaan' }}</h3>
 
                         <div>
                             <label class="block text-sm text-gray-600 mb-1">Nama Perusahaan <span class="text-red-500">*</span></label>
@@ -394,11 +363,8 @@ const deleteCert = (id) => {
                             <label class="block text-sm text-gray-600 mb-1">Jenis Pekerjaan <span class="text-red-500">*</span></label>
                             <select v-model="workForm.employment_type" class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm">
                                 <option value="">Pilih</option>
-                                <option>Full-time</option>
-                                <option>Part-time</option>
-                                <option>Kontrak</option>
-                                <option>Freelance</option>
-                                <option>Magang</option>
+                                <option>Full-time</option><option>Part-time</option>
+                                <option>Kontrak</option><option>Freelance</option><option>Magang</option>
                             </select>
                             <p v-if="workForm.errors.employment_type" class="text-red-500 text-xs mt-1">{{ workForm.errors.employment_type }}</p>
                         </div>
@@ -447,23 +413,14 @@ const deleteCert = (id) => {
 
                         <div>
                             <label class="block text-sm text-gray-600 mb-1">Surat Keterangan Kerja (PDF/JPG, maks 5MB)</label>
-                            <input type="file" accept=".pdf,.jpg,.jpeg,.png"
-                                @change="e => workForm.employment_certificate = e.target.files[0]"
-                                class="w-full text-sm text-gray-500" />
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="e => workForm.employment_certificate = e.target.files[0]" class="w-full text-sm text-gray-500" />
                         </div>
 
                         <div class="flex gap-3 pt-2">
-                            <button
-                                @click="submitWork"
-                                :disabled="workForm.processing"
-                                class="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-indigo-700 transition"
-                            >
+                            <button @click="submitWork" :disabled="workForm.processing" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-indigo-700 transition">
                                 {{ workForm.processing ? 'Menyimpan...' : 'Simpan' }}
                             </button>
-                            <button
-                                @click="showWorkForm = false; editingWorkId = null; workForm.reset()"
-                                class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl text-sm font-medium"
-                            >
+                            <button @click="showWorkForm = false; editingWorkId = null; workForm.reset()" class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl text-sm font-medium">
                                 Batal
                             </button>
                         </div>
@@ -472,15 +429,12 @@ const deleteCert = (id) => {
 
                 <!-- ===== 資格タブ ===== -->
                 <div v-if="activeTab === 'certification'" class="space-y-3">
-
                     <div v-for="cert in certs" :key="cert.id" class="bg-white rounded-xl shadow-sm p-4">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="font-semibold text-gray-800">{{ cert.name }}</p>
                                 <p class="text-sm text-gray-500">{{ cert.organization }}</p>
-                                <p class="text-xs text-gray-400 mt-1">
-                                    {{ cert.issued_date }} ～ {{ cert.valid_until ?? 'Tanpa Batas' }}
-                                </p>
+                                <p class="text-xs text-gray-400 mt-1">{{ cert.issued_date }} — {{ cert.valid_until ?? 'Tanpa Batas' }}</p>
                             </div>
                             <div class="flex gap-2 ml-2">
                                 <button @click="editCert(cert)" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg">Edit</button>
@@ -489,18 +443,12 @@ const deleteCert = (id) => {
                         </div>
                     </div>
 
-                    <button
-                        v-if="!showCertForm"
-                        @click="openCertForm"
-                        class="w-full py-4 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 font-medium text-sm hover:bg-indigo-50 transition"
-                    >
-                        ＋ Tambah Sertifikasi
+                    <button v-if="!showCertForm" @click="openCertForm" class="w-full py-4 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 font-medium text-sm hover:bg-indigo-50 transition">
+                        + Tambah Sertifikasi
                     </button>
 
                     <div v-if="showCertForm" class="bg-white rounded-xl shadow-sm p-4 space-y-3">
-                        <h3 class="font-semibold text-gray-700">
-                            {{ editingCertId ? 'Edit Sertifikasi' : 'Tambah Sertifikasi' }}
-                        </h3>
+                        <h3 class="font-semibold text-gray-700">{{ editingCertId ? 'Edit Sertifikasi' : 'Tambah Sertifikasi' }}</h3>
 
                         <div>
                             <label class="block text-sm text-gray-600 mb-1">Nama Sertifikat <span class="text-red-500">*</span></label>
@@ -538,23 +486,14 @@ const deleteCert = (id) => {
 
                         <div>
                             <label class="block text-sm text-gray-600 mb-1">Lampiran Sertifikat (PDF/JPG, maks 5MB)</label>
-                            <input type="file" accept=".pdf,.jpg,.jpeg,.png"
-                                @change="e => certForm.certificate_file = e.target.files[0]"
-                                class="w-full text-sm text-gray-500" />
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="e => certForm.certificate_file = e.target.files[0]" class="w-full text-sm text-gray-500" />
                         </div>
 
                         <div class="flex gap-3 pt-2">
-                            <button
-                                @click="submitCert"
-                                :disabled="certForm.processing"
-                                class="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-indigo-700 transition"
-                            >
+                            <button @click="submitCert" :disabled="certForm.processing" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-indigo-700 transition">
                                 {{ certForm.processing ? 'Menyimpan...' : 'Simpan' }}
                             </button>
-                            <button
-                                @click="showCertForm = false; editingCertId = null; certForm.reset()"
-                                class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl text-sm font-medium"
-                            >
+                            <button @click="showCertForm = false; editingCertId = null; certForm.reset()" class="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl text-sm font-medium">
                                 Batal
                             </button>
                         </div>
@@ -563,8 +502,7 @@ const deleteCert = (id) => {
 
                 <!-- 完了ボタン -->
                 <div class="pt-2 pb-8">
-                    <a href="/applicant/dashboard"
-                       class="block w-full text-center bg-gray-700 text-white py-4 rounded-xl text-sm font-medium hover:bg-gray-800 transition">
+                    <a href="/applicant/dashboard" class="block w-full text-center bg-gray-700 text-white py-4 rounded-xl text-sm font-medium hover:bg-gray-800 transition">
                         Selesai & Kembali ke Dashboard
                     </a>
                 </div>

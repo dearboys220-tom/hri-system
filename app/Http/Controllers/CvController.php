@@ -251,4 +251,39 @@ class CvController extends Controller
         $item->delete();
         return back()->with('success', 'Data sertifikasi dihapus.');
     }
+
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'full_name'        => ['required', 'string'],
+            'gender'           => ['required', 'string'],
+            'birth_date'       => ['required', 'date'],
+            'nationality'      => ['required', 'string'],
+            'marital_status'   => ['required', 'string'],
+            'phone_number'     => ['required', 'string'],
+            'whatsapp_number'  => ['nullable', 'string'],
+            'current_address'  => ['required', 'string'],
+            'self_pr'          => ['nullable', 'string'],
+            'profile_photo'    => ['nullable', 'image', 'max:2048'],
+        ]);
+        
+        $profile = \App\Models\ApplicantProfile::where('user_id', Auth::id())->first();
+        
+        $data = $request->only([
+            'full_name', 'gender', 'birth_date', 'nationality',
+            'marital_status', 'phone_number', 'whatsapp_number',
+            'current_address', 'self_pr',
+        ]);
+        
+        if ($request->hasFile('profile_photo')) {
+            if ($profile->profile_photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($profile->profile_photo);
+            }
+            $data['profile_photo'] = $request->file('profile_photo')->store('profile_photos', 'public');
+        }
+        
+        $profile->update($data);
+        
+        return back()->with('success', 'Informasi dasar berhasil disimpan.');
+    }
 }

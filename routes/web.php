@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Applicant\DashboardController as ApplicantDashboardController;
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\CvController;
+use App\Http\Controllers\Applicant\IdentityController;
 
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
@@ -43,6 +44,7 @@ Route::middleware('auth')->group(function () {
 
     // ★ここに追加★
     Route::get('/applicant/cv', [CvController::class, 'index'])->name('applicant.cv');
+    Route::post('/applicant/cv/profile', [CvController::class, 'updateProfile'])->name('applicant.cv.profile.update');
     Route::post('/applicant/cv/education', [CvController::class, 'storeEducation'])->name('applicant.cv.education.store');
     Route::delete('/applicant/cv/education/{id}', [CvController::class, 'destroyEducation'])->name('applicant.cv.education.destroy');
     Route::post('/applicant/cv/education/{id}', [CvController::class, 'updateEducation'])->name('applicant.cv.education.update');
@@ -52,6 +54,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/applicant/cv/certification', [CvController::class, 'storeCertification'])->name('applicant.cv.certification.store');
     Route::post('/applicant/cv/certification/{id}', [CvController::class, 'updateCertification'])->name('applicant.cv.certification.update');
     Route::delete('/applicant/cv/certification/{id}', [CvController::class, 'destroyCertification'])->name('applicant.cv.certification.destroy');
+    Route::get('/applicant/identity', [IdentityController::class, 'show'])->name('applicant.identity');
+    Route::post('/applicant/identity', [IdentityController::class, 'update'])->name('applicant.identity.update');    
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
