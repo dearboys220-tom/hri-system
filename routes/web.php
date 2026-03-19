@@ -31,9 +31,11 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     // 企業会員
-    Route::get('/company/dashboard', function () {
-        return Inertia::render('Company/Dashboard');
-    })->name('company.dashboard');
+    Route::get('/company/dashboard', [CompanyController::class, 'dashboard'])->name('company.dashboard');
+
+    // 企業会員プロフィール
+    Route::get('/company/profile', [CompanyController::class, 'showProfile'])->name('company.profile');
+    Route::post('/company/profile', [CompanyController::class, 'updateProfile'])->name('company.profile.update');
 
     // 個人会員
     Route::get('/applicant/dashboard', [ApplicantDashboardController::class, 'index'])
