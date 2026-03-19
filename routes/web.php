@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\JobController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -37,6 +38,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/company/profile', [CompanyController::class, 'showProfile'])->name('company.profile');
     Route::post('/company/profile', [CompanyController::class, 'updateProfile'])->name('company.profile.update');
 
+    // 求人管理
+    Route::get('/company/jobs', [JobController::class, 'index'])->name('company.jobs.index');
+    Route::get('/company/jobs/create', [JobController::class, 'create'])->name('company.jobs.create');
+    Route::post('/company/jobs', [JobController::class, 'store'])->name('company.jobs.store');
+    Route::get('/company/jobs/{id}', [JobController::class, 'show'])->name('company.jobs.show');
+    Route::get('/company/jobs/{id}/edit', [JobController::class, 'edit'])->name('company.jobs.edit');
+    Route::post('/company/jobs/{id}', [JobController::class, 'update'])->name('company.jobs.update');
+    Route::delete('/company/jobs/{id}', [JobController::class, 'destroy'])->name('company.jobs.destroy');
+
     // 個人会員
     Route::get('/applicant/dashboard', [ApplicantDashboardController::class, 'index'])
         ->name('applicant.dashboard');
@@ -45,6 +55,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', function () {
         return Inertia::render('Admin/Admin/Dashboard');
     })->name('admin.dashboard');
+
+    // 公開求人ページ（認証不要）
+    Route::get('/jobs', [App\Http\Controllers\PublicJobController::class, 'index'])->name('jobs.index');
+    Route::get('/jobs/{id}', [App\Http\Controllers\PublicJobController::class, 'show'])->name('jobs.show');
+
+    Route::post('/jobs/{id}/apply', [App\Http\Controllers\JobApplicationController::class, 'store'])->name('jobs.apply')->middleware('auth');
 
     Route::get('/applicant/consent', [ConsentController::class, 'show'])->name('applicant.consent');
     Route::post('/applicant/consent', [ConsentController::class, 'store'])->name('applicant.consent.store');
