@@ -46,6 +46,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/company/jobs/{id}/edit', [JobController::class, 'edit'])->name('company.jobs.edit');
     Route::post('/company/jobs/{id}', [JobController::class, 'update'])->name('company.jobs.update');
     Route::delete('/company/jobs/{id}', [JobController::class, 'destroy'])->name('company.jobs.destroy');
+    Route::get('/company/jobs/{jobId}/applications', [App\Http\Controllers\CompanyApplicationController::class, 'index'])->name('company.applications.index');
+    Route::post('/company/applications/{appId}/status', [App\Http\Controllers\CompanyApplicationController::class, 'updateStatus'])->name('company.applications.status');
+    Route::get('/company/applications/{appId}', [App\Http\Controllers\CompanyApplicationController::class, 'show'])->name('company.applications.show');
 
     // 個人会員
     Route::get('/applicant/dashboard', [ApplicantDashboardController::class, 'index'])

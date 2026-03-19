@@ -45,7 +45,8 @@ const statusConfig = {
             <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-5">
 
                 <!-- 成功メッセージ -->
-                <div v-if="flash.success" class="bg-green-50 border border-green-200 rounded-xl p-4 text-green-700 text-sm font-medium">
+                <div v-if="flash.success"
+                     class="bg-green-50 border border-green-200 rounded-xl p-4 text-green-700 text-sm font-medium">
                     ✅ {{ flash.success }}
                 </div>
 
@@ -53,18 +54,19 @@ const statusConfig = {
                 <div class="flex items-center justify-between">
                     <p class="text-sm text-gray-500">{{ jobs.length }} lowongan ditemukan</p>
                     <Link href="/company/jobs/create"
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition">
+                          class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition">
                         + Posting Lowongan
                     </Link>
                 </div>
 
                 <!-- 求人なし -->
-                <div v-if="jobs.length === 0" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+                <div v-if="jobs.length === 0"
+                     class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
                     <p class="text-4xl mb-3">📋</p>
                     <p class="font-semibold text-gray-700">Belum ada lowongan</p>
                     <p class="text-sm text-gray-500 mt-1">Mulai posting lowongan pertama Anda!</p>
                     <Link href="/company/jobs/create"
-                        class="inline-block mt-4 bg-indigo-600 text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700 transition">
+                          class="inline-block mt-4 bg-indigo-600 text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700 transition">
                         + Posting Sekarang
                     </Link>
                 </div>
@@ -72,30 +74,57 @@ const statusConfig = {
                 <!-- 求人一覧 -->
                 <div v-else class="space-y-3">
                     <div v-for="job in jobs" :key="job.id"
-                        class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h3 class="font-semibold text-gray-800 hover:text-indigo-600">
-                                    <Link :href="`/company/jobs/${job.id}`">{{ job.title }}</Link>
-                                </h3>
-                                <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', statusConfig[job.status]?.color ?? 'bg-gray-100 text-gray-600']">
-                                    {{ statusConfig[job.status]?.label ?? job.status }}
-                                </span>
-                                <span v-if="job.is_free_post" class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                                    🎁 GRATIS
-                                </span>
-                            </div>
-                            <div class="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                                <span>📍 {{ job.location }}</span>
-                                <span>💼 {{ job.employment_type }}</span>
-                                <span>💰 {{ formatSalary(job.salary_min, job.salary_max) }}</span>
-                                <span>📅 Deadline: {{ formatDate(job.application_deadline) }}</span>
-                                <span>👥 {{ job.application_count }} pelamar</span>
+                         class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+
+                        <!-- 上段：タイトル・バッジ・情報 -->
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-semibold text-gray-800 hover:text-indigo-600">
+                                        <Link :href="`/company/jobs/${job.id}`">{{ job.title }}</Link>
+                                    </h3>
+                                    <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', statusConfig[job.status]?.color ?? 'bg-gray-100 text-gray-600']">
+                                        {{ statusConfig[job.status]?.label ?? job.status }}
+                                    </span>
+                                    <span v-if="job.is_free_post"
+                                          class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                        🎁 GRATIS
+                                    </span>
+                                </div>
+                                <div class="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                                    <span>📍 {{ job.location }}</span>
+                                    <span>💼 {{ job.employment_type }}</span>
+                                    <span>💰 {{ formatSalary(job.salary_min, job.salary_max) }}</span>
+                                    <span>📅 Deadline: {{ formatDate(job.application_deadline) }}</span>
+                                    <span>👁 {{ job.views }} views</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex gap-2 flex-shrink-0">
-                            <span class="text-xs text-gray-400">{{ job.views }} views</span>
+
+                        <!-- 下段：アクションボタン -->
+                        <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-50">
+                            <!-- 応募者管理ボタン（メイン） -->
+                            <Link :href="`/company/jobs/${job.id}/applications`"
+                                  class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+                                👥 Lihat Pelamar
+                                <span class="bg-white/20 px-1.5 py-0.5 rounded-md">
+                                    {{ job.application_count }}
+                                </span>
+                            </Link>
+
+                            <!-- 求人詳細 -->
+                            <Link :href="`/company/jobs/${job.id}`"
+                                  class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-xl transition">
+                                🔍 Detail
+                            </Link>
+
+                            <!-- 編集 -->
+                            <Link :href="`/company/jobs/${job.id}/edit`"
+                                  class="text-xs bg-yellow-50 hover:bg-yellow-100 text-yellow-700 font-medium px-4 py-2 rounded-xl transition">
+                                ✏️ Edit
+                            </Link>
                         </div>
+
                     </div>
                 </div>
 
