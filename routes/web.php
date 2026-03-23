@@ -83,6 +83,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/applicant/identity', [IdentityController::class, 'show'])->name('applicant.identity');
     Route::post('/applicant/identity', [IdentityController::class, 'update'])->name('applicant.identity.update');  
     Route::get('/applicant/confirmation', [ConfirmationController::class, 'show'])->name('applicant.confirmation');
+    Route::get('/applicant/applications', [App\Http\Controllers\Applicant\ApplicationController::class, 'index'])->name('applicant.applications');
     Route::post('/applicant/confirmation', [ConfirmationController::class, 'store'])->name('applicant.confirmation.store');
     Route::get('/applicant/profile', [App\Http\Controllers\Applicant\ProfileController::class, 'show'])->name('applicant.profile');
     Route::post('/applicant/profile', [App\Http\Controllers\Applicant\ProfileController::class, 'update'])->name('applicant.profile.update');
