@@ -25,7 +25,6 @@ const statusConfig = {
 const getStatus = (status) =>
     statusConfig[status] ?? { label: 'Belum Mengajukan', color: 'text-gray-500 bg-gray-100 border-gray-300' };
 
-// ステップ完了チェック（CV→本人確認→認証申請）
 const step1Done = () => !!props.profile?.full_name && !!props.profile?.phone_number;
 const step2Done = () => !!props.profile?.nik && !!props.profile?.ktp_card;
 const step3Done = () => !!props.latestRequest;
@@ -192,10 +191,10 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                     </div>
                 </div>
 
-                <!-- 下部2カード -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- 下部3カード -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
-                    <!-- 求人応募 -->
+                    <!-- 応募履歴 -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-semibold text-gray-800">Riwayat Lamaran</h3>
@@ -207,10 +206,19 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                         </div>
                     </div>
 
+                    <!-- ブックマーク -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-gray-800">Lowongan Disimpan</h3>
+                            <Link href="/applicant/bookmarks" class="text-xs text-indigo-600 hover:underline">Lihat semua →</Link>
+                        </div>
+                        <p class="text-sm text-gray-400">Lowongan yang kamu simpan untuk dilamar nanti.</p>
+                    </div>
+
                     <!-- 求人検索 -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                         <h3 class="font-semibold text-gray-800 mb-2">Cari Lowongan</h3>
-                        <p class="text-sm text-gray-400 mb-4">Temukan pekerjaan yang sesuai dengan keahlian Anda.</p>
+                        <p class="text-sm text-gray-400 mb-4">Temukan pekerjaan yang sesuai keahlian Anda.</p>
                         <Link
                             href="/jobs"
                             class="block text-center bg-indigo-600 text-white text-sm px-4 py-2 rounded-xl hover:bg-indigo-700 transition"
