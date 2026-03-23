@@ -24,6 +24,8 @@ class CompanyProfile extends Model
         'industry_type',
         'company_size',
         'company_verification_status',
+        'verified_by',
+        'verified_at',
         'free_job_post_used',
         'free_job_post_expires_at',
     ];

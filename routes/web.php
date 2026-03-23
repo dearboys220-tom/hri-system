@@ -129,6 +129,19 @@ Route::prefix('admin')
                 Route::post('/{id}/complete', [App\Http\Controllers\ReviewerController::class, 'complete'])->name('complete');
                 Route::post('/{id}/return', [App\Http\Controllers\ReviewerController::class, 'returnToInvestigator'])->name('return');
             });
+        
+        // 管理チーム
+        Route::prefix('admin')
+            ->name('admin.')
+            ->group(function () {
+                Route::get('/',           [App\Http\Controllers\AdminController::class, 'dashboard'])->name('index');
+                Route::get('/evaluate',   [App\Http\Controllers\AdminController::class, 'index'])->name('evaluate');
+                Route::post('/{id}/approve', [App\Http\Controllers\AdminController::class, 'approve'])->name('approve');
+                Route::post('/{id}/reject',  [App\Http\Controllers\AdminController::class, 'reject'])->name('reject');
+                Route::post('/{id}/return',  [App\Http\Controllers\AdminController::class, 'returnToReviewer'])->name('return');
+                Route::get('/companies',  [App\Http\Controllers\AdminController::class, 'companies'])->name('companies');
+                Route::post('/companies/{id}/status', [App\Http\Controllers\AdminController::class, 'updateCompanyStatus'])->name('companies.status');
+            });
     });
 
     // スタッフ用ログイン
