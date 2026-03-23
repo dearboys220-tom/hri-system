@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\JobPost;
 use App\Models\CompanyProfile;
+use App\Models\JobApplication;
+use App\Models\Bookmark;
 use App\Data\JobCategories;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,15 +14,12 @@ class PublicJobController extends Controller
 {
     public function show(int $id): Response
     {
-        // activeな求人のみ表示
         $job = JobPost::where('id', $id)
             ->where('status', 'active')
             ->firstOrFail();
 
-        // 企業プロフィール取得
         $company = CompanyProfile::where('user_id', $job->company_id)->first();
 
-        // カテゴリ名を解決
         $categories = JobCategories::all();
         $categoryName = $job->category
             ? ($categories[$job->category]['name'] ?? $job->category)
@@ -28,12 +27,17 @@ class PublicJobController extends Controller
         $subcategoryName = ($job->category && $job->subcategory)
             ? ($categories[$job->category]['subcategories'][$job->subcategory] ?? $job->subcategory)
             : null;
-        
-        // ★ 追加：応募済みチェック
+
         $alreadyApplied = false;
+        $isBookmarked   = false;
+
         if (auth()->check() && auth()->user()->role_type === 'applicant') {
-            $alreadyApplied = \App\Models\JobApplication::where('job_post_id', $id)
+            $alreadyApplied = JobApplication::where('job_post_id', $id)
                 ->where('applicant_id', auth()->id())
+                ->exists();
+
+            $isBookmarked = Bookmark::where('job_post_id', $id)
+                ->where('user_id', auth()->id())
                 ->exists();
         }
 
@@ -42,7 +46,8 @@ class PublicJobController extends Controller
             'company'         => $company,
             'categoryName'    => $categoryName,
             'subcategoryName' => $subcategoryName,
-            'alreadyApplied' => $alreadyApplied,
+            'alreadyApplied'  => $alreadyApplied,
+            'isBookmarked'    => $isBookmarked,
         ]);
     }
 

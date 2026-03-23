@@ -87,10 +87,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/applicant/confirmation', [ConfirmationController::class, 'store'])->name('applicant.confirmation.store');
     Route::get('/applicant/profile', [App\Http\Controllers\Applicant\ProfileController::class, 'show'])->name('applicant.profile');
     Route::post('/applicant/profile', [App\Http\Controllers\Applicant\ProfileController::class, 'update'])->name('applicant.profile.update');
-
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // ブックマーク
+    Route::get('/applicant/bookmarks', [App\Http\Controllers\Applicant\BookmarkController::class, 'index'])->name('applicant.bookmarks');
+    Route::post('/applicant/bookmarks/{jobPostId}/toggle', [App\Http\Controllers\Applicant\BookmarkController::class, 'toggle'])->name('applicant.bookmarks.toggle');
 });
 
 Route::prefix('admin')
