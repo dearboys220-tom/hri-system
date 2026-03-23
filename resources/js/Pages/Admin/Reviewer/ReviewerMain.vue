@@ -1,631 +1,384 @@
 <script setup>
-import Button from '@/Components/Admin/Components/Button.vue'
-import Card from '@/Components/Admin/Components/Card.vue'
-import Divider from '@/Components/Admin/Components/Divider.vue'
-import ImageViewer from '@/Components/Admin/Components/ImageViewer.vue'
-import InfoField from '@/Components/Admin/Components/InfoField.vue'
-import SectionHeader from '@/Components/Admin/Components/SectionHeader.vue'
-import InvestReviewLayout from '@/Components/Admin/Layout/InvestReviewLayout.vue'
-import { MagnifyingGlassIcon, UserCircleIcon } from '@heroicons/vue/24/outline'
-import { ref, computed } from 'vue'
+import Button from '@/Components/Admin/Components/Button.vue';
+import Card from '@/Components/Admin/Components/Card.vue';
+import Divider from '@/Components/Admin/Components/Divider.vue';
+import ImageViewer from '@/Components/Admin/Components/ImageViewer.vue';
+import SectionHeader from '@/Components/Admin/Components/SectionHeader.vue';
+import InvestReviewLayout from '@/Components/Admin/Layout/InvestReviewLayout.vue';
+import { MagnifyingGlassIcon, UserCircleIcon } from '@heroicons/vue/24/outline';
+import { ref, computed, watch } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 defineOptions({
-  layout: (h, page) =>
-    h(InvestReviewLayout, {
-      title: 'Halaman Penilai (Tim Review)',
-      subtitle: 'Evaluasi & Hasil Peninjauan Investigator'
-    }, () => page)
-})
+    layout: (h, page) =>
+        h(InvestReviewLayout, {
+            title: 'Tim Reviewer',
+            subtitle: 'Evaluasi & Penilaian Hasil Investigasi'
+        }, () => page)
+});
 
-/* ================== STATE ================== */
+const props = defineProps({
+    cases:      { type: Array,  default: () => [] },
+    detail:     { type: Object, default: null },
+    selectedId: { type: Number, default: null },
+});
 
-const search = ref('')
-const showImage = ref(false)
+// ---- 左パネル ----
+const search = ref('');
+const filteredCases = computed(() =>
+    props.cases.filter(c =>
+        c.name?.toLowerCase().includes(search.value.toLowerCase()) ||
+        c.member_id?.toLowerCase().includes(search.value.toLowerCase())
+    )
+);
 
-const profileImage = ref('https://picsum.photos/500/500')
-
-/* ================== DATA (SUDAH DINILAI INVESTIGATOR) ================== */
-const profileData = [
-  { label: 'Nama Lengkap', value: 'TIKA', status: 'valid' },
-  { label: 'NIK', value: '3215054208010008', status: 'valid' },
-  { label: 'KTP', value: '32448', status: 'valid' },
-  { label: 'Alamat Sesuai KTP', value: 'Tidak Ada Data', status: 'valid' },
-  { label: 'Jenis Kelamin', value: 'Perempuan', status: 'valid' },
-  { label: 'Tanggal Lahir', value: '02/02/1999', status: 'valid' },
-  { label: 'Status Pernikahan', value: 'Belum Menikah', status: 'valid' },
-  { label: 'Kewarganegaraan', value: 'Malaysia', status: 'invalid' },
-  { label: 'Alamat Saat Ini', value: 'JAKSEL', status: 'invalid' },
-  { label: 'Email', value: 'mellayaa17@gmail.com', status: 'invalid' },
-  { label: 'Telepon', value: '08981631363', status: 'valid' },
-  { label: 'WhatsApp', value: '08981631363', status: 'valid' },
-  { label: 'LinkedIn', value: 'Tidak Ada Data', status: 'valid' },
-  { label: 'Facebook', value: 'Tidak Ada Data', status: 'valid' },
-  { label: 'Instagram', value: 'Tidak Ada Data', status: 'valid' }
-]
-
-const educations = ref([
-  {
-    id: 1,
-
-    fields: [
-      { label: 'Nama Sekolah', value: 'UTT', status: 'valid' },
-      { label: 'Pendidikan Terakhir', value: 'Sarjana (S1)', status: 'valid' },
-      { label: 'Alamat Sekolah', value: 'TANGSEL', status: 'valid' },
-      { label: 'Jurusan', value: 'AKUNTANSI', status: 'valid' },
-      { label: 'Tanggal Masuk', value: '12/02/2026', status: 'valid' },
-      { label: 'Tanggal Lulus', value: '11/02/2026', status: 'valid' },
-      { label: 'Status Kelulusan', value: 'Lulus', status: 'valid' },
-      { label: 'IPK / Nilai Akhir', value: '3.05', status: 'valid' },
-      { label: 'Penghargaan', value: 'Tidak Ada Data', status: 'valid' },
-      { label: 'Ijazah & Transkrip Nilai', value: '1 File', status: 'valid' }
-    ],
-  },
-   {
-    id: 1,
-
-    fields: [
-      { label: 'Nama Sekolah', value: 'UTT', status: 'valid' },
-      { label: 'Pendidikan Terakhir', value: 'Sarjana (S1)', status: 'valid' },
-      { label: 'Alamat Sekolah', value: 'TANGSEL', status: 'valid' },
-      { label: 'Jurusan', value: 'AKUNTANSI', status: 'valid' },
-      { label: 'Tanggal Masuk', value: '12/02/2026', status: 'valid' },
-      { label: 'Tanggal Lulus', value: '11/02/2026', status: 'valid' },
-      { label: 'Status Kelulusan', value: 'Lulus', status: 'valid' },
-      { label: 'IPK / Nilai Akhir', value: '3.05', status: 'valid' },
-      { label: 'Penghargaan', value: 'Tidak Ada Data', status: 'valid' },
-      { label: 'Ijazah & Transkrip Nilai', value: '1 File', status: 'valid' }
-    ],
-  }
-])
-
-const cardClass = (status) => {
-  if (status === 'valid')
-    return 'border-green-200 bg-green-50/40'
-  if (status === 'invalid')
-    return 'border-red-200 bg-red-50/40'
-  return 'border-slate-200 bg-white'
+function selectCase(id) {
+    router.get(route('admin.reviewer.index'), { id }, { preserveScroll: true });
 }
 
+// ---- 減点入力 ----
+const deductionInputs  = ref({});
+const reviewerComments = ref('');
+const returnReason     = ref('');
 
-const workExperiences = ref([
-  {
-    id: 1,
+watch(() => props.detail, (d) => {
+    reviewerComments.value = d?.reviewer_comments ?? '';
+    returnReason.value = '';
+    if (!d) return;
 
-    fields: [
-      { label: 'Nama Perusahaan', value: 'PT Teknologi Nusantara', status: 'valid' },
-      { label: 'Alamat Perusahaan', value: 'Jakarta Selatan', status: 'valid' },
-      { label: 'Tanggal Mulai', value: '2020', status: 'valid' },
-      { label: 'Tanggal Selesai', value: '2023', status: 'valid' },
-      { label: 'Jenis Pekerjaan', value: 'Full Time', status: 'valid' },
-      { label: 'Jabatan', value: 'Software Engineer', status: 'valid' },
-      { label: 'Deskripsi', value: 'Mengembangkan sistem internal perusahaan.', status: 'valid' },
-      { label: 'Alasan Berhenti', value: 'Mencari tantangan baru', status: 'valid' },
-      { label: 'Pencapaian', value: 'Meningkatkan performa sistem 40%', status: 'valid' },
-      { label: 'Nama Atasan', value: 'Budi Santoso', status: 'valid' },
-      { label: 'Jabatan Atasan', value: 'IT Manager', status: 'valid' },
-      { label: 'No. Telp Aktif', value: '08123456789', status: 'valid' },
-      { label: 'Surat Keterangan', value: '1 File', status: 'valid' }
-    ],
+    const map = d.review_map ?? {};
+    const inputs = {};
 
-    deduction: 0.0
-  }
-])
+    const sections = [
+        { items: d.inv_basic, category: 'basic_info' },
+        { items: d.inv_edu,   category: 'education' },
+        { items: d.inv_work,  category: 'work' },
+        { items: d.inv_cert,  category: 'certification' },
+    ];
 
-const certificates = ref([
-  {
-    id: 1,
+    sections.forEach(({ items, category }) => {
+        items?.forEach(item => {
+            inputs[item.item_name] = {
+                actual_deduction: map[item.item_name]?.actual_deduction ?? 0,
+                notes:            map[item.item_name]?.notes ?? '',
+                category,
+                max_deduction:    item.max_deduction ?? 10,
+            };
+        });
+    });
 
-    fields: [
-      { label: 'Nama Sertifikat', value: 'ISO Compliance Training', status: 'valid' },
-      { label: 'Instansi Penerbit', value: 'Badan Sertifikasi Nasional', status: 'valid' },
-      { label: 'Tanggal Terbit', value: '2023-01-12', status: 'valid' },
-      { label: 'Masa Berlaku', value: '2026-01-12', status: 'valid' },
-      { label: 'Skor / Level', value: 'A', status: 'valid' },
-      { label: 'Keterangan', value: 'Sertifikasi tingkat lanjutan', status: 'valid' },
-      { label: 'Lampiran', value: '1 File', status: 'valid' }
-    ],
+    deductionInputs.value = inputs;
+}, { immediate: true });
 
-    deduction: 0.0
-  }
-])
+// ---- 加重平均スコア計算 ----
+const WEIGHTS = {
+    basic_info:    0.15,
+    education:     0.35,
+    work:          0.40,
+    certification: 0.10,
+    other:         0.00,
+};
 
+const MAX_DEDUCTIONS = {
+    basic_info:    15,
+    education:     35,
+    work:          40,
+    certification: 10,
+};
 
-/* ================== SCORE SYSTEM ================== */
+const liveDeductions = computed(() => {
+    const byCategory = { basic_info: 0, education: 0, work: 0, certification: 0, other: 0 };
 
-// const maxScore = 100
+    Object.values(deductionInputs.value).forEach(d => {
+        const cat = d.category ?? 'other';
+        byCategory[cat] = (byCategory[cat] ?? 0) + Number(d.actual_deduction ?? 0);
+    });
 
-// const totalDeduction = computed(() => {
-//   let total = 0
+    // 加重平均方式: カテゴリ減点率 × 重み × 100
+    let totalWeighted = 0;
+    Object.keys(WEIGHTS).forEach(cat => {
+        const max    = MAX_DEDUCTIONS[cat] ?? 1;
+        const actual = byCategory[cat] ?? 0;
+        const ratio  = max > 0 ? Math.min(actual / max, 1.0) : 0;
+        totalWeighted += ratio * WEIGHTS[cat] * 100;
+    });
 
-//   profileData.value.forEach(f => total += f.deduction)
+    return {
+        byCategory,
+        totalWeighted: Math.round(totalWeighted * 100) / 100,
+    };
+});
 
-//   educations.value.forEach(e => {
-//     total += e.namaSekolahDeduction || 0
-//     total += e.ipkDeduction || 0
-//   })
+const liveScore = computed(() => Math.max(0, 100 - liveDeductions.value.totalWeighted));
 
-//   workExperiences.value.forEach(w => {
-//     total += w.namaPerusahaanDeduction || 0
-//     total += w.alasanBerhentiDeduction || 0
-//   })
+// ---- カテゴリ別加重減点を計算 ----
+function categoryWeightedDeduction(cat, maxPts) {
+    const actual = liveDeductions.value.byCategory[cat] ?? 0;
+    const ratio  = maxPts > 0 ? Math.min(actual / maxPts, 1.0) : 0;
+    return (ratio * WEIGHTS[cat] * 100).toFixed(2);
+}
 
-//   certificates.value.forEach(c => {
-//     total += c.namaSertifikatDeduction || 0
-//   })
+// ---- バッジ・カード色 ----
+function badgeClass(validity) {
+    if (validity === 'VALID')   return 'bg-green-100 text-green-700 border border-green-300';
+    if (validity === 'INVALID') return 'bg-red-100 text-red-700 border border-red-300';
+    return 'bg-yellow-100 text-yellow-700 border border-yellow-300';
+}
 
-//   return total
-// })
+function cardClass(validity) {
+    if (validity === 'VALID')   return 'border-green-200 bg-green-50/40';
+    if (validity === 'INVALID') return 'border-red-200 bg-red-50/40';
+    return 'border-yellow-200 bg-yellow-50/40';
+}
 
-// const finalScore = computed(() => maxScore - totalDeduction.value)
+function badgeLabel(validity) {
+    if (validity === 'VALID')   return 'Valid';
+    if (validity === 'INVALID') return 'Tidak Valid';
+    return 'Belum Dicek';
+}
 
-/* ================== HELPER ================== */
+// ---- 画像ビューアー ----
+const showImage    = ref(false);
+const viewImageSrc = ref('');
+function openImage(src) { viewImageSrc.value = src; showImage.value = true; }
 
-const badgeClass = (status) => {
-  if (status === 'valid')
-    return 'bg-green-100 text-green-700 border border-green-300'
-  if (status === 'invalid')
-    return 'bg-red-100 text-red-700 border border-red-300'
-  return 'bg-slate-100 text-slate-600 border border-slate-300'
+// ---- アクション ----
+const saving = ref(false);
+
+function buildItems() {
+    return Object.entries(deductionInputs.value).map(([item_name, d]) => ({
+        item_name,
+        category:         d.category,
+        actual_deduction: Number(d.actual_deduction ?? 0),
+        notes:            d.notes ?? '',
+    }));
+}
+
+function saveAll() {
+    if (!props.detail) return;
+    saving.value = true;
+    router.post(
+        route('admin.reviewer.save', props.detail.id),
+        { reviewer_comments: reviewerComments.value, items: buildItems() },
+        { onFinish: () => { saving.value = false; } }
+    );
+}
+
+function sendComplete() {
+    if (!props.detail) return;
+    if (!confirm('Kirim ke Tim Admin? Pastikan penilaian sudah selesai.')) return;
+    router.post(route('admin.reviewer.complete', props.detail.id));
+}
+
+function sendReturn() {
+    if (!props.detail) return;
+    if (!returnReason.value.trim()) { alert('Isi alasan pengembalian.'); return; }
+    router.post(route('admin.reviewer.return', props.detail.id), { return_reason: returnReason.value });
 }
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-10 gap-6 items-start">
+    <div class="grid grid-cols-1 md:grid-cols-10 gap-6 items-start">
 
-    <Card class="md:col-span-3 self-start md:sticky md:top-28 h-fit">
-      <SectionHeader
-        title="Daftar Permintaan"
-        subtitle="Cari & pilih permintaan"
-      />
+        <!-- ===== 左パネル ===== -->
+        <Card class="md:col-span-3 self-start md:sticky md:top-28 h-fit">
+            <SectionHeader title="Daftar Kasus" subtitle="Pilih kasus untuk dinilai" />
 
-      <div class="flex gap-2 mt-4">
-        <div class="relative flex-1">
-          <MagnifyingGlassIcon class="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-          <input
-            v-model="search"
-            placeholder="Cari nama / NIK..."
-            class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-sm"
-          />
-        </div>
-      </div>
-
-      <Divider class="my-4" />
-
-      <div class="space-y-3 max-h-[360px] overflow-y-auto">
-        <div
-          v-for="i in 5"
-          :key="i"
-          class="p-4 rounded-xl border hover:bg-admin-primary-50 cursor-pointer"
-        >
-          <div class="flex items-center gap-2">
-            <UserCircleIcon class="w-5 h-5 text-admin-primary-600" />
-            <div>
-              <p class="text-sm font-medium">HRIM-00{{ i }}</p>
-              <p class="text-xs text-slate-500">TIKA • 03/02/2026</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Card>
-
-    <!-- ================= RIGHT SIDE ================= -->
-    <Card class="md:col-span-7 space-y-5">
-        <SectionHeader
-            title="Informasi Pemohon"
-            subtitle="Ringkasan data utama pelamar"
-        />
-
-        <div class="mt-6 flex flex-col md:flex-row md:items-center gap-6">
-
-            <!-- FOTO -->
-            <div class="flex justify-center md:justify-start">
-            <img
-                src="https://picsum.photos/200"
-                class="w-24 h-24 rounded-2xl object-cover shadow"
-            />
+            <div class="flex gap-2 mt-4 mb-4">
+                <div class="relative flex-1">
+                    <MagnifyingGlassIcon class="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <input v-model="search" placeholder="Cari nama..."
+                        class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-admin-primary-600" />
+                </div>
+                <Button variant="secondary" size="sm" @click="search = ''">Reset</Button>
             </div>
 
-            <!-- DATA -->
-            <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+            <Divider />
 
-            <div>
-                <p class="text-slate-500 text-xs">Nama Lengkap</p>
-                <p class="font-semibold text-slate-800">TIKA</p>
+            <div class="space-y-3 mt-4 max-h-[400px] overflow-y-auto pr-1">
+                <div v-if="filteredCases.length === 0" class="text-center py-8 text-slate-400 text-sm">
+                    Tidak ada kasus
+                </div>
+                <div v-for="c in filteredCases" :key="c.id" @click="selectCase(c.id)"
+                    class="p-4 rounded-xl border cursor-pointer transition"
+                    :class="c.id === selectedId
+                        ? 'border-admin-primary-600 bg-admin-primary-50'
+                        : 'border-slate-200 hover:border-admin-primary-400 hover:bg-admin-primary-50'">
+                    <div class="flex items-center gap-2">
+                        <UserCircleIcon class="w-5 h-5 text-admin-primary-600 shrink-0" />
+                        <div>
+                            <p class="text-sm font-medium text-slate-800">{{ c.name || c.member_id }}</p>
+                            <p v-if="c.name" class="text-xs text-admin-primary-600 font-mono">{{ c.member_id }}</p>
+                            <p class="text-xs text-slate-500">{{ c.submitted_at }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Card>
+
+        <!-- ===== 右パネル ===== -->
+        <Card class="md:col-span-7">
+            <div v-if="!detail" class="py-20 text-center text-slate-400">
+                <p class="text-lg">👈 Pilih kasus dari daftar</p>
+                <p class="text-sm mt-2">Belum ada kasus yang dipilih</p>
             </div>
 
-            <div>
-                <p class="text-slate-500 text-xs">NIK</p>
-                <p class="font-semibold text-slate-800">3215054208010008</p>
-            </div>
+            <template v-else>
 
-            <div>
-                <p class="text-slate-500 text-xs">Email</p>
-                <p class="font-semibold text-slate-800">
-                mellayaa17@gmail.com
-                </p>
-            </div>
-
-            <div>
-                <p class="text-slate-500 text-xs">Telepon</p>
-                <p class="font-semibold text-slate-800">
-                08981631363
-                </p>
-            </div>
-
-            </div>
-
-        </div>
-        <Card class="border-2 border-blue-500 bg-blue-50 mt-6 mb-6">
-            <SectionHeader
-                title="Skor Akhir Penilaian"
-                subtitle="Metode: Weighted Average (Rata-rata Terbobot)"
-            />
-
-            <div class="mt-8 flex flex-col lg:flex-row items-center gap-10">
-
-                <!-- ===== LEFT: SCORE ===== -->
-                <div class="flex flex-col items-center text-center">
-
-                <div
-                    class="w-44 h-44 rounded-full
-                        bg-white border-4 border-blue-500
-                        flex items-center justify-center
-                        shadow-lg"
-                >
-                    <div>
-                    <p class="text-5xl font-bold text-blue-700">
-                        100
-                    </p>
-                    <p class="text-xs text-slate-500">
-                        dari 100 poin
-                    </p>
+                <!-- ===== PROFIL ===== -->
+                <SectionHeader title="Informasi Pemohon" subtitle="Ringkasan data utama pelamar" />
+                <div class="mt-4 flex flex-col md:flex-row md:items-center gap-6">
+                    <div class="flex justify-center">
+                        <img v-if="detail.profile?.profile_photo"
+                            :src="'/storage/' + detail.profile.profile_photo"
+                            class="w-24 h-24 rounded-2xl object-cover shadow cursor-pointer"
+                            @click="openImage('/storage/' + detail.profile.profile_photo)" />
+                        <div v-else class="w-24 h-24 rounded-2xl bg-slate-100 flex items-center justify-center text-4xl">👤</div>
+                    </div>
+                    <div class="flex-1 grid grid-cols-2 gap-4 text-sm">
+                        <div><p class="text-xs text-slate-500">Nama Lengkap</p><p class="font-semibold">{{ detail.profile?.full_name ?? '-' }}</p></div>
+                        <div><p class="text-xs text-slate-500">NIK</p><p class="font-semibold">{{ detail.profile?.nik ?? '-' }}</p></div>
+                        <div><p class="text-xs text-slate-500">Telepon</p><p class="font-semibold">{{ detail.profile?.phone_number ?? '-' }}</p></div>
+                        <div><p class="text-xs text-slate-500">No. Member</p><p class="font-semibold font-mono text-admin-primary-600">{{ detail.profile?.member_id ?? '-' }}</p></div>
                     </div>
                 </div>
 
-                <p class="mt-4 text-sm text-slate-600">
-                    Total Pengurangan Poin:
-                    <span class="font-semibold text-red-600">
-                    -0.0
-                    </span>
-                </p>
+                <Divider class="my-6" />
 
+                <!-- ===== スコアパネル ===== -->
+                <div class="border-2 border-blue-400 bg-blue-50 rounded-2xl p-6 mb-6">
+                    <SectionHeader title="Skor Akhir Penilaian" subtitle="Metode: Weighted Average (Rata-rata Terbobot)" />
+                    <div class="mt-6 flex flex-col lg:flex-row items-center gap-8">
+
+                        <!-- スコア円 -->
+                        <div class="flex flex-col items-center shrink-0">
+                            <div class="w-40 h-40 rounded-full bg-white border-4 border-blue-500 flex items-center justify-center shadow-lg">
+                                <div class="text-center">
+                                    <p class="text-5xl font-bold text-blue-700">{{ liveScore.toFixed(1) }}</p>
+                                    <p class="text-xs text-slate-500">dari 100</p>
+                                </div>
+                            </div>
+                            <p class="mt-3 text-sm text-slate-600">
+                                Total Pengurangan Terbobot:
+                                <span class="font-bold text-red-600">-{{ liveDeductions.totalWeighted }}</span>
+                            </p>
+                        </div>
+
+                        <!-- カテゴリ別 -->
+                        <div class="flex-1 grid grid-cols-2 gap-4">
+                            <div v-for="[cat, label, weight, maxPts] in [
+                                ['basic_info',    'Informasi Dasar', '15%', 15],
+                                ['education',     'Pendidikan',      '35%', 35],
+                                ['work',          'Riwayat Kerja',   '40%', 40],
+                                ['certification', 'Sertifikat',      '10%', 10],
+                            ]" :key="cat" class="border rounded-2xl p-4 bg-white">
+                                <p class="text-xs font-medium text-slate-600">{{ label }}</p>
+                                <p class="text-xs text-slate-400">Bobot: {{ weight }} / Maks: {{ maxPts }} poin</p>
+                                <p class="mt-2 text-lg font-bold text-red-600">
+                                    -{{ categoryWeightedDeduction(cat, maxPts) }} Poin
+                                </p>
+                                <p class="text-xs text-slate-400">
+                                    Input: {{ liveDeductions.byCategory[cat] }} / {{ maxPts }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 計算方式の説明 -->
+                    <div class="mt-4 p-3 bg-white rounded-xl border border-blue-200 text-xs text-slate-500">
+                        💡 <strong>Cara Hitung:</strong>
+                        Skor = 100 − Σ(Pengurangan ÷ Maks Kategori × Bobot × 100)
+                    </div>
                 </div>
 
-                <!-- ===== RIGHT: BREAKDOWN ===== -->
-                <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- ===== 4セクション共通 ===== -->
+                <template v-for="[sectionKey, title, subtitle] in [
+                    ['inv_basic', 'Informasi Dasar',    'Hasil investigasi data pribadi'],
+                    ['inv_edu',   'Riwayat Pendidikan', 'Hasil investigasi data pendidikan'],
+                    ['inv_work',  'Pengalaman Kerja',   'Hasil investigasi riwayat pekerjaan'],
+                    ['inv_cert',  'Sertifikat',         'Hasil investigasi sertifikasi'],
+                ]" :key="sectionKey">
 
-                <!-- Informasi Dasar -->
-                <div class="border rounded-2xl p-4 bg-white">
-                    <p class="text-xs text-slate-500 mb-1">
-                    Informasi Dasar
-                    </p>
-                    <p class="text-xs text-slate-400">
-                    Bobot: 15%
-                    </p>
+                    <SectionHeader :title="title" :subtitle="subtitle" />
 
-                    <p class="mt-3 text-lg font-semibold text-red-600">
-                    -0.0 Poin
-                    </p>
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div v-if="!detail[sectionKey]?.length" class="text-slate-400 text-sm col-span-2">
+                            Tidak ada data
+                        </div>
+
+                        <div v-for="item in detail[sectionKey]" :key="item.item_name"
+                            class="border rounded-2xl p-4 transition" :class="cardClass(item.validity)">
+
+                            <!-- ラベル + バッジ -->
+                            <div class="flex items-start justify-between gap-2 mb-1">
+                                <p class="text-xs text-slate-500 font-medium">{{ item.label || item.item_name }}</p>
+                                <span class="px-2 py-0.5 text-xs rounded-lg font-semibold whitespace-nowrap shrink-0"
+                                    :class="badgeClass(item.validity)">
+                                    {{ badgeLabel(item.validity) }}
+                                </span>
+                            </div>
+
+                            <!-- 値 -->
+                            <p class="text-sm font-semibold text-slate-800 mb-1">{{ item.value ?? '-' }}</p>
+
+                            <!-- 調査メモ -->
+                            <p v-if="item.notes" class="text-xs text-slate-500 mb-2 italic">
+                                📝 {{ item.notes }}
+                            </p>
+
+                            <!-- INVALID の場合のみ減点入力 -->
+                            <div v-if="item.validity === 'INVALID'" class="mt-2 space-y-1">
+                                <label class="text-xs text-slate-500">
+                                    Pengurangan Poin (0 – {{ item.max_deduction ?? 10 }})
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    :max="item.max_deduction ?? 10"
+                                    step="1"
+                                    v-model="deductionInputs[item.item_name].actual_deduction"
+                                    class="w-full rounded-lg border border-red-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <Divider class="my-6" />
+                </template>
+
+                <!-- ===== CATATAN ===== -->
+                <SectionHeader title="Catatan Reviewer" subtitle="Komentar & Pengembalian ke Investigator" />
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700 mb-2 block">Komentar Reviewer</label>
+                        <textarea v-model="reviewerComments" rows="3" placeholder="Tulis komentar penilaian..."
+                            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-admin-primary-600 focus:outline-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-700 mb-2 block">Alasan Pengembalian ke Investigator (Opsional)</label>
+                        <textarea v-model="returnReason" rows="3" placeholder="Isi jika perlu dikembalikan ke tim investigasi..."
+                            class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-admin-primary-600 focus:outline-none"></textarea>
+                    </div>
                 </div>
 
-                <!-- Pendidikan -->
-                <div class="border rounded-2xl p-4 bg-white">
-                    <p class="text-xs text-slate-500 mb-1">
-                    Pendidikan
-                    </p>
-                    <p class="text-xs text-slate-400">
-                    Bobot: 35%
-                    </p>
+                <Divider class="my-6" />
 
-                    <p class="mt-3 text-lg font-semibold text-red-600">
-                    -0.0 Poin
-                    </p>
+                <!-- ===== ボタン ===== -->
+                <div class="flex flex-wrap justify-end gap-3">
+                    <Button variant="secondary" @click="sendReturn">
+                        ↩️ Kembalikan ke Investigator
+                    </Button>
+                    <Button variant="outline" @click="saveAll" :disabled="saving">
+                        {{ saving ? 'Menyimpan...' : '💾 Simpan' }}
+                    </Button>
+                    <Button @click="sendComplete">
+                        ✅ Selesai → Kirim ke Admin
+                    </Button>
                 </div>
 
-                <!-- Riwayat Pekerjaan -->
-                <div class="border rounded-2xl p-4 bg-white">
-                    <p class="text-xs text-slate-500 mb-1">
-                    Riwayat Pekerjaan
-                    </p>
-                    <p class="text-xs text-slate-400">
-                    Bobot: 40%
-                    </p>
-
-                    <p class="mt-3 text-lg font-semibold text-red-600">
-                    -0.0 Poin
-                    </p>
-                </div>
-
-                <!-- Sertifikat -->
-                <div class="border rounded-2xl p-4 bg-white">
-                    <p class="text-xs text-slate-500 mb-1">
-                    Sertifikat / Kualifikasi
-                    </p>
-                    <p class="text-xs text-slate-400">
-                    Bobot: 10%
-                    </p>
-
-                    <p class="mt-3 text-lg font-semibold text-red-600">
-                    -0.0 Poin
-                    </p>
-                </div>
-
-                </div>
-
-            </div>
+            </template>
         </Card>
+    </div>
 
-        <SectionHeader
-        title="Evaluasi Detail Informasi Dasar"
-        subtitle="Data pelamar & hasil investigasi"
-        />
-
-        <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-1">
-
-        <div
-            v-for="item in profileData"
-            :key="item.label"
-            class="border rounded-2xl p-4 transition"
-            :class="cardClass(item.status)"
-        >
-            <!-- Top Row: Label + Badge -->
-            <div class="flex items-start justify-between gap-1">
-            <p class="text-xs text-slate-500">
-                {{ item.label }}
-            </p>
-
-            <span
-                class="px-3 py-1 text-xs rounded-lg font-semibold whitespace-nowrap"
-                :class="badgeClass(item.status)"
-            >
-                {{ item.status === 'valid' ? 'Valid' : 'Tidak Valid' }}
-            </span>
-            </div>
-
-            <p class="text-sm font-semibold text-slate-800 break-words">
-                {{ item.value }}
-            </p>
-
-        </div>
-
-        </div>
-
-        <div class="mt-6 border rounded-2xl p-4 bg-slate-50">
-
-            <div class="flex items-center justify-between">
-
-                <div>
-                    <p class="text-sm font-semibold text-slate-700">
-                        Total Pengurangan Poin
-                    </p>
-                    <p class="text-xs text-slate-500">
-                        Dari kategori: Informasi Dasar (Bobot 15%)
-                    </p>
-                </div>
-
-                <div class="text-right">
-                    <p class="text-lg font-bold text-red-600">
-                        -0.0 Poin
-                    </p>
-                </div>
-
-            </div>
-
-        </div>
-
-        <Divider />
-
-        <SectionHeader
-        title="Riwayat Pendidikan"
-        subtitle="Data pendidikan pelamar & hasil investigasi"
-        />
-
-        <div class="mt-6 space-y-5">
-
-        <Card
-            v-for="(edu, index) in educations"
-            :key="edu.id"
-            collapsible
-            :title="`Pendidikan ${index + 1}`"
-            padding="p-6"
-        >
-
-        <!-- Fields -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            <div
-            v-for="field in edu.fields"
-            :key="field.label"
-            class="border rounded-2xl p-4 transition"
-            :class="cardClass(field.status)"
-            >
-            <div class="flex items-start justify-between gap-2 mb-2">
-                <p class="text-xs text-slate-500">
-                {{ field.label }}
-                </p>
-
-                <span
-                class="px-3 py-1 text-xs rounded-lg font-semibold whitespace-nowrap"
-                :class="badgeClass(field.status)"
-                >
-                {{ field.status === 'valid' ? 'Valid' : 'Tidak Valid' }}
-                </span>
-            </div>
-
-            <p class="text-sm font-semibold text-slate-800 break-words">
-                {{ field.value }}
-            </p>
-            </div>
-
-        </div>
-
-        </Card>
-        
-        </div>
-        <div class="mt-6 border rounded-2xl p-4 bg-slate-50">
-            <div class="flex justify-between items-center">
-
-                <div>
-                <p class="text-sm font-semibold text-slate-700">
-                    Total Pengurangan Poin
-                </p>
-                <p class="text-xs text-slate-500">
-                    Dari kategori Pendidikan
-                </p>
-                </div>
-
-                <p class="text-lg font-bold text-red-600">
-                - 0 Poin
-                </p>
-
-            </div>
-        </div>
-
-        <Divider />
-
-        <SectionHeader title="Pengalaman Kerja" subtitle="Hasil evaluasi pekerjaan" />
-
-        <div class="mt-6 space-y-5">
-
-        <Card
-            v-for="(edu, index) in workExperiences"
-            :key="edu.id"
-            collapsible
-            :title="`Pengalaman Kerja ${index + 1}`"
-            padding="p-6"
-        >
-
-        <!-- Fields -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            <div
-            v-for="field in edu.fields"
-            :key="field.label"
-            class="border rounded-2xl p-4 transition"
-            :class="cardClass(field.status)"
-            >
-            <div class="flex items-start justify-between gap-2 mb-2">
-                <p class="text-xs text-slate-500">
-                {{ field.label }}
-                </p>
-
-                <span
-                class="px-3 py-1 text-xs rounded-lg font-semibold whitespace-nowrap"
-                :class="badgeClass(field.status)"
-                >
-                {{ field.status === 'valid' ? 'Valid' : 'Tidak Valid' }}
-                </span>
-            </div>
-
-            <p class="text-sm font-semibold text-slate-800 break-words">
-                {{ field.value }}
-            </p>
-            </div>
-
-        </div>
-
-        </Card>
-        
-        </div>
-        <div class="mt-6 border rounded-2xl p-4 bg-slate-50">
-            <div class="flex justify-between items-center">
-
-                <div>
-                <p class="text-sm font-semibold text-slate-700">
-                    Total Pengurangan Poin
-                </p>
-                <p class="text-xs text-slate-500">
-                    Dari kategori Pendidikan
-                </p>
-                </div>
-
-                <p class="text-lg font-bold text-red-600">
-                - 0 Poin
-                </p>
-
-            </div>
-        </div>
-
-        <Divider />
-
-        <SectionHeader title="Sertifikat" subtitle="Hasil evaluasi sertifikat" />
-
-        <div class="mt-6 space-y-5">
-
-        <Card
-            v-for="(edu, index) in certificates"
-            :key="edu.id"
-            collapsible
-            :title="`Sertifikat ${index + 1}`"
-            padding="p-6"
-        >
-
-        <!-- Fields -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            <div
-            v-for="field in edu.fields"
-            :key="field.label"
-            class="border rounded-2xl p-4 transition"
-            :class="cardClass(field.status)"
-            >
-            <div class="flex items-start justify-between gap-2 mb-2">
-                <p class="text-xs text-slate-500">
-                {{ field.label }}
-                </p>
-
-                <span
-                class="px-3 py-1 text-xs rounded-lg font-semibold whitespace-nowrap"
-                :class="badgeClass(field.status)"
-                >
-                {{ field.status === 'valid' ? 'Valid' : 'Tidak Valid' }}
-                </span>
-            </div>
-
-            <p class="text-sm font-semibold text-slate-800 break-words">
-                {{ field.value }}
-            </p>
-            </div>
-
-        </div>
-
-        </Card>
-        
-        </div>
-        <div class="mt-6 border rounded-2xl p-4 bg-slate-50">
-            <div class="flex justify-between items-center">
-
-                <div>
-                <p class="text-sm font-semibold text-slate-700">
-                    Total Pengurangan Poin
-                </p>
-                <p class="text-xs text-slate-500">
-                    Dari kategori Pendidikan
-                </p>
-                </div>
-
-                <p class="text-lg font-bold text-red-600">
-                - 0 Poin
-                </p>
-
-            </div>
-        </div>
-
-        <Divider />
-
-        <div class="flex justify-end gap-3">
-            <Button variant="secondary">Kembalikan</Button>
-            <Button variant="danger">Tolak</Button>
-            <Button>Setujui</Button>
-        </div>
-
-    </Card>
-
-  </div>
-
-  <ImageViewer
-    :show="showImage"
-    :src="profileImage"
-    @close="showImage = false"
-  />
+    <ImageViewer :show="showImage" :src="viewImageSrc" @close="showImage = false" />
 </template>

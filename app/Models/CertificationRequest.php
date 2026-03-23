@@ -73,4 +73,14 @@ class CertificationRequest extends Model
     {
         return $this->belongsTo(User::class, 'assigned_investigator');
     }
+
+    public function reviewItems()
+    {
+        return $this->hasMany(ReviewItem::class);
+    }
+
+    public function reviewer()
+    {
+        return $this->belongsTo(User::class, 'assigned_reviewer');
+    }
 }

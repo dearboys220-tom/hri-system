@@ -120,13 +120,14 @@ Route::prefix('admin')
                 Route::post('/{id}/correction', [App\Http\Controllers\InvestigatorController::class, 'correction'])->name('correction');
             });
 
-        // レビューチーム（後で実装）
+        // レビューチーム
         Route::prefix('reviewer')
             ->name('reviewer.')
             ->group(function () {
-                Route::get('/', function () {
-                    return Inertia::render('Admin/Reviewer/ReviewerMain');
-                })->name('index');
+                Route::get('/', [App\Http\Controllers\ReviewerController::class, 'index'])->name('index');
+                Route::post('/{id}/save', [App\Http\Controllers\ReviewerController::class, 'save'])->name('save');
+                Route::post('/{id}/complete', [App\Http\Controllers\ReviewerController::class, 'complete'])->name('complete');
+                Route::post('/{id}/return', [App\Http\Controllers\ReviewerController::class, 'returnToInvestigator'])->name('return');
             });
     });
 
