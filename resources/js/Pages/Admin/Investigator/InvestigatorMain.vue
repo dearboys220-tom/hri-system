@@ -2,806 +2,452 @@
 import Button from '@/Components/Admin/Components/Button.vue';
 import Card from '@/Components/Admin/Components/Card.vue';
 import Divider from '@/Components/Admin/Components/Divider.vue';
-import FormGroup from '@/Components/Admin/Components/FormGroup.vue';
-import ImageViewer from '@/Components/Admin/Components/ImageViewer.vue';
 import InfoField from '@/Components/Admin/Components/InfoField.vue';
 import SectionHeader from '@/Components/Admin/Components/SectionHeader.vue';
-import Select from '@/Components/Admin/Components/Select.vue';
+import StatusSelect from '@/Components/Admin/Components/StatusSelect.vue';
+import ImageViewer from '@/Components/Admin/Components/ImageViewer.vue';
 import InvestReviewLayout from '@/Components/Admin/Layout/InvestReviewLayout.vue';
-import { MagnifyingGlassIcon, UserCircleIcon,ClockIcon, ClipboardDocumentCheckIcon } from '@heroicons/vue/24/outline'
-import { ref } from 'vue'
-
-const status = ref('')
-const search = ref('')
-const showImage = ref(false)
+import { MagnifyingGlassIcon, UserCircleIcon } from '@heroicons/vue/24/outline';
+import { ref, computed, watch } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 defineOptions({
-  layout: (h, page) =>
-    h(InvestReviewLayout, {
-      title: 'Tim Investigasi',
-      subtitle: 'Penyelidikan & Manajemen Kasus yang Ditangani'
-    }, () => page)
-})
-const profileImage = ref('https://static0.polygonimages.com/wordpress/wp-content/uploads/2025/12/frieren-looking-up-in-the-trailer-for-season-2.jpg?w=1200&h=628&fit=crop')
-const profileFields = [
-  { label: 'Nama', value: 'TIKA' },
-  { label: 'NIK', value: '3215054208010008' },
-  { label: 'Alamat sesuai KTP', value: 'Jl. Merdeka No. 1' },
-  { label: 'Jenis Kelamin', value: 'Perempuan' },
-  { label: 'Status Pernikahan', value: 'Belum Menikah' },
-  { label: 'Kewarganegaraan', value: 'Indonesia' },
-  { label: 'Tanggal Lahir', value: '01 Januari 2001' },
-  { label: 'Alamat Saat Ini', value: 'Jakarta Selatan' },
-  { label: 'Telepon', value: '08123456789' },
-  { label: 'E-mail', value: 'tika@email.com' },
-  { label: 'WhatsApp', value: '08123456789' },
-  { label: 'LinkedIn', value: 'linkedin.com/in/tika' },
-  { label: 'Facebook', value: 'facebook.com/tika' },
-  { label: 'Instagram', value: '@tika' }
-]
-const educations = ref([
-  {
-    id: 1,
-    namaSekolah: 'Universitas Teknologi',
-    namaSekolahStatus: '',
+    layout: (h, page) =>
+        h(InvestReviewLayout, {
+            title: 'Tim Investigasi',
+            subtitle: 'Penyelidikan & Manajemen Kasus'
+        }, () => page)
+});
 
-    pendidikanTerakhir: 'S1',
-    pendidikanTerakhirStatus: '',
+const props = defineProps({
+    cases:      { type: Array,  default: () => [] },
+    detail:     { type: Object, default: null },
+    selectedId: { type: Number, default: null },
+});
 
-    alamatSekolah: 'Bandung',
-    alamatSekolahStatus: '',
+// ---- 左パネル ----
+const search = ref('');
+const filteredCases = computed(() =>
+    props.cases.filter(c =>
+        c.name?.toLowerCase().includes(search.value.toLowerCase()) ||
+        c.member_id?.toLowerCase().includes(search.value.toLowerCase())
+    )
+);
 
-    jurusan: 'Teknik Informatika',
-    jurusanStatus: '',
+function selectCase(id) {
+    router.get(route('admin.investigator.index'), { id }, { preserveScroll: true });
+}
 
-    tanggalMasuk: '2018',
-    tanggalMasukStatus: '',
+// ---- 初期値取得ヘルパー ----
+function initStatus(itemName) {
+    return props.detail?.investigation_map?.[itemName]?.validity ?? '';
+}
+function initNotes(itemName) {
+    return props.detail?.investigation_map?.[itemName]?.notes ?? '';
+}
 
-    tanggalLulus: '2022',
-    tanggalLulusStatus: '',
+// ---- ステータス & メモ管理 ----
+const profileStatuses = ref({});
+const profileMemos    = ref({});
+const eduStatuses     = ref({});
+const eduMemos        = ref({});
+const workStatuses    = ref({});
+const workMemos       = ref({});
+const certStatuses    = ref({});
+const certMemos       = ref({});
 
-    statusKelulusan: 'Lulus',
-    statusKelulusanStatus: '',
+const investigationNotes = ref('');
+const returnReason       = ref('');
 
-    ipk: '3.85',
-    ipkStatus: '',
+watch(() => props.detail, (d) => {
+    investigationNotes.value = d?.investigation_notes ?? '';
+    returnReason.value = '';
 
-    penghargaan: 'Cumlaude',
-    penghargaanStatus: '',
+    if (!d) return;
 
-    file: 'https://picsum.photos/800/1000',
-    fileStatus: ''
-  },
-  {
-    id: 1,
-    namaSekolah: 'Universitas Teknologi',
-    namaSekolahStatus: '',
+    // プロフィール
+    const profileKeys = [
+        'full_name','nik','ktp_address','gender','marital_status',
+        'nationality','birth_date','current_address','phone_number','whatsapp_number'
+    ];
+    profileKeys.forEach(k => {
+        profileStatuses.value[k] = initStatus(k);
+        profileMemos.value[k]    = initNotes(k);
+    });
 
-    pendidikanTerakhir: 'S1',
-    pendidikanTerakhirStatus: '',
+    // 学歴
+    d.educations?.forEach((_, i) => {
+        ['school','level','major','enrollment_date','graduation_date','gpa'].forEach(k => {
+            eduStatuses.value[`${i}_${k}`] = initStatus(`edu_${i}_${k}`);
+            eduMemos.value[`${i}_${k}`]    = initNotes(`edu_${i}_${k}`);
+        });
+    });
 
-    alamatSekolah: 'Bandung',
-    alamatSekolahStatus: '',
+    // 職歴
+    d.works?.forEach((_, i) => {
+        ['company','position','employment_type','start_date','end_date','supervisor_name','supervisor_contact'].forEach(k => {
+            workStatuses.value[`${i}_${k}`] = initStatus(`work_${i}_${k}`);
+            workMemos.value[`${i}_${k}`]    = initNotes(`work_${i}_${k}`);
+        });
+    });
 
-    jurusan: 'Teknik Informatika',
-    jurusanStatus: '',
+    // 資格
+    d.certifications?.forEach((_, i) => {
+        ['name','organization','issued_date','valid_until'].forEach(k => {
+            certStatuses.value[`${i}_${k}`] = initStatus(`cert_${i}_${k}`);
+            certMemos.value[`${i}_${k}`]    = initNotes(`cert_${i}_${k}`);
+        });
+    });
+}, { immediate: true });
 
-    tanggalMasuk: '2018',
-    tanggalMasukStatus: '',
+// ---- 画像ビューアー ----
+const showImage    = ref(false);
+const viewImageSrc = ref('');
+function openImage(src) {
+    viewImageSrc.value = src;
+    showImage.value    = true;
+}
 
-    tanggalLulus: '2022',
-    tanggalLulusStatus: '',
+// ---- 保存用データ構築 ----
+function buildItems() {
+    const items = [];
+    const d = props.detail;
+    if (!d) return items;
 
-    statusKelulusan: 'Lulus',
-    statusKelulusanStatus: '',
+    const profileKeys = [
+        'full_name','nik','ktp_address','gender','marital_status',
+        'nationality','birth_date','current_address','phone_number','whatsapp_number'
+    ];
+    profileKeys.forEach(k => {
+        if (profileStatuses.value[k]) {
+            items.push({ item_name: k, category: 'basic_info', validity: profileStatuses.value[k], notes: profileMemos.value[k] ?? '' });
+        }
+    });
 
-    ipk: '3.85',
-    ipkStatus: '',
+    d.educations?.forEach((_, i) => {
+        ['school','level','major','enrollment_date','graduation_date','gpa'].forEach(k => {
+            if (eduStatuses.value[`${i}_${k}`]) {
+                items.push({ item_name: `edu_${i}_${k}`, category: 'education', validity: eduStatuses.value[`${i}_${k}`], notes: eduMemos.value[`${i}_${k}`] ?? '' });
+            }
+        });
+    });
 
-    penghargaan: 'Cumlaude',
-    penghargaanStatus: '',
+    d.works?.forEach((_, i) => {
+        ['company','position','employment_type','start_date','end_date','supervisor_name','supervisor_contact'].forEach(k => {
+            if (workStatuses.value[`${i}_${k}`]) {
+                items.push({ item_name: `work_${i}_${k}`, category: 'work', validity: workStatuses.value[`${i}_${k}`], notes: workMemos.value[`${i}_${k}`] ?? '' });
+            }
+        });
+    });
 
-    file: 'https://picsum.photos/800/1000',
-    fileStatus: ''
-  }
-])
+    d.certifications?.forEach((_, i) => {
+        ['name','organization','issued_date','valid_until'].forEach(k => {
+            if (certStatuses.value[`${i}_${k}`]) {
+                items.push({ item_name: `cert_${i}_${k}`, category: 'certification', validity: certStatuses.value[`${i}_${k}`], notes: certMemos.value[`${i}_${k}`] ?? '' });
+            }
+        });
+    });
 
-const workExperiences = ref([
-  {
-    id: 1,
+    return items;
+}
 
-    namaPerusahaan: 'PT Teknologi Nusantara',
-    namaPerusahaanStatus: '',
+// ---- アクション ----
+const saving = ref(false);
 
-    alamatPerusahaan: 'Jakarta Selatan',
-    alamatPerusahaanStatus: '',
+function saveAll() {
+    if (!props.detail) return;
+    saving.value = true;
+    router.post(
+        route('admin.investigator.save', props.detail.id),
+        { investigation_notes: investigationNotes.value, items: buildItems() },
+        { onFinish: () => { saving.value = false; } }
+    );
+}
 
-    tanggalMulai: '2020',
-    tanggalSelesai: '2023',
-    tanggalStatus: '',
+function sendComplete() {
+    if (!props.detail) return;
+    if (!confirm('Kirim ke Tim Reviewer? Pastikan semua data sudah diperiksa.')) return;
+    router.post(route('admin.investigator.complete', props.detail.id));
+}
 
-    jenisPekerjaan: 'Full Time',
-    jenisPekerjaanStatus: '',
-
-    jabatan: 'Software Engineer',
-    jabatanStatus: '',
-
-    deskripsi: 'Mengembangkan sistem internal perusahaan.',
-    deskripsiStatus: '',
-
-    alasanBerhenti: 'Mencari tantangan baru',
-    alasanBerhentiStatus: '',
-
-    pencapaian: 'Meningkatkan performa sistem 40%',
-    pencapaianStatus: '',
-
-    namaAtasan: 'Budi Santoso',
-    namaAtasanStatus: '',
-
-    jabatanAtasan: 'IT Manager',
-    jabatanAtasanStatus: '',
-
-    noTelpAktif: '08123456789',
-    noTelpAktifStatus: '',
-
-    surat: 'https://picsum.photos/800/1000',
-    suratStatus: ''
-  }
-])
-const certificates = ref([
-  {
-    id: 1,
-
-    namaSertifikat: 'ISO Compliance Training',
-    namaSertifikatStatus: '',
-
-    instansi: 'Badan Sertifikasi Nasional',
-    instansiStatus: '',
-
-    tanggalTerbit: '2023-01-12',
-    tanggalTerbitStatus: '',
-
-    masaBerlaku: '2026-01-12',
-    masaBerlakuStatus: '',
-
-    skor: 'A',
-    skorStatus: '',
-
-    keterangan: 'Sertifikasi tingkat lanjutan',
-    keteranganStatus: '',
-
-    lampiran: 'https://picsum.photos/900/1200',
-    lampiranStatus: ''
-  }
-])
-
+function sendCorrection() {
+    if (!props.detail) return;
+    if (!returnReason.value.trim()) {
+        alert('Isi detail koreksi terlebih dahulu.');
+        return;
+    }
+    router.post(
+        route('admin.investigator.correction', props.detail.id),
+        { return_reason: returnReason.value }
+    );
+}
 </script>
 
-
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-10 gap-6 items-start">
+    <div class="grid grid-cols-1 md:grid-cols-10 gap-6 items-start">
 
-    <Card class="md:col-span-3 self-start md:sticky md:top-28 h-fit">
+        <!-- ===== 左パネル：案件一覧 ===== -->
+        <Card class="md:col-span-3 self-start md:sticky md:top-28 h-fit">
+            <SectionHeader title="Daftar Kasus" subtitle="Pilih kasus untuk diperiksa" />
 
-      <!-- Header + Open Page Button -->
-      <div class="flex justify-between items-start mb-4">
-        <SectionHeader
-          title="Daftar Permintaan"
-          subtitle="Cari & pilih permintaan"
-        />
-
-        <Button
-          variant="outline"
-          size="sm"
-          class="shrink-0"
-        >
-          Buka Halaman
-        </Button>
-      </div>
-
-      <!-- Search + Reset -->
-      <div class="flex gap-2 mb-4 pr-3">
-
-        <div class="relative flex-1">
-          <MagnifyingGlassIcon
-            class="w-4 h-4 absolute left-3 top-3 text-slate-400"
-          />
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Cari nama / NIK..."
-            class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300
-                  focus:ring-2 focus:ring-admin-primary-600 focus:outline-none
-                  text-sm"
-          />
-        </div>
-
-        <Button
-          variant="secondary"
-          size="sm"
-          @click="search = ''"
-        >
-          Reset
-        </Button>
-
-      </div>
-
-      <Divider />
-
-      <!-- Scrollable List (Max 5 visible) -->
-      <div
-        class="space-y-3 mt-4
-              max-h-[360px]
-              overflow-y-auto
-              pr-1"
-      >
-
-        <div
-          v-for="i in 12"
-          :key="i"
-          class="p-4 rounded-xl border border-slate-200
-                hover:border-admin-primary-600
-                hover:bg-admin-primary-50
-                cursor-pointer transition"
-        >
-          <div class="flex items-center gap-2">
-            <UserCircleIcon class="w-5 h-5 text-admin-primary-600" />
-            <div>
-              <p class="text-sm font-medium text-slate-800">
-                HRIM-00{{ i }}
-              </p>
-              <p class="text-xs text-slate-500">
-                TIKA • 03/02/2026
-              </p>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-    </Card>
-
-
-
-    <!-- ================= RIGHT CARD (70%) ================= -->
-    <Card class="md:col-span-7">
-      <SectionHeader
-        title="Profile"
-        subtitle="Verifikasi data pribadi anggota"
-      />
-
-      <div class="mt-6 space-y-8">
-
-        <!-- FOTO PROFIL CENTER -->
-        <!-- FOTO PROFIL CENTER -->
-        <div class="flex justify-center">
-          <div
-            class="relative w-36 sm:w-44 md:w-48 cursor-pointer group"
-            @click="showImage = true"
-          >
-            <img
-              :src="profileImage"
-              class="w-full aspect-square rounded-2xl object-cover
-                    border-4 border-white shadow-lg"
-            />
-
-            <!-- Overlay Hover -->
-            <div
-              class="absolute inset-0 rounded-2xl
-                    bg-black/40 opacity-0
-                    group-hover:opacity-100
-                    transition duration-300
-                    flex items-center justify-center"
-            >
-              <span class="text-white text-sm font-medium">
-                Perbesar
-              </span>
-            </div>
-          </div>
-        </div>
-
-
-        <!-- DATA PROFIL -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-          <div
-            v-for="field in profileFields"
-            :key="field.label"
-            class="space-y-2"
-          >
-            <InfoField :label="field.label" :value="field.value" />
-
-            <Select>
-              <option value="">Pilih Status</option>
-              <option value="valid">Valid</option>
-              <option value="invalid">Invalid</option>
-            </Select>
-          </div>
-
-        </div>
-
-      </div>
-      <Divider class="my-8" />
-
-      <!-- ================= SECTION 2: RIWAYAT PENDIDIKAN ================= -->
-      <SectionHeader
-        title="Riwayat Pendidikan"
-        subtitle="Verifikasi data pendidikan"
-      />
-
-      <div class="mt-6 space-y-8">
-
-        <div
-          v-for="(edu, index) in educations"
-          :key="edu.id"
-          class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50"
-        >
-
-          <h3 class="font-semibold text-slate-700 mb-6">
-            Pendidikan {{ index + 1 }}
-          </h3>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            <!-- Nama Sekolah -->
-            <div class="space-y-2">
-              <InfoField label="Nama Sekolah" :value="edu.namaSekolah" />
-              <Select v-model="edu.namaSekolahStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
+            <div class="flex gap-2 mb-4 mt-4">
+                <div class="relative flex-1">
+                    <MagnifyingGlassIcon class="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                    <input
+                        v-model="search"
+                        type="text"
+                        placeholder="Cari nama..."
+                        class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-admin-primary-600 focus:outline-none text-sm"
+                    />
+                </div>
+                <Button variant="secondary" size="sm" @click="search = ''">Reset</Button>
             </div>
 
-            <!-- Pendidikan Terakhir -->
-            <div class="space-y-2">
-              <InfoField label="Pendidikan Terakhir" :value="edu.pendidikanTerakhir" />
-              <Select v-model="edu.pendidikanTerakhirStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
+            <Divider />
+
+            <div class="space-y-3 mt-4 max-h-[400px] overflow-y-auto pr-1">
+                <div v-if="filteredCases.length === 0" class="text-center py-8 text-slate-400 text-sm">
+                    Tidak ada kasus
+                </div>
+                <div
+                    v-for="c in filteredCases"
+                    :key="c.id"
+                    @click="selectCase(c.id)"
+                    class="p-4 rounded-xl border cursor-pointer transition"
+                    :class="c.id === selectedId
+                        ? 'border-admin-primary-600 bg-admin-primary-50'
+                        : 'border-slate-200 hover:border-admin-primary-400 hover:bg-admin-primary-50'"
+                >
+                    <div class="flex items-center gap-2">
+                        <UserCircleIcon class="w-5 h-5 text-admin-primary-600 shrink-0" />
+                        <div>
+                            <p class="text-sm font-medium text-slate-800">{{ c.name || c.member_id }}</p>
+                            <p v-if="c.name" class="text-xs text-admin-primary-600 font-mono">{{ c.member_id }}</p>
+                            <p class="text-xs text-slate-500">{{ c.submitted_at }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Card>
+
+        <!-- ===== 右パネル：案件詳細 ===== -->
+        <Card class="md:col-span-7">
+
+            <div v-if="!detail" class="py-20 text-center text-slate-400">
+                <p class="text-lg">👈 Pilih kasus dari daftar</p>
+                <p class="text-sm mt-2">Belum ada kasus yang dipilih</p>
             </div>
 
-            <!-- Alamat Sekolah -->
-            <div class="space-y-2">
-              <InfoField label="Alamat Sekolah" :value="edu.alamatSekolah" />
-              <Select v-model="edu.alamatSekolahStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
-            </div>
+            <template v-else>
 
-            <!-- Jurusan -->
-            <div class="space-y-2">
-              <InfoField label="Jurusan" :value="edu.jurusan" />
-              <Select v-model="edu.jurusanStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
-            </div>
+                <!-- ===== SECTION 1: PROFIL ===== -->
+                <SectionHeader title="Profil Anggota" subtitle="Verifikasi data pribadi" />
 
-            <!-- Tanggal Masuk -->
-            <div class="space-y-2">
-              <InfoField label="Tanggal Masuk" :value="edu.tanggalMasuk" />
-              <Select v-model="edu.tanggalMasukStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
-            </div>
+                <div class="mt-6">
+                    <!-- 写真 -->
+                    <div class="flex justify-center mb-6">
+                        <div
+                            class="relative w-36 cursor-pointer group"
+                            @click="detail.profile?.profile_photo && openImage('/storage/' + detail.profile.profile_photo)"
+                        >
+                            <img
+                                v-if="detail.profile?.profile_photo"
+                                :src="'/storage/' + detail.profile.profile_photo"
+                                class="w-full aspect-square rounded-2xl object-cover border-4 border-white shadow-lg"
+                            />
+                            <div v-else class="w-full aspect-square rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-4xl">
+                                👤
+                            </div>
+                        </div>
+                    </div>
 
-            <!-- Tanggal Lulus -->
-            <div class="space-y-2">
-              <InfoField label="Tanggal Lulus" :value="edu.tanggalLulus" />
-              <Select v-model="edu.tanggalLulusStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
-            </div>
+                    <!-- KTP画像 -->
+                    <div v-if="detail.profile?.ktp_card" class="mb-6 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-xs text-slate-500 mb-2">Foto KTP</p>
+                        <img
+                            :src="'/storage/' + detail.profile.ktp_card"
+                            class="h-32 rounded-lg cursor-pointer"
+                            @click="openImage('/storage/' + detail.profile.ktp_card)"
+                        />
+                    </div>
 
-            <!-- Status Kelulusan -->
-            <div class="space-y-2">
-              <InfoField label="Status Kelulusan" :value="edu.statusKelulusan" />
-              <Select v-model="edu.statusKelulusanStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
-            </div>
+                    <!-- プロフィール項目 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <template v-for="field in [
+                            { key: 'full_name',       label: 'Nama Lengkap',      value: detail.profile?.full_name },
+                            { key: 'nik',             label: 'NIK',               value: detail.profile?.nik },
+                            { key: 'ktp_address',     label: 'Alamat KTP',        value: detail.profile?.ktp_address },
+                            { key: 'gender',          label: 'Jenis Kelamin',     value: detail.profile?.gender },
+                            { key: 'marital_status',  label: 'Status Pernikahan', value: detail.profile?.marital_status },
+                            { key: 'nationality',     label: 'Kewarganegaraan',   value: detail.profile?.nationality },
+                            { key: 'birth_date',      label: 'Tanggal Lahir',     value: detail.profile?.birth_date },
+                            { key: 'current_address', label: 'Alamat Saat Ini',   value: detail.profile?.current_address },
+                            { key: 'phone_number',    label: 'Telepon',           value: detail.profile?.phone_number },
+                            { key: 'whatsapp_number', label: 'WhatsApp',          value: detail.profile?.whatsapp_number },
+                        ]" :key="field.key">
+                            <div class="space-y-2">
+                                <InfoField :label="field.label" :value="field.value ?? '-'" />
+                                <StatusSelect
+                                    v-model="profileStatuses[field.key]"
+                                    v-model:memoValue="profileMemos[field.key]"
+                                />
+                            </div>
+                        </template>
+                    </div>
+                </div>
 
-            <!-- IPK -->
-            <div class="space-y-2">
-              <InfoField label="IPK / Nilai Akhir" :value="edu.ipk" />
-              <Select v-model="edu.ipkStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
-            </div>
+                <Divider class="my-8" />
 
-            <!-- Penghargaan -->
-            <div class="space-y-2 md:col-span-2">
-              <InfoField label="Penghargaan" :value="edu.penghargaan" />
-              <Select v-model="edu.penghargaanStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
-            </div>
+                <!-- ===== SECTION 2: PENDIDIKAN ===== -->
+                <SectionHeader title="Riwayat Pendidikan" subtitle="Verifikasi data pendidikan" />
 
-            <!-- File -->
-            <div class="space-y-2 md:col-span-2">
-              <InfoField label="Ijazah & Transkrip Nilai" value="Lihat Dokumen" />
+                <div class="mt-6 space-y-6">
+                    <div v-if="detail.educations?.length === 0" class="text-slate-400 text-sm">
+                        Tidak ada data pendidikan
+                    </div>
+                    <div
+                        v-for="(edu, i) in detail.educations"
+                        :key="edu.id"
+                        class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50"
+                    >
+                        <h3 class="font-semibold text-slate-700 mb-4">Pendidikan {{ i + 1 }}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div v-for="f in [
+                                { key: 'school',          label: 'Nama Sekolah',  value: edu.school },
+                                { key: 'level',           label: 'Jenjang',       value: edu.level },
+                                { key: 'major',           label: 'Jurusan',       value: edu.major },
+                                { key: 'enrollment_date', label: 'Tanggal Masuk', value: edu.enrollment_date },
+                                { key: 'graduation_date', label: 'Tanggal Lulus', value: edu.graduation_date },
+                                { key: 'gpa',             label: 'IPK',           value: edu.gpa },
+                            ]" :key="f.key" class="space-y-2">
+                                <InfoField :label="f.label" :value="f.value ?? '-'" />
+                                <StatusSelect
+                                    v-model="eduStatuses[`${i}_${f.key}`]"
+                                    v-model:memoValue="eduMemos[`${i}_${f.key}`]"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-              <div
-                class="text-admin-primary-700 text-sm font-medium cursor-pointer"
-                @click="showEducationFile = edu.file"
-              >
-                Lihat File
-              </div>
+                <Divider class="my-8" />
 
-              <Select v-model="edu.fileStatus">
-                <option value="">Pilih Status</option>
-                <option value="valid">Valid</option>
-                <option value="invalid">Invalid</option>
-              </Select>
-            </div>
+                <!-- ===== SECTION 3: PENGALAMAN KERJA ===== -->
+                <SectionHeader title="Pengalaman Kerja" subtitle="Verifikasi riwayat pekerjaan" />
 
-          </div>
+                <div class="mt-6 space-y-6">
+                    <div v-if="detail.works?.length === 0" class="text-slate-400 text-sm">
+                        Tidak ada data pengalaman kerja
+                    </div>
+                    <div
+                        v-for="(w, i) in detail.works"
+                        :key="w.id"
+                        class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50"
+                    >
+                        <h3 class="font-semibold text-slate-700 mb-4">Pengalaman {{ i + 1 }}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div v-for="f in [
+                                { key: 'company',            label: 'Nama Perusahaan', value: w.company },
+                                { key: 'position',           label: 'Jabatan',         value: w.position },
+                                { key: 'employment_type',    label: 'Jenis Pekerjaan', value: w.employment_type },
+                                { key: 'start_date',         label: 'Tanggal Mulai',   value: w.start_date },
+                                { key: 'end_date',           label: 'Tanggal Selesai', value: w.end_date ?? 'Masih Bekerja' },
+                                { key: 'supervisor_name',    label: 'Nama Atasan',     value: w.supervisor_name },
+                                { key: 'supervisor_contact', label: 'Kontak Atasan',   value: w.supervisor_contact },
+                            ]" :key="f.key" class="space-y-2">
+                                <InfoField :label="f.label" :value="f.value ?? '-'" />
+                                <StatusSelect
+                                    v-model="workStatuses[`${i}_${f.key}`]"
+                                    v-model:memoValue="workMemos[`${i}_${f.key}`]"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        </div>
+                <Divider class="my-8" />
 
-      </div>
+                <!-- ===== SECTION 4: SERTIFIKAT ===== -->
+                <SectionHeader title="Sertifikat" subtitle="Verifikasi sertifikasi yang dimiliki" />
 
+                <div class="mt-6 space-y-6">
+                    <div v-if="detail.certifications?.length === 0" class="text-slate-400 text-sm">
+                        Tidak ada data sertifikat
+                    </div>
+                    <div
+                        v-for="(c, i) in detail.certifications"
+                        :key="c.id"
+                        class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50"
+                    >
+                        <h3 class="font-semibold text-slate-700 mb-4">Sertifikat {{ i + 1 }}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div v-for="f in [
+                                { key: 'name',         label: 'Nama Sertifikat',   value: c.name },
+                                { key: 'organization', label: 'Instansi Penerbit', value: c.organization },
+                                { key: 'issued_date',  label: 'Tanggal Terbit',    value: c.issued_date },
+                                { key: 'valid_until',  label: 'Masa Berlaku',      value: c.valid_until },
+                            ]" :key="f.key" class="space-y-2">
+                                <InfoField :label="f.label" :value="f.value ?? '-'" />
+                                <StatusSelect
+                                    v-model="certStatuses[`${i}_${f.key}`]"
+                                    v-model:memoValue="certMemos[`${i}_${f.key}`]"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-  <Divider class="my-8" />
+                <Divider class="my-8" />
 
-  <!-- ================= SECTION 3: PENGALAMAN & SERTIFIKAT ================= -->
-    <SectionHeader
-      title="Pengalaman Kerja"
-      subtitle="Verifikasi riwayat pekerjaan"
+                <!-- ===== SECTION 5: CATATAN ===== -->
+                <SectionHeader title="Catatan Investigator" subtitle="Internal & Permintaan Koreksi" />
+
+                <div class="space-y-6 mt-6">
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-700 mb-2">Catatan Progress (Untuk Diri Sendiri)</h3>
+                        <p class="text-xs text-slate-500 mb-3">Catatan ini hanya untuk Anda dan tidak dikirim ke anggota.</p>
+                        <textarea
+                            v-model="investigationNotes"
+                            rows="4"
+                            placeholder="Tulis progress hari ini..."
+                            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-admin-primary-600 focus:outline-none text-sm"
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-700 mb-2">Permintaan Koreksi (Opsional)</h3>
+                        <p class="text-xs text-slate-500 mb-3">Isi jika perlu meminta koreksi dari anggota.</p>
+                        <textarea
+                            v-model="returnReason"
+                            rows="4"
+                            placeholder="Detail koreksi yang diperlukan..."
+                            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-admin-primary-600 focus:outline-none text-sm"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <Divider class="my-8" />
+
+                <!-- ===== アクションボタン ===== -->
+                <div class="flex flex-wrap justify-end gap-3">
+                    <Button variant="secondary" @click="sendCorrection">
+                        ⚠️ Minta Koreksi ke Anggota
+                    </Button>
+                    <Button variant="outline" @click="saveAll" :disabled="saving">
+                        {{ saving ? 'Menyimpan...' : '💾 Simpan' }}
+                    </Button>
+                    <Button @click="sendComplete">
+                        ✅ Selesai → Kirim ke Reviewer
+                    </Button>
+                </div>
+
+            </template>
+        </Card>
+    </div>
+
+    <ImageViewer
+        :show="showImage"
+        :src="viewImageSrc"
+        @close="showImage = false"
     />
-
-  <div class="mt-6 space-y-8">
-
-    <div
-      v-for="(work, index) in workExperiences"
-      :key="work.id"
-      class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50"
-    >
-
-      <h3 class="font-semibold text-slate-700 mb-6">
-        Pengalaman Kerja {{ index + 1 }}
-      </h3>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        <!-- Nama Perusahaan -->
-        <div class="space-y-2">
-          <InfoField label="Nama Perusahaan" :value="work.namaPerusahaan" />
-          <Select v-model="work.namaPerusahaanStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Alamat -->
-        <div class="space-y-2">
-          <InfoField label="Alamat Perusahaan" :value="work.alamatPerusahaan" />
-          <Select v-model="work.alamatPerusahaanStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Tanggal Mulai -->
-        <div class="space-y-2">
-          <InfoField label="Tanggal Mulai" :value="work.tanggalMulai" />
-          <Select v-model="work.tanggalStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Tanggal Selesai -->
-        <div class="space-y-2">
-          <InfoField label="Tanggal Selesai" :value="work.tanggalSelesai" />
-          <Select v-model="work.tanggalStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Jenis Pekerjaan -->
-        <div class="space-y-2">
-          <InfoField label="Jenis Pekerjaan" :value="work.jenisPekerjaan" />
-          <Select v-model="work.jenisPekerjaanStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Jabatan -->
-        <div class="space-y-2">
-          <InfoField label="Departemen / Jabatan" :value="work.jabatan" />
-          <Select v-model="work.jabatanStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Deskripsi -->
-        <div class="space-y-2 md:col-span-2">
-          <InfoField label="Deskripsi Pekerjaan" :value="work.deskripsi" />
-          <Select v-model="work.deskripsiStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Alasan Berhenti -->
-        <div class="space-y-2">
-          <InfoField label="Alasan Berhenti" :value="work.alasanBerhenti" />
-          <Select v-model="work.alasanBerhentiStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Pencapaian -->
-        <div class="space-y-2">
-          <InfoField label="Pencapaian / Prestasi" :value="work.pencapaian" />
-          <Select v-model="work.pencapaianStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Nama Atasan -->
-        <div class="space-y-2">
-          <InfoField label="Nama Atasan" :value="work.namaAtasan" />
-          <Select v-model="work.namaAtasanStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Jabatan Atasan -->
-        <div class="space-y-2">
-          <InfoField label="Jabatan Atasan" :value="work.jabatanAtasan" />
-          <Select v-model="work.jabatanAtasanStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- No Telp -->
-        <div class="space-y-2">
-          <InfoField label="No. Telp Aktif" :value="work.noTelpAktif" />
-          <Select v-model="work.noTelpAktifStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Surat -->
-        <div class="space-y-2 md:col-span-2">
-          <InfoField label="Surat Keterangan Pengalaman Kerja" value="Lihat Dokumen" />
-
-          <div
-            class="text-admin-primary-700 text-sm font-medium cursor-pointer"
-            @click="showImage = work.surat"
-          >
-            Lihat File
-          </div>
-
-          <Select v-model="work.suratStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-  <Divider class="my-8" />
-
-  <SectionHeader
-    title="Sertifikat"
-    subtitle="Verifikasi sertifikasi yang dimiliki"
-  />
-
-  <div class="mt-6 space-y-8">
-
-    <div
-      v-for="(cert, index) in certificates"
-      :key="cert.id"
-      class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50"
-    >
-
-      <h3 class="font-semibold text-slate-700 mb-6">
-        Sertifikat {{ index + 1 }}
-      </h3>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        <!-- Nama Sertifikat -->
-        <div class="space-y-2">
-          <InfoField label="Nama Sertifikat" :value="cert.namaSertifikat" />
-          <Select v-model="cert.namaSertifikatStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Instansi -->
-        <div class="space-y-2">
-          <InfoField label="Instansi Penerbit" :value="cert.instansi" />
-          <Select v-model="cert.instansiStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Tanggal Terbit -->
-        <div class="space-y-2">
-          <InfoField label="Tanggal Terbit" :value="cert.tanggalTerbit" />
-          <Select v-model="cert.tanggalTerbitStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Masa Berlaku -->
-        <div class="space-y-2">
-          <InfoField label="Masa Berlaku" :value="cert.masaBerlaku" />
-          <Select v-model="cert.masaBerlakuStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Skor / Level -->
-        <div class="space-y-2">
-          <InfoField label="Skor / Level / Tingkatan" :value="cert.skor" />
-          <Select v-model="cert.skorStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Keterangan -->
-        <div class="space-y-2 md:col-span-2">
-          <InfoField label="Keterangan" :value="cert.keterangan" />
-          <Select v-model="cert.keteranganStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-        <!-- Lampiran -->
-        <div class="space-y-2 md:col-span-2">
-          <InfoField
-            label="Lampiran Sertifikat"
-            value="Lihat Lampiran"
-          />
-
-          <div
-            class="text-admin-primary-700 text-sm font-medium cursor-pointer"
-            @click="showImage = cert.lampiran"
-          >
-            Lihat File
-          </div>
-
-          <Select v-model="cert.lampiranStatus">
-            <option value="">Pilih Status</option>
-            <option value="valid">Valid</option>
-            <option value="invalid">Invalid</option>
-          </Select>
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-  <Divider class="my-8" />
-
-  <!-- ================= SECTION 4: CATATAN INVESTIGATOR ================= -->
-  <SectionHeader
-    title="Catatan Investigator"
-    subtitle="Internal & Permintaan Koreksi"
-  />
-
-  <div class="space-y-8 mt-6">
-
-    <!-- Progress Internal -->
-    <div>
-      <h3 class="text-sm font-semibold text-slate-700 mb-2">
-        Catatan Progress Anda (Untuk Diri Sendiri)
-      </h3>
-      <p class="text-xs text-slate-500 mb-3">
-        Tulis progress hari ini untuk melanjutkan besok. 
-        Catatan ini hanya untuk Anda dan tidak dikirim ke anggota.
-      </p>
-
-      <textarea
-        rows="4"
-        placeholder="Tulis progress hari ini..."
-        class="w-full rounded-xl border border-slate-300 px-4 py-3
-               focus:ring-2 focus:ring-admin-primary-600 focus:outline-none text-sm"
-      ></textarea>
-
-      <p class="text-xs text-slate-400 mt-2">
-        <span class="inline-flex items-center gap-1">
-          <ClockIcon class="w-4 h-4 shrink-0" />
-          <span>
-            Terakhir disimpan: 07/02/2026 14:11 (6 hari yang lalu)
-          </span>
-        </span>
-      </p>
-    </div>
-
-    <!-- Permintaan Koreksi -->
-    <div>
-      <h3 class="text-sm font-semibold text-slate-700 mb-2">
-        Permintaan Koreksi (Opsional)
-      </h3>
-      <p class="text-xs text-slate-500 mb-3">
-        Jika memerlukan koreksi dari anggota, isi detail di bawah ini sebelum mengirim.
-      </p>
-
-      <textarea
-        rows="4"
-        placeholder="Detail koreksi yang diperlukan..."
-        class="w-full rounded-xl border border-slate-300 px-4 py-3
-               focus:ring-2 focus:ring-admin-primary-600 focus:outline-none text-sm"
-      ></textarea>
-    </div>
-
-  </div>
-
-  <Divider class="my-8" />
-
-  <!-- ACTION BUTTON -->
-  <div class="flex justify-end gap-3">
-    <Button variant="secondary">Batal</Button>
-    <Button>Simpan</Button>
-  </div>
-
-    </Card>
-
-
-  </div>
-  <ImageViewer
-    :show="showImage"
-    :src="profileImage"
-    @close="showImage = false"
-  />
 </template>
-

@@ -107,14 +107,20 @@ Route::middleware('auth')->group(function () {
 
 Route::prefix('admin')
     ->name('admin.')
+    ->middleware('auth')
     ->group(function () {
+
+        // 調査チーム
         Route::prefix('investigator')
             ->name('investigator.')
             ->group(function () {
-                Route::get('/', function () {
-                    return Inertia::render('Admin/Investigator/InvestigatorMain');
-                })->name('index');
+                Route::get('/', [App\Http\Controllers\InvestigatorController::class, 'index'])->name('index');
+                Route::post('/{id}/save', [App\Http\Controllers\InvestigatorController::class, 'save'])->name('save');
+                Route::post('/{id}/complete', [App\Http\Controllers\InvestigatorController::class, 'complete'])->name('complete');
+                Route::post('/{id}/correction', [App\Http\Controllers\InvestigatorController::class, 'correction'])->name('correction');
             });
+
+        // レビューチーム（後で実装）
         Route::prefix('reviewer')
             ->name('reviewer.')
             ->group(function () {

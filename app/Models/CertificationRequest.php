@@ -27,8 +27,50 @@ class CertificationRequest extends Model
     ];
 
     protected $casts = [
-        'ready_for_review'       => 'boolean',
-        'admin_approved'         => 'boolean',
-        'returned_to_applicant'  => 'boolean',
+        'ready_for_review'      => 'boolean',
+        'admin_approved'        => 'boolean',
+        'returned_to_applicant' => 'boolean',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function applicantProfile()
+    {
+        return $this->hasOneThrough(
+            ApplicantProfile::class,
+            User::class,
+            'id',        // users.id
+            'user_id',   // applicant_profiles.user_id
+            'user_id',   // certification_requests.user_id
+            'id'         // users.id
+        );
+    }
+
+    public function educationHistory()
+    {
+        return $this->hasMany(EducationHistory::class);
+    }
+
+    public function workHistory()
+    {
+        return $this->hasMany(WorkHistory::class);
+    }
+
+    public function certifications()
+    {
+        return $this->hasMany(Certification::class);
+    }
+
+    public function investigationItems()
+    {
+        return $this->hasMany(InvestigationItem::class);
+    }
+
+    public function investigator()
+    {
+        return $this->belongsTo(User::class, 'assigned_investigator');
+    }
 }
