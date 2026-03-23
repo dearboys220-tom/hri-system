@@ -19,16 +19,16 @@ class JobController extends Controller
     // 求人投稿フォーム表示
     public function create(): Response
     {
-        $user = Auth::user();
+        $user    = Auth::user();
         $profile = CompanyProfile::where('user_id', $user->id)->first();
 
         $isFreePostAvailable = false;
-        $freePostDaysLeft = 0;
+        $freePostDaysLeft    = 0;
         if ($profile && !$profile->free_job_post_used && $profile->free_job_post_expires_at) {
             $expires = Carbon::parse($profile->free_job_post_expires_at);
             if ($expires->isFuture()) {
                 $isFreePostAvailable = true;
-                $freePostDaysLeft = (int) now()->diffInDays($expires);
+                $freePostDaysLeft    = (int) now()->diffInDays($expires);
             }
         }
 
@@ -43,7 +43,7 @@ class JobController extends Controller
     // 求人投稿保存
     public function store(Request $request): RedirectResponse
     {
-        $user = Auth::user();
+        $user    = Auth::user();
         $profile = CompanyProfile::where('user_id', $user->id)->first();
 
         if (!$profile || $profile->company_verification_status !== 'verified') {
@@ -82,6 +82,7 @@ class JobController extends Controller
                 ->store('workplace_photos', 'public');
         }
 
+        // 無料チェック
         $isFreePost = false;
         if (!$profile->free_job_post_used && $profile->free_job_post_expires_at) {
             $expires = Carbon::parse($profile->free_job_post_expires_at);
@@ -115,25 +116,29 @@ class JobController extends Controller
             'application_deadline'  => $request->application_deadline,
             'start_date'            => $request->start_date,
             'special_requirements'  => $request->special_requirements,
-            'status'                => 'active',
+            'status'                => $isFreePost ? 'active' : 'draft',
             'is_free_post'          => $isFreePost,
         ]);
 
-        Payment::create([
-            'user_id'             => $user->id,
-            'payment_type'        => 'job_post',
-            'amount'              => $isFreePost ? 0 : 250000,
-            'is_free'             => $isFreePost,
-            'payment_status'      => $isFreePost ? 'free' : 'pending',
-            'related_job_post_id' => $jobPost->id,
-        ]);
-
         if ($isFreePost) {
+            // 無料投稿：即座にactive
+            Payment::create([
+                'user_id'             => $user->id,
+                'payment_type'        => 'job_post',
+                'amount'              => 0,
+                'is_free'             => true,
+                'payment_status'      => 'free',
+                'related_job_post_id' => $jobPost->id,
+            ]);
             $profile->update(['free_job_post_used' => true]);
+
+            return redirect()->route('company.jobs.index')
+                ->with('success', 'Lowongan berhasil diposting!');
         }
 
-        return redirect()->route('company.jobs.index')
-            ->with('success', 'Lowongan berhasil diposting!');
+        // 有料投稿：draft状態で保存して詳細ページへ（支払い促す）
+        return redirect()->route('company.jobs.show', $jobPost->id)
+            ->with('needsPayment', true);
     }
 
     // 求人一覧
@@ -153,20 +158,26 @@ class JobController extends Controller
     public function show(int $id): Response
     {
         $user = Auth::user();
-        $job = JobPost::where('id', $id)
+        $job  = JobPost::where('id', $id)
             ->where('company_id', $user->id)
             ->firstOrFail();
 
-        $categories = JobCategories::all();
-        $categoryName = $job->category ? ($categories[$job->category]['name'] ?? $job->category) : '-';
+        $categories      = JobCategories::all();
+        $categoryName    = $job->category
+            ? ($categories[$job->category]['name'] ?? $job->category)
+            : '-';
         $subcategoryName = ($job->category && $job->subcategory)
             ? ($categories[$job->category]['subcategories'][$job->subcategory] ?? $job->subcategory)
             : '-';
+
+        // 支払い待ちか確認
+        $needsPayment = session('needsPayment', false);
 
         return Inertia::render('Company/Jobs/Show', [
             'job'             => $job,
             'categoryName'    => $categoryName,
             'subcategoryName' => $subcategoryName,
+            'needsPayment'    => $needsPayment,
         ]);
     }
 
@@ -174,7 +185,7 @@ class JobController extends Controller
     public function edit(int $id): Response
     {
         $user = Auth::user();
-        $job = JobPost::where('id', $id)
+        $job  = JobPost::where('id', $id)
             ->where('company_id', $user->id)
             ->firstOrFail();
 
@@ -188,7 +199,7 @@ class JobController extends Controller
     public function update(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
-        $job = JobPost::where('id', $id)
+        $job  = JobPost::where('id', $id)
             ->where('company_id', $user->id)
             ->firstOrFail();
 
@@ -263,7 +274,7 @@ class JobController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $user = Auth::user();
-        $job = JobPost::where('id', $id)
+        $job  = JobPost::where('id', $id)
             ->where('company_id', $user->id)
             ->firstOrFail();
 

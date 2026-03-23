@@ -1,16 +1,21 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps({
     job: Object,
     categoryName: String,
     subcategoryName: String,
+    needsPayment: Boolean,
 });
+
+const processing    = ref(false);
+const errorMsg      = ref('');
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    const d = new Date(dateStr);
+    const d     = new Date(dateStr);
     const day   = String(d.getUTCDate()).padStart(2, '0');
     const month = String(d.getUTCMonth() + 1).padStart(2, '0');
     const year  = d.getUTCFullYear();
@@ -31,11 +36,56 @@ function confirmDelete() {
     }
 }
 
+// Snap.js動的ロード
+const loadSnapScript = (url) => {
+    return new Promise((resolve) => {
+        if (window.snap) { resolve(); return; }
+        const script    = document.createElement('script');
+        script.src      = url;
+        script.onload   = resolve;
+        document.head.appendChild(script);
+    });
+};
+
+// 支払い処理
+async function payNow() {
+    if (processing.value) return;
+    processing.value = true;
+    errorMsg.value   = '';
+
+    try {
+        const res = await axios.post(`/company/jobs/${props.job.id}/payment`);
+        const { snap_token, snap_url } = res.data;
+
+        await loadSnapScript(snap_url);
+
+        window.snap.pay(snap_token, {
+            onSuccess: () => {
+                window.location.href = '/company/jobs?payment=success';
+            },
+            onPending: () => {
+                window.location.href = '/company/jobs?payment=pending';
+            },
+            onError: () => {
+                errorMsg.value   = 'Pembayaran gagal. Silakan coba lagi.';
+                processing.value = false;
+            },
+            onClose: () => {
+                errorMsg.value   = 'Pembayaran dibatalkan.';
+                processing.value = false;
+            },
+        });
+    } catch (e) {
+        errorMsg.value   = 'Terjadi kesalahan. Silakan coba lagi.';
+        processing.value = false;
+    }
+}
+
 const statusConfig = {
-    active:  { label: 'Aktif',   color: 'bg-green-100 text-green-700' },
-    closed:  { label: 'Ditutup', color: 'bg-red-100 text-red-600' },
-    draft:   { label: 'Draft',   color: 'bg-gray-100 text-gray-600' },
-    deleted: { label: 'Dihapus', color: 'bg-red-200 text-red-800' },
+    active:  { label: 'Aktif',            color: 'bg-green-100 text-green-700' },
+    closed:  { label: 'Ditutup',          color: 'bg-red-100 text-red-600' },
+    draft:   { label: 'Menunggu Bayar',   color: 'bg-yellow-100 text-yellow-700' },
+    deleted: { label: 'Dihapus',          color: 'bg-red-200 text-red-800' },
 };
 const st = statusConfig[props.job.status] ?? statusConfig.draft;
 </script>
@@ -50,6 +100,26 @@ const st = statusConfig[props.job.status] ?? statusConfig.draft;
         <div class="py-8">
             <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 space-y-5">
 
+                <!-- 支払いバナー（draft状態） -->
+                <div v-if="job.status === 'draft'"
+                     class="bg-yellow-50 border border-yellow-300 rounded-2xl p-5">
+                    <div class="flex items-center gap-3 mb-3">
+                        <span class="text-2xl">💳</span>
+                        <div>
+                            <p class="font-bold text-yellow-800">Lowongan Belum Aktif</p>
+                            <p class="text-sm text-yellow-700">Selesaikan pembayaran untuk mengaktifkan lowongan ini.</p>
+                        </div>
+                        <span class="ml-auto font-bold text-yellow-800 text-lg">Rp 250.000</span>
+                    </div>
+                    <p v-if="errorMsg" class="text-red-600 text-sm mb-2 text-center">{{ errorMsg }}</p>
+                    <button
+                        @click="payNow"
+                        :disabled="processing"
+                        class="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition text-sm">
+                        {{ processing ? 'Memproses...' : '💳 Bayar Sekarang Rp 250.000' }}
+                    </button>
+                </div>
+
                 <!-- ヘッダーカード -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <div class="flex flex-col sm:flex-row gap-4 items-start">
@@ -57,7 +127,10 @@ const st = statusConfig[props.job.status] ?? statusConfig.draft;
                             <div class="flex items-center gap-2 flex-wrap">
                                 <h1 class="text-xl font-bold text-gray-800">{{ job.title }}</h1>
                                 <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', st.color]">{{ st.label }}</span>
-                                <span v-if="job.is_free_post" class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">🎁 GRATIS</span>
+                                <span v-if="job.is_free_post"
+                                      class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                    🎁 GRATIS
+                                </span>
                             </div>
                             <div class="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
                                 <span>📍 {{ job.location }}</span>
@@ -70,11 +143,15 @@ const st = statusConfig[props.job.status] ?? statusConfig.draft;
                     <!-- アクションボタン -->
                     <div class="flex gap-3 mt-5 pt-4 border-t border-gray-100">
                         <Link :href="`/company/jobs/${job.id}/edit`"
-                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition">
+                              class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition">
                             ✏️ Edit Lowongan
                         </Link>
+                        <Link :href="`/company/jobs/${job.id}/applications`"
+                              class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-xl text-sm font-medium transition">
+                            👥 Lihat Pelamar
+                        </Link>
                         <button @click="confirmDelete"
-                            class="bg-red-50 hover:bg-red-100 text-red-600 px-5 py-2 rounded-xl text-sm font-medium transition border border-red-200">
+                                class="bg-red-50 hover:bg-red-100 text-red-600 px-5 py-2 rounded-xl text-sm font-medium transition border border-red-200">
                             🗑️ Hapus
                         </button>
                     </div>
@@ -91,7 +168,11 @@ const st = statusConfig[props.job.status] ?? statusConfig.draft;
                         <div><span class="text-gray-400 block">Hari Kerja</span><span class="font-medium">{{ job.working_days?.join(', ') ?? '-' }}</span></div>
                         <div><span class="text-gray-400 block">Jam Kerja</span><span class="font-medium">{{ job.working_hours ?? '-' }}</span></div>
                         <div><span class="text-gray-400 block">Jenis Kelamin</span><span class="font-medium">{{ job.gender ?? '-' }}</span></div>
-                        <div><span class="text-gray-400 block">Usia</span><span class="font-medium">{{ job.age_min && job.age_max ? `${job.age_min} – ${job.age_max} tahun` : '-' }}</span></div>
+                        <div><span class="text-gray-400 block">Usia</span>
+                            <span class="font-medium">
+                                {{ job.age_min && job.age_max ? `${job.age_min} – ${job.age_max} tahun` : '-' }}
+                            </span>
+                        </div>
                         <div><span class="text-gray-400 block">Status Pernikahan</span><span class="font-medium">{{ job.marital_status ?? '-' }}</span></div>
                         <div><span class="text-gray-400 block">Bahasa</span><span class="font-medium">{{ job.language_requirements?.join(', ') ?? '-' }}</span></div>
                         <div><span class="text-gray-400 block">Batas Lamaran</span><span class="font-medium">{{ formatDate(job.application_deadline) }}</span></div>
@@ -121,7 +202,8 @@ const st = statusConfig[props.job.status] ?? statusConfig.draft;
                 </div>
 
                 <!-- 職場写真 -->
-                <div v-if="job.workplace_photo" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div v-if="job.workplace_photo"
+                     class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div class="p-4 border-b border-gray-100">
                         <h3 class="font-semibold text-gray-700">📸 Foto Tempat Kerja</h3>
                     </div>
@@ -129,7 +211,9 @@ const st = statusConfig[props.job.status] ?? statusConfig.draft;
                 </div>
 
                 <div class="pb-8">
-                    <Link href="/company/jobs" class="text-sm text-indigo-600 hover:underline">← Kembali ke Daftar Lowongan</Link>
+                    <Link href="/company/jobs" class="text-sm text-indigo-600 hover:underline">
+                        ← Kembali ke Daftar Lowongan
+                    </Link>
                 </div>
 
             </div>

@@ -12,15 +12,72 @@ const props = defineProps({
     daysRemaining: Number,
     price: Number,
     isAlreadySubmitted: Boolean,
+    pendingPaymentRequest: Object,
 });
 
-const confirmed = ref(false);
+const confirmed  = ref(false);
+const processing = ref(false);
+const errorMsg   = ref('');
 
 const form = useForm({});
 
-const submit = () => {
+// 無料申請
+const submitFree = () => {
     if (!confirmed.value) return;
     form.post(route('applicant.confirmation.store'));
+};
+
+// 有料申請（Midtrans Snap）
+const submitPaid = async () => {
+    if (processing.value) return;
+    processing.value = true;
+    errorMsg.value   = '';
+
+    try {
+        const res = await axios.post('/applicant/certification/payment');
+        const { snap_token, snap_url } = res.data;
+
+        await loadSnapScript(snap_url);
+
+        window.snap.pay(snap_token, {
+            onSuccess: () => {
+                window.location.href = '/applicant/dashboard?payment=success';
+            },
+            onPending: () => {
+                window.location.href = '/applicant/dashboard?payment=pending';
+            },
+            onError: () => {
+                errorMsg.value   = 'Pembayaran gagal. Silakan coba lagi.';
+                processing.value = false;
+            },
+            onClose: () => {
+                errorMsg.value   = 'Pembayaran dibatalkan.';
+                processing.value = false;
+            },
+        });
+    } catch (e) {
+        errorMsg.value   = 'Terjadi kesalahan. Silakan coba lagi.';
+        processing.value = false;
+    }
+};
+
+// Snap.js動的ロード
+const loadSnapScript = (url) => {
+    return new Promise((resolve) => {
+        if (window.snap) { resolve(); return; }
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = resolve;
+        document.head.appendChild(script);
+    });
+};
+
+const submit = () => {
+    if (props.isFreeAvailable) {
+        submitFree();
+    } else {
+        submitPaid();
+    }
 };
 </script>
 
@@ -42,7 +99,8 @@ const submit = () => {
                 </div>
 
                 <!-- 無料バナー -->
-                <div v-if="isFreeAvailable" class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-4 flex items-center gap-3 text-white">
+                <div v-if="isFreeAvailable"
+                     class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-4 flex items-center gap-3 text-white">
                     <span class="text-2xl">🎁</span>
                     <div>
                         <p class="font-bold">Sertifikasi GRATIS!</p>
@@ -50,11 +108,13 @@ const submit = () => {
                     </div>
                     <span class="ml-auto font-bold text-lg">Rp 0</span>
                 </div>
+
+                <!-- 有料バナー -->
                 <div v-else class="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex items-center gap-3">
                     <span class="text-2xl">💳</span>
                     <div>
                         <p class="font-semibold text-indigo-800">Biaya Sertifikasi</p>
-                        <p class="text-sm text-indigo-600">Pembayaran akan diproses setelah konfirmasi</p>
+                        <p class="text-sm text-indigo-600">Pembayaran melalui QRIS / GoPay / Transfer Bank</p>
                     </div>
                     <span class="ml-auto font-bold text-indigo-700 text-lg">Rp 35.000</span>
                 </div>
@@ -67,27 +127,27 @@ const submit = () => {
                     <div class="grid grid-cols-2 gap-3">
                         <div class="bg-gray-50 rounded-xl p-3">
                             <p class="text-xs text-gray-400">Nama Lengkap</p>
-                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.full_name ?? '—' }}</p>
+                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.full_name ?? '-' }}</p>
                         </div>
                         <div class="bg-gray-50 rounded-xl p-3">
                             <p class="text-xs text-gray-400">NIK</p>
-                            <p class="text-sm font-medium text-gray-800 mt-1 font-mono">{{ profile?.nik ?? '—' }}</p>
+                            <p class="text-sm font-medium text-gray-800 mt-1 font-mono">{{ profile?.nik ?? '-' }}</p>
                         </div>
                         <div class="bg-gray-50 rounded-xl p-3">
                             <p class="text-xs text-gray-400">Jenis Kelamin</p>
-                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.gender ?? '—' }}</p>
+                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.gender ?? '-' }}</p>
                         </div>
                         <div class="bg-gray-50 rounded-xl p-3">
                             <p class="text-xs text-gray-400">Tanggal Lahir</p>
-                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.birth_date ?? '—' }}</p>
+                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.birth_date ?? '-' }}</p>
                         </div>
                         <div class="bg-gray-50 rounded-xl p-3">
                             <p class="text-xs text-gray-400">Nomor Telepon</p>
-                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.phone_number ?? '—' }}</p>
+                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.phone_number ?? '-' }}</p>
                         </div>
                         <div class="bg-gray-50 rounded-xl p-3">
                             <p class="text-xs text-gray-400">Status Pernikahan</p>
-                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.marital_status ?? '—' }}</p>
+                            <p class="text-sm font-medium text-gray-800 mt-1">{{ profile?.marital_status ?? '-' }}</p>
                         </div>
                     </div>
                 </div>
@@ -99,12 +159,12 @@ const submit = () => {
                         <span class="ml-auto text-xs text-gray-400">{{ educations.length }} data</span>
                     </h3>
                     <div v-if="educations.length === 0" class="text-sm text-gray-400 text-center py-4">
-                        ✗ Belum diisi
+                        Belum diisi
                     </div>
                     <div v-for="edu in educations" :key="edu.id" class="bg-gray-50 rounded-xl p-3 mb-2">
                         <p class="font-semibold text-sm text-gray-800">{{ edu.school }}</p>
-                        <p class="text-xs text-gray-500">{{ edu.level }}{{ edu.major ? ' — ' + edu.major : '' }}</p>
-                        <p class="text-xs text-gray-400">{{ edu.enrollment_date ?? '?' }} — {{ edu.graduation_date ?? 'Sekarang' }}</p>
+                        <p class="text-xs text-gray-500">{{ edu.level }}{{ edu.major ? ' – ' + edu.major : '' }}</p>
+                        <p class="text-xs text-gray-400">{{ edu.enrollment_date ?? '?' }} – {{ edu.graduation_date ?? 'Sekarang' }}</p>
                     </div>
                 </div>
 
@@ -115,23 +175,23 @@ const submit = () => {
                         <span class="ml-auto text-xs text-gray-400">{{ works.length }} data</span>
                     </h3>
                     <div v-if="works.length === 0" class="text-sm text-gray-400 text-center py-4">
-                        ✗ Belum diisi
+                        Belum diisi
                     </div>
                     <div v-for="work in works" :key="work.id" class="bg-gray-50 rounded-xl p-3 mb-2">
                         <p class="font-semibold text-sm text-gray-800">{{ work.company }}</p>
-                        <p class="text-xs text-gray-500">{{ work.position }} — {{ work.employment_type }}</p>
-                        <p class="text-xs text-gray-400">{{ work.start_date }} — {{ work.end_date ?? 'Sekarang' }}</p>
+                        <p class="text-xs text-gray-500">{{ work.position }} – {{ work.employment_type }}</p>
+                        <p class="text-xs text-gray-400">{{ work.start_date }} – {{ work.end_date ?? 'Sekarang' }}</p>
                     </div>
                 </div>
 
                 <!-- 資格 -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <span class="text-indigo-600">📜</span> Sertifikasi
+                        <span class="text-indigo-600">🏅</span> Sertifikasi
                         <span class="ml-auto text-xs text-gray-400">{{ certs.length }} data</span>
                     </h3>
                     <div v-if="certs.length === 0" class="text-sm text-gray-400 text-center py-4">
-                        ✗ Belum diisi
+                        Belum diisi
                     </div>
                     <div v-for="cert in certs" :key="cert.id" class="bg-gray-50 rounded-xl p-3 mb-2">
                         <p class="font-semibold text-sm text-gray-800">{{ cert.name }}</p>
@@ -140,21 +200,47 @@ const submit = () => {
                     </div>
                 </div>
 
-                <!-- 重要事項 -->
+                <!-- 注意事項 -->
                 <div class="bg-red-50 border border-red-200 rounded-2xl p-6">
                     <h3 class="font-bold text-red-700 mb-3 flex items-center gap-2">
                         ⚠️ Hal Penting Sebelum Mengajukan
                     </h3>
                     <ul class="space-y-2 text-sm text-red-700">
-                        <li>• Setelah mengajukan sertifikasi, Anda <strong>tidak dapat mengajukan lagi selama 3 bulan</strong></li>
+                        <li>• Setelah mengajukan, Anda <strong>tidak dapat mengajukan lagi selama 3 bulan</strong></li>
                         <li>• Pastikan semua informasi yang diisi adalah <strong>benar dan akurat</strong></li>
                         <li>• Data yang salah akan mempengaruhi <strong>penilaian sertifikasi Anda</strong></li>
                         <li>• Proses verifikasi memakan waktu <strong>3-5 hari kerja</strong></li>
                     </ul>
                 </div>
 
-                <!-- 最終確認 -->
-                <div v-if="!isAlreadySubmitted" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <!-- エラーメッセージ -->
+                <div v-if="errorMsg"
+                     class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm text-center">
+                    {{ errorMsg }}
+                </div>
+
+                <!-- pending_payment：再決済バナー -->
+                <div v-if="pendingPaymentRequest && !isAlreadySubmitted"
+                     class="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 text-center">
+                    <p class="text-yellow-700 font-semibold text-lg">⏳ Menunggu Pembayaran</p>
+                    <p class="text-sm text-yellow-600 mt-1">Silakan selesaikan pembayaran untuk melanjutkan proses sertifikasi.</p>
+                    <div class="mt-4 space-y-2">
+                        <button
+                            @click="submitPaid"
+                            :disabled="processing"
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition text-sm">
+                            {{ processing ? 'Memproses...' : '💳 Bayar Sekarang Rp 35.000' }}
+                        </button>
+                        <Link href="/applicant/dashboard"
+                              class="block text-sm text-gray-500 hover:underline mt-2">
+                            → Kembali ke Dashboard
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- 最終確認（新規申請） -->
+                <div v-else-if="!isAlreadySubmitted && !pendingPaymentRequest"
+                     class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                     <h3 class="font-bold text-gray-800 mb-4 text-center">✅ Konfirmasi Final</h3>
                     <label class="flex items-start gap-3 cursor-pointer bg-gray-50 rounded-xl p-4">
                         <input
@@ -170,30 +256,30 @@ const submit = () => {
                     <div class="flex gap-3 mt-6">
                         <Link
                             href="/applicant/cv"
-                            class="flex-1 text-center border border-gray-300 text-gray-600 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
-                        >
-                            ✗ Kembali ke CV
+                            class="flex-1 text-center border border-gray-300 text-gray-600 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+                            ← Kembali ke CV
                         </Link>
                         <button
                             @click="submit"
-                            :disabled="!confirmed || form.processing"
+                            :disabled="!confirmed || processing || form.processing"
                             class="flex-1 py-3 rounded-xl text-white text-sm font-semibold transition"
-                            :style="confirmed ? 'background-color: #16a34a;' : 'background-color: #d1d5db; cursor: not-allowed;'"
-                        >
-                            {{ form.processing ? 'Memproses...' : '✓ Kirim Permintaan Sertifikasi' }}
+                            :class="confirmed && !processing
+                                ? 'bg-green-600 hover:bg-green-700'
+                                : 'bg-gray-300 cursor-not-allowed'">
+                            <span v-if="processing || form.processing">Memproses...</span>
+                            <span v-else-if="isFreeAvailable">✅ Kirim (GRATIS)</span>
+                            <span v-else>💳 Bayar Rp 35.000 & Kirim</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- 申請済みの場合 -->
+                <!-- 申請中（処理中） -->
                 <div v-else class="bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center">
                     <p class="text-blue-700 font-semibold text-lg">✅ Pengajuan sedang diproses</p>
                     <p class="text-sm text-blue-500 mt-1">Tim HRI sedang memverifikasi data Anda.</p>
-                    <Link
-                        href="/applicant/dashboard"
-                        class="mt-4 inline-block text-sm text-indigo-600 hover:underline"
-                    >
-                        ← Kembali ke Dashboard
+                    <Link href="/applicant/dashboard"
+                          class="mt-4 inline-block text-sm text-indigo-600 hover:underline">
+                        → Kembali ke Dashboard
                     </Link>
                 </div>
 

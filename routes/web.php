@@ -67,6 +67,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/applicant/consent', [ConsentController::class, 'show'])->name('applicant.consent');
     Route::post('/applicant/consent', [ConsentController::class, 'store'])->name('applicant.consent.store');
+    // 求人投稿支払い
+    Route::post('/company/jobs/{jobId}/payment', [App\Http\Controllers\JobPaymentController::class, 'createSnap'])->name('company.jobs.payment');
+    Route::post('/company/jobs/payment/callback', [App\Http\Controllers\JobPaymentController::class, 'callback'])->name('company.jobs.payment.callback');
+    Route::get('/company/jobs/payment/finish', [App\Http\Controllers\JobPaymentController::class, 'finish'])->name('company.jobs.payment.finish');
 
     // ★ここに追加★
     Route::get('/applicant/cv', [CvController::class, 'index'])->name('applicant.cv');
@@ -94,6 +98,11 @@ Route::middleware('auth')->group(function () {
     // ブックマーク
     Route::get('/applicant/bookmarks', [App\Http\Controllers\Applicant\BookmarkController::class, 'index'])->name('applicant.bookmarks');
     Route::post('/applicant/bookmarks/{jobPostId}/toggle', [App\Http\Controllers\Applicant\BookmarkController::class, 'toggle'])->name('applicant.bookmarks.toggle');
+
+    // 認証申請支払い
+    Route::post('/applicant/certification/payment', [App\Http\Controllers\Applicant\CertificationPaymentController::class, 'createSnap'])->name('applicant.certification.payment');
+    Route::post('/applicant/certification/payment/callback', [App\Http\Controllers\Applicant\CertificationPaymentController::class, 'callback'])->name('applicant.certification.payment.callback');
+    Route::get('/applicant/certification/payment/finish', [App\Http\Controllers\Applicant\CertificationPaymentController::class, 'finish'])->name('applicant.certification.payment.finish');
 });
 
 Route::prefix('admin')
