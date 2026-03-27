@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\CertificationRequest;
+use App\Models\EducationHistory;
+use App\Models\WorkHistory;
+use App\Models\Certification;
 use App\Models\ReviewItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -51,9 +54,6 @@ class ReviewerController extends Controller
         if ($selectedId) {
             $cr = CertificationRequest::with([
                 'user:id,name,email',
-                'educationHistory',
-                'workHistory',
-                'certifications',
                 'investigationItems',
                 'reviewItems',
             ])->where('id', $selectedId)
@@ -63,6 +63,13 @@ class ReviewerController extends Controller
             if ($cr) {
                 $profile = \App\Models\ApplicantProfile::where('user_id', $cr->user_id)->first();
                 $invMap  = $cr->investigationItems->groupBy('category');
+
+                // ===== user_id で学歴・職歴・資格を取得 =====
+                $educations = EducationHistory::where('user_id', $cr->user_id)->get();
+                $works      = WorkHistory::where('user_id', $cr->user_id)->get();
+                $certs      = Certification::where('user_id', $cr->user_id)->get();
+                // ===========================================
+
                 $reviewMap = $cr->reviewItems->mapWithKeys(fn($r) => [
                     $r->item_name => [
                         'actual_deduction' => $r->actual_deduction,
@@ -84,7 +91,9 @@ class ReviewerController extends Controller
                         'gender'          => $profile->gender,
                         'marital_status'  => $profile->marital_status,
                         'nationality'     => $profile->nationality,
-                        'birth_date'      => optional($profile->birth_date)->format('d/m/Y'),
+                        'birth_date'      => $profile->birth_date
+                            ? \Carbon\Carbon::parse($profile->birth_date)->format('d/m/Y')
+                            : null,
                         'current_address' => $profile->current_address,
                         'phone_number'    => $profile->phone_number,
                         'whatsapp_number' => $profile->whatsapp_number,
@@ -92,9 +101,9 @@ class ReviewerController extends Controller
                         'member_id'       => $profile->member_id,
                     ] : null,
                     'inv_basic' => $this->mergeBasicInfo($profile, $invMap->get('basic_info', collect())),
-                    'inv_edu'   => $this->mergeEducation($cr->educationHistory, $invMap->get('education', collect())),
-                    'inv_work'  => $this->mergeWork($cr->workHistory, $invMap->get('work', collect())),
-                    'inv_cert'  => $this->mergeCert($cr->certifications, $invMap->get('certification', collect())),
+                    'inv_edu'   => $this->mergeEducation($educations, $invMap->get('education', collect())),
+                    'inv_work'  => $this->mergeWork($works, $invMap->get('work', collect())),
+                    'inv_cert'  => $this->mergeCert($certs, $invMap->get('certification', collect())),
                     'review_map'  => $reviewMap,
                     'deductions'  => $deductions,
                     'final_score' => max(0, 100 - $deductions['total_weighted']),
@@ -207,7 +216,6 @@ class ReviewerController extends Controller
             $byCategory[$cat] = ($byCategory[$cat] ?? 0) + $r->actual_deduction;
         }
 
-        // 加重平均方式
         $totalWeighted = 0;
         foreach (array_keys(self::WEIGHTS) as $cat) {
             $max    = self::MAX_DEDUCTIONS[$cat] ?? 1;
@@ -244,11 +252,18 @@ class ReviewerController extends Controller
         $result = [];
         foreach ($fields as $key => $f) {
             $inv = $invByName->get($key);
+
+            // birth_date は dd/mm/yyyy に変換
+            $value = $profile->$key ?? '-';
+            if ($key === 'birth_date' && $value && $value !== '-') {
+                $value = \Carbon\Carbon::parse($value)->format('d/m/Y');
+            }
+
             $result[] = [
                 'item_name'     => $key,
                 'label'         => $f['label'],
                 'max_deduction' => $f['max'],
-                'value'         => $profile->$key ?? '-',
+                'value'         => $value,
                 'validity'      => $inv ? $inv->validity : null,
                 'notes'         => $inv ? $inv->notes : null,
             ];
@@ -263,12 +278,14 @@ class ReviewerController extends Controller
 
         foreach ($educations as $i => $edu) {
             $fields = [
-                "edu_{$i}_school"          => ['label' => 'Nama Sekolah',  'value' => $edu->school,          'max' => 4],
-                "edu_{$i}_level"           => ['label' => 'Jenjang',       'value' => $edu->level,           'max' => 3],
-                "edu_{$i}_major"           => ['label' => 'Jurusan',       'value' => $edu->major,           'max' => 4],
-                "edu_{$i}_enrollment_date" => ['label' => 'Tanggal Masuk', 'value' => $edu->enrollment_date, 'max' => 3],
-                "edu_{$i}_graduation_date" => ['label' => 'Tanggal Lulus', 'value' => $edu->graduation_date, 'max' => 4],
-                "edu_{$i}_gpa"             => ['label' => 'IPK',           'value' => $edu->gpa,             'max' => 4],
+                "edu_{$i}_school_name"      => ['label' => 'Nama Sekolah',        'value' => $edu->school_name,       'max' => 4],
+                "edu_{$i}_education_level"  => ['label' => 'Tingkat Pendidikan',  'value' => $edu->education_level,   'max' => 3],
+                "edu_{$i}_school_location"  => ['label' => 'Alamat Sekolah',      'value' => $edu->school_location,   'max' => 2],
+                "edu_{$i}_degree_name"      => ['label' => 'Jurusan',             'value' => $edu->degree_name,       'max' => 3],
+                "edu_{$i}_enrollment_date"  => ['label' => 'Tanggal Masuk',       'value' => $edu->enrollment_date,   'max' => 2],
+                "edu_{$i}_graduation_date"  => ['label' => 'Tanggal Lulus',       'value' => $edu->graduation_date,   'max' => 3],
+                "edu_{$i}_graduation_status"=> ['label' => 'Status Kelulusan',    'value' => $edu->graduation_status, 'max' => 2],
+                "edu_{$i}_ipk_gpa"          => ['label' => 'IPK / Nilai Akhir',   'value' => $edu->ipk_gpa,           'max' => 3],
             ];
             foreach ($fields as $key => $f) {
                 $inv = $invByName->get($key);
@@ -292,13 +309,14 @@ class ReviewerController extends Controller
 
         foreach ($works as $i => $w) {
             $fields = [
-                "work_{$i}_company"            => ['label' => 'Nama Perusahaan', 'value' => $w->company,                         'max' => 4],
-                "work_{$i}_position"           => ['label' => 'Jabatan',         'value' => $w->position,                        'max' => 4],
-                "work_{$i}_employment_type"    => ['label' => 'Jenis Pekerjaan', 'value' => $w->employment_type,                 'max' => 3],
-                "work_{$i}_start_date"         => ['label' => 'Tanggal Mulai',   'value' => $w->start_date,                      'max' => 3],
-                "work_{$i}_end_date"           => ['label' => 'Tanggal Selesai', 'value' => $w->end_date ?? 'Masih Bekerja',     'max' => 3],
-                "work_{$i}_supervisor_name"    => ['label' => 'Nama Atasan',     'value' => $w->supervisor_name,                 'max' => 3],
-                "work_{$i}_supervisor_contact" => ['label' => 'Kontak Atasan',   'value' => $w->supervisor_contact,              'max' => 2],
+                "work_{$i}_company_name"          => ['label' => 'Nama Perusahaan',   'value' => $w->company_name,                          'max' => 4],
+                "work_{$i}_company_address"       => ['label' => 'Alamat Perusahaan', 'value' => $w->company_address,                       'max' => 2],
+                "work_{$i}_department_position"   => ['label' => 'Jabatan',           'value' => $w->department_position,                   'max' => 4],
+                "work_{$i}_employment_type"       => ['label' => 'Jenis Pekerjaan',   'value' => $w->employment_type,                       'max' => 2],
+                "work_{$i}_employment_start_date" => ['label' => 'Tanggal Mulai',     'value' => $w->employment_start_date,                 'max' => 3],
+                "work_{$i}_employment_end_date"   => ['label' => 'Tanggal Selesai',   'value' => $w->employment_end_date ?? 'Masih Bekerja', 'max' => 3],
+                "work_{$i}_supervisor_full_name"  => ['label' => 'Nama Atasan',       'value' => $w->supervisor_full_name,                  'max' => 3],
+                "work_{$i}_supervisor_phone"      => ['label' => 'No. Telp Atasan',   'value' => $w->supervisor_phone,                      'max' => 2],
             ];
             foreach ($fields as $key => $f) {
                 $inv = $invByName->get($key);
@@ -322,10 +340,11 @@ class ReviewerController extends Controller
 
         foreach ($certs as $i => $c) {
             $fields = [
-                "cert_{$i}_name"         => ['label' => 'Nama Sertifikat',   'value' => $c->name,         'max' => 3],
-                "cert_{$i}_organization" => ['label' => 'Instansi Penerbit', 'value' => $c->organization, 'max' => 2],
-                "cert_{$i}_issued_date"  => ['label' => 'Tanggal Terbit',    'value' => $c->issued_date,  'max' => 2],
-                "cert_{$i}_valid_until"  => ['label' => 'Masa Berlaku',      'value' => $c->valid_until,  'max' => 3],
+                "cert_{$i}_certificate_name"     => ['label' => 'Nama Sertifikat',        'value' => $c->certificate_name,     'max' => 3],
+                "cert_{$i}_issuing_organization" => ['label' => 'Instansi Penerbit',      'value' => $c->issuing_organization, 'max' => 2],
+                "cert_{$i}_issue_date"           => ['label' => 'Tanggal Terbit',         'value' => $c->issue_date,           'max' => 2],
+                "cert_{$i}_expiration_date"      => ['label' => 'Masa Berlaku',           'value' => $c->expiration_date,      'max' => 2],
+                "cert_{$i}_certificate_score"    => ['label' => 'Skor / Level / Tingkatan','value' => $c->certificate_score,   'max' => 1],
             ];
             foreach ($fields as $key => $f) {
                 $inv = $invByName->get($key);

@@ -33,26 +33,19 @@ class CertifiedResumeController extends Controller
             $isValid       = $daysRemaining >= 0;
         }
 
-        // 最新の承認済み申請
-        $request = CertificationRequest::where('user_id', $user->id)
-            ->where('admin_approved', true)
-            ->latest()
-            ->first();
+        // ===== user_id で学歴・職歴・資格を取得 =====
+        $educations = EducationHistory::where('user_id', $user->id)
+            ->orderBy('graduation_date', 'desc')
+            ->get();
 
-        $educations = $request
-            ? EducationHistory::where('certification_request_id', $request->id)
-                ->orderBy('graduation_date', 'desc')->get()
-            : collect();
+        $works = WorkHistory::where('user_id', $user->id)
+            ->orderBy('employment_start_date', 'desc')
+            ->get();
 
-        $works = $request
-            ? WorkHistory::where('certification_request_id', $request->id)
-                ->orderBy('employment_start_date', 'desc')->get()
-            : collect();
-
-        $certifications = $request
-            ? Certification::where('certification_request_id', $request->id)
-                ->orderBy('issue_date', 'desc')->get()
-            : collect();
+        $certifications = Certification::where('user_id', $user->id)
+            ->orderBy('issue_date', 'desc')
+            ->get();
+        // ============================================
 
         return Inertia::render('Applicant/CertifiedResume', [
             'profile' => [

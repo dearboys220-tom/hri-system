@@ -9,6 +9,7 @@ use App\Models\EducationHistory;
 use App\Models\WorkHistory;
 use App\Models\Certification;
 use App\Models\Payment;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -30,10 +31,10 @@ class ConfirmationController extends Controller
         $certs      = Certification::where('user_id', $user->id)->get();
 
         // 無料チェック
-        $isFreeAvailable = false;
         $daysRemaining   = 0;
-        $expires = Carbon::parse($profile->free_certification_expires_at);
-        $daysRemaining = max(0, (int) now()->diffInDays($expires, false));
+        $isFreeAvailable = false;
+        $expires         = Carbon::parse($profile->free_certification_expires_at);
+        $daysRemaining   = max(0, (int) now()->diffInDays($expires, false));
         $isFreeAvailable = !$profile->free_certification_used && $daysRemaining > 0;
 
         $latestRequest = CertificationRequest::where('user_id', $user->id)->latest()->first();
@@ -48,7 +49,7 @@ class ConfirmationController extends Controller
             ->whereNotIn('survey_status', ['Terverifikasi', 'Ditolak', 'pending_payment'])
             ->exists();
 
-        // pending_paymentのレコードを取得（再決済用）
+        // pending_payment のレコードを取得（再決済用）
         $pendingPaymentRequest = CertificationRequest::where('user_id', $user->id)
             ->where('survey_status', 'pending_payment')
             ->latest()->first();
@@ -71,8 +72,8 @@ class ConfirmationController extends Controller
         $user    = Auth::user();
         $profile = ApplicantProfile::where('user_id', $user->id)->first();
 
-        $expires = Carbon::parse($profile->free_certification_expires_at);
-        $daysRemaining = max(0, (int) now()->diffInDays($expires, false));
+        $expires         = Carbon::parse($profile->free_certification_expires_at);
+        $daysRemaining   = max(0, (int) now()->diffInDays($expires, false));
         $isFreeAvailable = !$profile->free_certification_used && $daysRemaining > 0;
 
         $latestRequest = CertificationRequest::where('user_id', $user->id)
@@ -84,12 +85,28 @@ class ConfirmationController extends Controller
         }
 
         if ($isFreeAvailable || ($latestRequest && $latestRequest->survey_status === 'Perlu Koreksi')) {
+
+            // ===== 調査員をラウンドロビンで割り当て =====
+            $investigators = User::where('role_type', 'investigator_user')->get();
+            $assignedInvestigator = null;
+
+            if ($investigators->isNotEmpty()) {
+                // 現在 under_investigation 件数が最も少ない調査員を選択
+                $assignedInvestigator = $investigators->sortBy(function ($inv) {
+                    return CertificationRequest::where('assigned_investigator', $inv->id)
+                        ->where('survey_status', 'under_investigation')
+                        ->count();
+                })->first();
+            }
+            // =============================================
+
             $request = CertificationRequest::create([
                 'user_id'               => $user->id,
                 'survey_status'         => 'under_investigation',
                 'admin_approved'        => false,
                 'returned_to_applicant' => false,
                 'ready_for_review'      => false,
+                'assigned_investigator' => $assignedInvestigator?->id,
             ]);
 
             Payment::create([

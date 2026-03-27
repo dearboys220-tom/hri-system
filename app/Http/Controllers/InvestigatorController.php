@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\CertificationRequest;
 use App\Models\InvestigationItem;
+use App\Models\EducationHistory;
+use App\Models\WorkHistory;
+use App\Models\Certification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class InvestigatorController extends Controller
 {
@@ -22,7 +24,7 @@ class InvestigatorController extends Controller
             ->where('survey_status', 'under_investigation')
             ->orderBy('created_at', 'asc')
             ->get()
-            ->map(function($c) {
+            ->map(function ($c) {
                 $profile = \App\Models\ApplicantProfile::where('user_id', $c->user_id)
                     ->first(['member_id', 'full_name']);
                 return [
@@ -34,16 +36,13 @@ class InvestigatorController extends Controller
                 ];
             });
 
-        // 選択中の案件ID（クエリパラメータ or 最初の案件）
+        // 選択中の案件ID
         $selectedId = $request->query('id', optional($cases->first())['id']);
         $detail = null;
 
         if ($selectedId) {
             $cr = CertificationRequest::with([
                 'user:id,name,email',
-                'educationHistory',
-                'workHistory',
-                'certifications',
                 'investigationItems',
             ])->where('assigned_investigator', $user->id)
               ->where('id', $selectedId)
@@ -52,11 +51,18 @@ class InvestigatorController extends Controller
             if ($cr) {
                 $profile = \App\Models\ApplicantProfile::where('user_id', $cr->user_id)->first();
 
+                // ===== user_id で学歴・職歴・資格を取得 =====
+                $educations = EducationHistory::where('user_id', $cr->user_id)->get();
+                $works      = WorkHistory::where('user_id', $cr->user_id)->get();
+                $certs      = Certification::where('user_id', $cr->user_id)->get();
+                // ===========================================
+
                 $detail = [
                     'id'                  => $cr->id,
                     'survey_status'       => $cr->survey_status,
                     'investigation_notes' => $cr->investigation_notes,
                     'return_reason'       => $cr->return_reason,
+
                     'profile' => $profile ? [
                         'full_name'       => $profile->full_name,
                         'nik'             => $profile->nik,
@@ -73,23 +79,23 @@ class InvestigatorController extends Controller
                         'member_id'       => $profile->member_id,
                     ] : null,
 
-                    // 学歴：新フィールド名
-                    'educations' => $cr->educationHistory->map(fn($e) => [
-                        'id'                   => $e->id,
-                        'school_name'          => $e->school_name,
-                        'education_level'      => $e->education_level,
-                        'school_location'      => $e->school_location,
-                        'degree_name'          => $e->degree_name,
-                        'enrollment_date'      => $e->enrollment_date,
-                        'graduation_date'      => $e->graduation_date,
-                        'graduation_status'    => $e->graduation_status,
-                        'ipk_gpa'              => $e->ipk_gpa,
-                        'academic_achievements'=> $e->academic_achievements,
-                        'ijazah_transcript'    => $e->ijazah_transcript,
+                    // 学歴
+                    'educations' => $educations->map(fn($e) => [
+                        'id'                    => $e->id,
+                        'school_name'           => $e->school_name,
+                        'education_level'       => $e->education_level,
+                        'school_location'       => $e->school_location,
+                        'degree_name'           => $e->degree_name,
+                        'enrollment_date'       => $e->enrollment_date,
+                        'graduation_date'       => $e->graduation_date,
+                        'graduation_status'     => $e->graduation_status,
+                        'ipk_gpa'               => $e->ipk_gpa,
+                        'academic_achievements' => $e->academic_achievements,
+                        'ijazah_transcript'     => $e->ijazah_transcript,
                     ]),
 
-                    // 職歴：新フィールド名
-                    'works' => $cr->workHistory->map(fn($w) => [
+                    // 職歴
+                    'works' => $works->map(fn($w) => [
                         'id'                     => $w->id,
                         'company_name'           => $w->company_name,
                         'company_address'        => $w->company_address,
@@ -106,17 +112,17 @@ class InvestigatorController extends Controller
                         'employment_certificate' => $w->employment_certificate,
                     ]),
 
-                    // 資格：新フィールド名
-                    'certifications' => $cr->certifications->map(fn($c) => [
-                        'id'                    => $c->id,
-                        'certificate_name'      => $c->certificate_name,
-                        'issuing_organization'  => $c->issuing_organization,
-                        'issue_date'            => $c->issue_date,
-                        'expiration_date'       => $c->expiration_date,
-                        'certificate_score'     => $c->certificate_score,
-                        'certificate_notes'     => $c->certificate_notes,
-                        'certificate_file'      => $c->certificate_file,
-                        'certificate_attachment'=> $c->certificate_attachment,
+                    // 資格
+                    'certifications' => $certs->map(fn($c) => [
+                        'id'                     => $c->id,
+                        'certificate_name'       => $c->certificate_name,
+                        'issuing_organization'   => $c->issuing_organization,
+                        'issue_date'             => $c->issue_date,
+                        'expiration_date'        => $c->expiration_date,
+                        'certificate_score'      => $c->certificate_score,
+                        'certificate_notes'      => $c->certificate_notes,
+                        'certificate_file'       => $c->certificate_file,
+                        'certificate_attachment' => $c->certificate_attachment,
                     ]),
 
                     // 既存の調査記録

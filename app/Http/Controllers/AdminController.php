@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\CertificationRequest;
 use App\Models\ApplicantProfile;
+use App\Models\EducationHistory;
+use App\Models\WorkHistory;
+use App\Models\Certification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class AdminController extends Controller
 {
@@ -33,9 +37,6 @@ class AdminController extends Controller
         if ($selectedId) {
             $cr = CertificationRequest::with([
                 'user:id,name,email',
-                'educationHistory',
-                'workHistory',
-                'certifications',
                 'investigationItems',
                 'reviewItems',
             ])->where('id', $selectedId)
@@ -43,11 +44,15 @@ class AdminController extends Controller
               ->first();
 
             if ($cr) {
-                $profile   = ApplicantProfile::where('user_id', $cr->user_id)->first();
+                $profile = ApplicantProfile::where('user_id', $cr->user_id)->first();
                 $invMap    = $cr->investigationItems->keyBy('item_name');
                 $reviewMap = $cr->reviewItems->keyBy('item_name');
 
-                // スコア計算
+                // user_id で学歴・職歴・資格を取得
+                $educations = EducationHistory::where('user_id', $cr->user_id)->get();
+                $works      = WorkHistory::where('user_id', $cr->user_id)->get();
+                $certs      = Certification::where('user_id', $cr->user_id)->get();
+
                 $deductions = $this->calcDeductions($cr->reviewItems);
                 $finalScore = max(0, round(100 - $deductions['total_weighted'], 1));
 
@@ -56,7 +61,9 @@ class AdminController extends Controller
                     'survey_status'         => $cr->survey_status,
                     'admin_notes'           => $cr->admin_notes,
                     'reviewer_comments'     => $cr->reviewer_comments,
-                    'review_completed_date' => optional($cr->review_completed_date)->format('d/m/Y H:i'),
+                    'review_completed_date' => $cr->review_completed_date
+                        ? Carbon::parse($cr->review_completed_date)->format('d/m/Y H:i')
+                        : null,
                     'final_score'           => $finalScore,
                     'deductions'            => $deductions,
 
@@ -68,7 +75,9 @@ class AdminController extends Controller
                         'gender'          => $profile->gender,
                         'marital_status'  => $profile->marital_status,
                         'nationality'     => $profile->nationality,
-                        'birth_date'      => optional($profile->birth_date)->format('d/m/Y'),
+                        'birth_date'      => $profile->birth_date
+                            ? Carbon::parse($profile->birth_date)->format('d/m/Y')
+                            : null,
                         'current_address' => $profile->current_address,
                         'phone_number'    => $profile->phone_number,
                         'whatsapp_number' => $profile->whatsapp_number,
@@ -76,14 +85,13 @@ class AdminController extends Controller
                         'member_id'       => $profile->member_id,
                     ] : null,
 
-                    // 調査 + レビュー結果をマージして表示
                     'inv_basic' => $this->buildSection(
                         $this->basicFields($profile),
                         $invMap, $reviewMap, 'basic_info'
                     ),
-                    'inv_edu'  => $this->buildEduSection($cr->educationHistory, $invMap, $reviewMap),
-                    'inv_work' => $this->buildWorkSection($cr->workHistory,     $invMap, $reviewMap),
-                    'inv_cert' => $this->buildCertSection($cr->certifications,  $invMap, $reviewMap),
+                    'inv_edu'  => $this->buildEduSection($educations, $invMap, $reviewMap),
+                    'inv_work' => $this->buildWorkSection($works,      $invMap, $reviewMap),
+                    'inv_cert' => $this->buildCertSection($certs,      $invMap, $reviewMap),
                 ];
             }
         }
@@ -108,11 +116,9 @@ class AdminController extends Controller
 
         $profile = ApplicantProfile::where('user_id', $cr->user_id)->firstOrFail();
 
-        // スコア計算
         $deductions = $this->calcDeductions($cr->reviewItems);
         $finalScore = max(0, round(100 - $deductions['total_weighted'], 1));
 
-        // certification_requests 更新
         $cr->update([
             'admin_approved'      => true,
             'admin_approval_date' => now(),
@@ -120,7 +126,6 @@ class AdminController extends Controller
             'survey_status'       => 'Terverifikasi',
         ]);
 
-        // applicant_profiles 更新
         $profile->update([
             'certification_status'      => 'Terverifikasi',
             'hri_score'                 => $finalScore,
@@ -144,8 +149,8 @@ class AdminController extends Controller
             ->firstOrFail();
 
         $cr->update([
-            'survey_status' => 'Ditolak',
-            'admin_notes'   => $validated['admin_notes'],
+            'survey_status'  => 'Ditolak',
+            'admin_notes'    => $validated['admin_notes'],
             'admin_approved' => false,
         ]);
 
@@ -165,35 +170,33 @@ class AdminController extends Controller
             ->firstOrFail();
 
         $cr->update([
-            'survey_status'          => 'under_review',
-            'returned_to_applicant'  => true,
-            'return_reason'          => $validated['return_reason'],
+            'survey_status'         => 'under_review',
+            'returned_to_applicant' => true,
+            'return_reason'         => $validated['return_reason'],
         ]);
 
         return redirect()->route('admin.admin.index')
             ->with('success', 'Kasus dikembalikan ke Tim Reviewer.');
     }
 
-    // ---- ダッシュボード（会員一覧 + 統計） ----
+    // ---- ダッシュボード ----
     public function dashboard(Request $request)
     {
-        $statusFilter  = $request->query('status', 'all');
-        $search        = $request->query('search', '');
-        $page          = max(1, (int) $request->query('page_num', 1));
-        $perPage       = 20;
+        $statusFilter = $request->query('status', 'all');
+        $search       = $request->query('search', '');
+        $page         = max(1, (int) $request->query('page_num', 1));
+        $perPage      = 20;
 
-        // 統計
         $stats = [
-            'pending_payment'    => CertificationRequest::where('survey_status', 'pending_payment')->count(),
-            'under_investigation'=> CertificationRequest::where('survey_status', 'under_investigation')->count(),
-            'under_review'       => CertificationRequest::where('survey_status', 'under_review')->count(),
-            'pending_admin'      => CertificationRequest::where('survey_status', 'pending_admin')->count(),
-            'perlu_koreksi'      => CertificationRequest::where('survey_status', 'Perlu Koreksi')->count(),
-            'terverifikasi'      => ApplicantProfile::where('certification_status', 'Terverifikasi')->count(),
-            'ditolak'            => CertificationRequest::where('survey_status', 'Ditolak')->count(),
+            'pending_payment'     => CertificationRequest::where('survey_status', 'pending_payment')->count(),
+            'under_investigation' => CertificationRequest::where('survey_status', 'under_investigation')->count(),
+            'under_review'        => CertificationRequest::where('survey_status', 'under_review')->count(),
+            'pending_admin'       => CertificationRequest::where('survey_status', 'pending_admin')->count(),
+            'perlu_koreksi'       => CertificationRequest::where('survey_status', 'Perlu Koreksi')->count(),
+            'terverifikasi'       => ApplicantProfile::where('certification_status', 'Terverifikasi')->count(),
+            'ditolak'             => CertificationRequest::where('survey_status', 'Ditolak')->count(),
         ];
 
-        // 会員一覧クエリ
         $query = ApplicantProfile::with('user:id,name,email,created_at')
             ->select(['id', 'user_id', 'member_id', 'full_name', 'certification_status', 'hri_score', 'certification_date']);
 
@@ -271,10 +274,10 @@ class AdminController extends Controller
         ]);
 
         $companiesStats = [
-            'pending'  => \App\Models\CompanyProfile::where('company_verification_status', 'pending')->count(),
-            'verified' => \App\Models\CompanyProfile::where('company_verification_status', 'verified')->count(),
-            'suspended'=> \App\Models\CompanyProfile::where('company_verification_status', 'suspended')->count(),
-            'rejected' => \App\Models\CompanyProfile::where('company_verification_status', 'rejected')->count(),
+            'pending'   => \App\Models\CompanyProfile::where('company_verification_status', 'pending')->count(),
+            'verified'  => \App\Models\CompanyProfile::where('company_verification_status', 'verified')->count(),
+            'suspended' => \App\Models\CompanyProfile::where('company_verification_status', 'suspended')->count(),
+            'rejected'  => \App\Models\CompanyProfile::where('company_verification_status', 'rejected')->count(),
         ];
 
         return Inertia::render('Admin/Admin/AdminCompanies', [
@@ -305,6 +308,16 @@ class AdminController extends Controller
     // ================================================================
     // ヘルパー
     // ================================================================
+
+    private function formatDate($date): ?string
+    {
+        if (!$date) return null;
+        try {
+            return Carbon::parse($date)->format('d/m/Y');
+        } catch (\Exception $e) {
+            return $date;
+        }
+    }
 
     private function calcDeductions($reviewItems)
     {
@@ -345,18 +358,18 @@ class AdminController extends Controller
 
     private function buildSection($fields, $invMap, $reviewMap, $category)
     {
-        return array_map(function ($f) use ($invMap, $reviewMap, $category) {
+        return array_map(function ($f) use ($invMap, $reviewMap) {
             $inv    = $invMap->get($f['key']);
             $review = $reviewMap->get($f['key']);
             return [
                 'item_name'        => $f['key'],
                 'label'            => $f['label'],
                 'value'            => $f['value'] ?? '-',
-                'validity'         => $inv ? $inv->validity : null,
-                'inv_notes'        => $inv ? $inv->notes : null,
+                'validity'         => $inv    ? $inv->validity            : null,
+                'inv_notes'        => $inv    ? $inv->notes               : null,
                 'actual_deduction' => $review ? $review->actual_deduction : null,
-                'max_deduction'    => $review ? $review->max_deduction : null,
-                'review_notes'     => $review ? $review->notes : null,
+                'max_deduction'    => $review ? $review->max_deduction    : null,
+                'review_notes'     => $review ? $review->notes            : null,
             ];
         }, $fields);
     }
@@ -371,7 +384,7 @@ class AdminController extends Controller
             ['key' => 'gender',          'label' => 'Jenis Kelamin',     'value' => $profile->gender],
             ['key' => 'marital_status',  'label' => 'Status Pernikahan', 'value' => $profile->marital_status],
             ['key' => 'nationality',     'label' => 'Kewarganegaraan',   'value' => $profile->nationality],
-            ['key' => 'birth_date',      'label' => 'Tanggal Lahir',     'value' => optional($profile->birth_date)->format('d/m/Y')],
+            ['key' => 'birth_date',      'label' => 'Tanggal Lahir',     'value' => $this->formatDate($profile->birth_date)],
             ['key' => 'current_address', 'label' => 'Alamat Saat Ini',   'value' => $profile->current_address],
             ['key' => 'phone_number',    'label' => 'Telepon',           'value' => $profile->phone_number],
             ['key' => 'whatsapp_number', 'label' => 'WhatsApp',          'value' => $profile->whatsapp_number],
@@ -383,12 +396,14 @@ class AdminController extends Controller
         $result = [];
         foreach ($educations as $i => $edu) {
             $fields = [
-                ["edu_{$i}_school",          'Pendidikan ' . ($i+1) . ' - Nama Sekolah',  $edu->school],
-                ["edu_{$i}_level",           'Pendidikan ' . ($i+1) . ' - Jenjang',       $edu->level],
-                ["edu_{$i}_major",           'Pendidikan ' . ($i+1) . ' - Jurusan',       $edu->major],
-                ["edu_{$i}_enrollment_date", 'Pendidikan ' . ($i+1) . ' - Tanggal Masuk', $edu->enrollment_date],
-                ["edu_{$i}_graduation_date", 'Pendidikan ' . ($i+1) . ' - Tanggal Lulus', $edu->graduation_date],
-                ["edu_{$i}_gpa",             'Pendidikan ' . ($i+1) . ' - IPK',           $edu->gpa],
+                ["edu_{$i}_school_name",        'Pendidikan '.($i+1).' - Nama Sekolah',         $edu->school_name],
+                ["edu_{$i}_education_level",    'Pendidikan '.($i+1).' - Tingkat Pendidikan',   $edu->education_level],
+                ["edu_{$i}_school_location",    'Pendidikan '.($i+1).' - Alamat Sekolah',       $edu->school_location],
+                ["edu_{$i}_degree_name",        'Pendidikan '.($i+1).' - Jurusan',              $edu->degree_name],
+                ["edu_{$i}_enrollment_date",    'Pendidikan '.($i+1).' - Tanggal Masuk',        $this->formatDate($edu->enrollment_date)],
+                ["edu_{$i}_graduation_date",    'Pendidikan '.($i+1).' - Tanggal Lulus',        $this->formatDate($edu->graduation_date)],
+                ["edu_{$i}_graduation_status",  'Pendidikan '.($i+1).' - Status Kelulusan',     $edu->graduation_status],
+                ["edu_{$i}_ipk_gpa",            'Pendidikan '.($i+1).' - IPK / Nilai Akhir',    $edu->ipk_gpa],
             ];
             foreach ($fields as [$key, $label, $val]) {
                 $inv    = $invMap->get($key);
@@ -397,8 +412,8 @@ class AdminController extends Controller
                     'item_name'        => $key,
                     'label'            => $label,
                     'value'            => $val ?? '-',
-                    'validity'         => $inv    ? $inv->validity          : null,
-                    'inv_notes'        => $inv    ? $inv->notes             : null,
+                    'validity'         => $inv    ? $inv->validity            : null,
+                    'inv_notes'        => $inv    ? $inv->notes               : null,
                     'actual_deduction' => $review ? $review->actual_deduction : null,
                     'max_deduction'    => $review ? $review->max_deduction    : null,
                     'review_notes'     => $review ? $review->notes            : null,
@@ -413,13 +428,14 @@ class AdminController extends Controller
         $result = [];
         foreach ($works as $i => $w) {
             $fields = [
-                ["work_{$i}_company",            'Kerja ' . ($i+1) . ' - Nama Perusahaan', $w->company],
-                ["work_{$i}_position",           'Kerja ' . ($i+1) . ' - Jabatan',         $w->position],
-                ["work_{$i}_employment_type",    'Kerja ' . ($i+1) . ' - Jenis Pekerjaan', $w->employment_type],
-                ["work_{$i}_start_date",         'Kerja ' . ($i+1) . ' - Tanggal Mulai',   $w->start_date],
-                ["work_{$i}_end_date",           'Kerja ' . ($i+1) . ' - Tanggal Selesai', $w->end_date ?? 'Masih Bekerja'],
-                ["work_{$i}_supervisor_name",    'Kerja ' . ($i+1) . ' - Nama Atasan',     $w->supervisor_name],
-                ["work_{$i}_supervisor_contact", 'Kerja ' . ($i+1) . ' - Kontak Atasan',   $w->supervisor_contact],
+                ["work_{$i}_company_name",          'Kerja '.($i+1).' - Nama Perusahaan',   $w->company_name],
+                ["work_{$i}_company_address",       'Kerja '.($i+1).' - Alamat Perusahaan', $w->company_address],
+                ["work_{$i}_department_position",   'Kerja '.($i+1).' - Jabatan',           $w->department_position],
+                ["work_{$i}_employment_type",       'Kerja '.($i+1).' - Jenis Pekerjaan',   $w->employment_type],
+                ["work_{$i}_employment_start_date", 'Kerja '.($i+1).' - Tanggal Mulai',     $this->formatDate($w->employment_start_date)],
+                ["work_{$i}_employment_end_date",   'Kerja '.($i+1).' - Tanggal Selesai',   $w->employment_end_date ? $this->formatDate($w->employment_end_date) : 'Masih Bekerja'],
+                ["work_{$i}_supervisor_full_name",  'Kerja '.($i+1).' - Nama Atasan',       $w->supervisor_full_name],
+                ["work_{$i}_supervisor_phone",      'Kerja '.($i+1).' - No. Telp Atasan',   $w->supervisor_phone],
             ];
             foreach ($fields as [$key, $label, $val]) {
                 $inv    = $invMap->get($key);
@@ -428,8 +444,8 @@ class AdminController extends Controller
                     'item_name'        => $key,
                     'label'            => $label,
                     'value'            => $val ?? '-',
-                    'validity'         => $inv    ? $inv->validity          : null,
-                    'inv_notes'        => $inv    ? $inv->notes             : null,
+                    'validity'         => $inv    ? $inv->validity            : null,
+                    'inv_notes'        => $inv    ? $inv->notes               : null,
                     'actual_deduction' => $review ? $review->actual_deduction : null,
                     'max_deduction'    => $review ? $review->max_deduction    : null,
                     'review_notes'     => $review ? $review->notes            : null,
@@ -444,10 +460,11 @@ class AdminController extends Controller
         $result = [];
         foreach ($certs as $i => $c) {
             $fields = [
-                ["cert_{$i}_name",         'Sertifikat ' . ($i+1) . ' - Nama',             $c->name],
-                ["cert_{$i}_organization", 'Sertifikat ' . ($i+1) . ' - Instansi Penerbit', $c->organization],
-                ["cert_{$i}_issued_date",  'Sertifikat ' . ($i+1) . ' - Tanggal Terbit',   $c->issued_date],
-                ["cert_{$i}_valid_until",  'Sertifikat ' . ($i+1) . ' - Masa Berlaku',     $c->valid_until],
+                ["cert_{$i}_certificate_name",     'Sertifikat '.($i+1).' - Nama Sertifikat',          $c->certificate_name],
+                ["cert_{$i}_issuing_organization", 'Sertifikat '.($i+1).' - Instansi Penerbit',        $c->issuing_organization],
+                ["cert_{$i}_issue_date",           'Sertifikat '.($i+1).' - Tanggal Terbit',           $this->formatDate($c->issue_date)],
+                ["cert_{$i}_expiration_date",      'Sertifikat '.($i+1).' - Masa Berlaku',             $this->formatDate($c->expiration_date)],
+                ["cert_{$i}_certificate_score",    'Sertifikat '.($i+1).' - Skor / Level / Tingkatan', $c->certificate_score],
             ];
             foreach ($fields as [$key, $label, $val]) {
                 $inv    = $invMap->get($key);
@@ -456,8 +473,8 @@ class AdminController extends Controller
                     'item_name'        => $key,
                     'label'            => $label,
                     'value'            => $val ?? '-',
-                    'validity'         => $inv    ? $inv->validity          : null,
-                    'inv_notes'        => $inv    ? $inv->notes             : null,
+                    'validity'         => $inv    ? $inv->validity            : null,
+                    'inv_notes'        => $inv    ? $inv->notes               : null,
                     'actual_deduction' => $review ? $review->actual_deduction : null,
                     'max_deduction'    => $review ? $review->max_deduction    : null,
                     'review_notes'     => $review ? $review->notes            : null,

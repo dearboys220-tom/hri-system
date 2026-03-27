@@ -11,13 +11,14 @@ const props = defineProps({
     certifications: Array,
 });
 
-const months = ['Januari','Februari','Maret','April','Mei','Juni',
-                'Juli','Agustus','September','Oktober','November','Desember'];
-
 function formatDate(dateStr) {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    if (isNaN(d)) return dateStr;
+    const dd   = String(d.getDate()).padStart(2, '0');
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
 }
 
 function formatPeriod(start, end) {
@@ -171,10 +172,7 @@ function printPage() {
                                 <td colspan="6" class="empty-cell">Riwayat pendidikan tidak tersedia</td>
                             </tr>
                             <tr v-for="e in educations" :key="e.id">
-                                <td>
-                                    {{ e.school_name || '-' }}
-                                    <div v-if="e.academic_achievements" class="sub-note">Prestasi: {{ e.academic_achievements }}</div>
-                                </td>
+                                <td>{{ e.school_name || '-' }}</td>
                                 <td>{{ e.education_level || '-' }}</td>
                                 <td>{{ e.degree_name || '-' }}</td>
                                 <td>{{ e.school_location || 'N/A' }}</td>
@@ -204,10 +202,7 @@ function printPage() {
                             </tr>
                             <tr v-for="w in works" :key="w.id">
                                 <td>{{ w.company_name || '-' }}</td>
-                                <td>
-                                    {{ w.department_position || '-' }}
-                                    <div v-if="w.job_description" class="sub-note">{{ w.job_description }}</div>
-                                </td>
+                                <td>{{ w.department_position || '-' }}</td>
                                 <td>{{ w.company_address || 'N/A' }}</td>
                                 <td>{{ w.employment_type || '-' }}</td>
                                 <td>{{ formatPeriod(w.employment_start_date, w.employment_end_date) }}</td>
@@ -367,6 +362,8 @@ function printPage() {
     .data-table { page-break-inside: auto; }
     .data-table tr { page-break-inside: avoid; }
     .section-title { page-break-after: avoid; }
+    .footer-disclaimer { page-break-before: avoid; }
+    .resume-section { page-break-inside: avoid; }
     .print-watermark {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
