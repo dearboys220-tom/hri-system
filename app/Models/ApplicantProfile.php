@@ -43,4 +43,9 @@ class ApplicantProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function certificationRequests()
+    {
+        return $this->hasMany(CertificationRequest::class, 'user_id', 'user_id');
+    }
 }

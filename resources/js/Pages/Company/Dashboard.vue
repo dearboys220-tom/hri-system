@@ -1,6 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, usePage, Link } from '@inertiajs/vue3';
+import { Head, usePage, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const user = usePage().props.auth.user;
 
@@ -12,7 +13,6 @@ const props = defineProps({
     totalApplications: Number,
 });
 
-// 認証ステータスの表示設定
 const verificationConfig = {
     pending:   { label: 'Menunggu Verifikasi', color: 'bg-yellow-100 text-yellow-800', icon: '⏳' },
     verified:  { label: 'Terverifikasi',        color: 'bg-green-100 text-green-700',  icon: '✅' },
@@ -21,6 +21,27 @@ const verificationConfig = {
 };
 
 const verif = verificationConfig[props.profile?.company_verification_status] ?? verificationConfig.pending;
+
+// 検索
+const searchId    = ref('')
+const searchError = ref('')
+const searching   = ref(false)
+
+function searchApplicant() {
+    if (!searchId.value.trim()) {
+        searchError.value = 'Masukkan nomor anggota terlebih dahulu.'
+        return
+    }
+    searchError.value = ''
+    searching.value   = true
+    router.visit('/company/applicant/' + searchId.value.trim(), {
+        onError: () => {
+            searchError.value = 'Anggota tidak ditemukan.'
+            searching.value   = false
+        },
+        onFinish: () => { searching.value = false },
+    })
+}
 </script>
 
 <template>
@@ -55,20 +76,47 @@ const verif = verificationConfig[props.profile?.company_verification_status] ?? 
                     </div>
                 </div>
 
-                <!-- ② 企業未認証バナー -->
+                <!-- ★ 会員番号検索ボックス -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="font-semibold text-gray-700 mb-1">🔍 Cari Kandidat</h3>
+                    <p class="text-sm text-gray-400 mb-4">Masukkan nomor anggota HRI untuk melihat profil kandidat.</p>
+                    <div class="flex gap-3">
+                        <input
+                            v-model="searchId"
+                            type="text"
+                            placeholder="Contoh: HRIM-Y0TQXH9"
+                            class="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 font-mono"
+                            @keyup.enter="searchApplicant"
+                        />
+                        <button
+                            @click="searchApplicant"
+                            :disabled="searching"
+                            class="px-6 py-3 rounded-xl font-semibold text-sm text-white transition-all"
+                            :class="searching
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-indigo-600 hover:bg-indigo-700 shadow-sm'"
+                        >
+                            <span v-if="searching">...</span>
+                            <span v-else>Cari</span>
+                        </button>
+                    </div>
+                    <p v-if="searchError" class="text-sm text-red-500 mt-2">{{ searchError }}</p>
+                </div>
+
+                <!-- ② 未認証バナー -->
                 <div v-if="profile?.company_verification_status === 'pending'" class="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 flex gap-4 items-start">
                     <span class="text-2xl">⚠️</span>
                     <div>
                         <p class="font-semibold text-yellow-800">Akun perusahaan Anda sedang dalam proses verifikasi</p>
-                        <p class="text-sm text-yellow-700 mt-1">Posting lowongan baru tersedia setelah akun diverifikasi oleh tim admin HRI. Proses biasanya memakan waktu 1–2 hari kerja.</p>
+                        <p class="text-sm text-yellow-700 mt-1">Posting lowongan baru tersedia setelah akun diverifikasi oleh tim admin HRI. Proses biasanya memakan waktu 1–3 hari kerja.</p>
                     </div>
                 </div>
 
-                <!-- ③ 無料投稿バナー（認証済み & 無料期間中） -->
+                <!-- ③ 無料投稿バナー -->
                 <div v-if="profile?.company_verification_status === 'verified' && isFreePostAvailable"
                      class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-5 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                        <p class="font-bold text-lg">🎁 Posting Lowongan GRATIS tersedia!</p>
+                        <p class="font-bold text-lg">🎉 Posting Lowongan GRATIS tersedia!</p>
                         <p class="text-sm text-emerald-100 mt-1">Masa gratis berakhir dalam <strong>{{ freePostDaysLeft }} hari</strong>. Gunakan sebelum habis!</p>
                     </div>
                     <Link href="/company/jobs/create"

@@ -50,7 +50,6 @@ class InvestigatorController extends Controller
               ->first();
 
             if ($cr) {
-                // applicant_profiles を別途取得
                 $profile = \App\Models\ApplicantProfile::where('user_id', $cr->user_id)->first();
 
                 $detail = [
@@ -73,36 +72,54 @@ class InvestigatorController extends Controller
                         'profile_photo'   => $profile->profile_photo,
                         'member_id'       => $profile->member_id,
                     ] : null,
-                    'educations'     => $cr->educationHistory->map(fn($e) => [
-                        'id'             => $e->id,
-                        'school'         => $e->school,
-                        'level'          => $e->level,
-                        'major'          => $e->major,
-                        'degree'         => $e->degree,
-                        'enrollment_date'=> $e->enrollment_date,
-                        'graduation_date'=> $e->graduation_date,
-                        'gpa'            => $e->gpa,
-                        'achievements'   => $e->achievements,
+
+                    // 学歴：新フィールド名
+                    'educations' => $cr->educationHistory->map(fn($e) => [
+                        'id'                   => $e->id,
+                        'school_name'          => $e->school_name,
+                        'education_level'      => $e->education_level,
+                        'school_location'      => $e->school_location,
+                        'degree_name'          => $e->degree_name,
+                        'enrollment_date'      => $e->enrollment_date,
+                        'graduation_date'      => $e->graduation_date,
+                        'graduation_status'    => $e->graduation_status,
+                        'ipk_gpa'              => $e->ipk_gpa,
+                        'academic_achievements'=> $e->academic_achievements,
+                        'ijazah_transcript'    => $e->ijazah_transcript,
                     ]),
+
+                    // 職歴：新フィールド名
                     'works' => $cr->workHistory->map(fn($w) => [
-                        'id'                 => $w->id,
-                        'company'            => $w->company,
-                        'position'           => $w->position,
-                        'employment_type'    => $w->employment_type,
-                        'start_date'         => $w->start_date,
-                        'end_date'           => $w->end_date,
-                        'duties'             => $w->duties,
-                        'supervisor_name'    => $w->supervisor_name,
-                        'supervisor_contact' => $w->supervisor_contact,
+                        'id'                     => $w->id,
+                        'company_name'           => $w->company_name,
+                        'company_address'        => $w->company_address,
+                        'department_position'    => $w->department_position,
+                        'employment_type'        => $w->employment_type,
+                        'employment_start_date'  => $w->employment_start_date,
+                        'employment_end_date'    => $w->employment_end_date,
+                        'job_description'        => $w->job_description,
+                        'resignation_reason'     => $w->resignation_reason,
+                        'employment_achievements'=> $w->employment_achievements,
+                        'supervisor_full_name'   => $w->supervisor_full_name,
+                        'supervisor_position'    => $w->supervisor_position,
+                        'supervisor_phone'       => $w->supervisor_phone,
+                        'employment_certificate' => $w->employment_certificate,
                     ]),
+
+                    // 資格：新フィールド名
                     'certifications' => $cr->certifications->map(fn($c) => [
-                        'id'           => $c->id,
-                        'name'         => $c->name,
-                        'organization' => $c->organization,
-                        'issued_date'  => $c->issued_date,
-                        'valid_until'  => $c->valid_until,
+                        'id'                    => $c->id,
+                        'certificate_name'      => $c->certificate_name,
+                        'issuing_organization'  => $c->issuing_organization,
+                        'issue_date'            => $c->issue_date,
+                        'expiration_date'       => $c->expiration_date,
+                        'certificate_score'     => $c->certificate_score,
+                        'certificate_notes'     => $c->certificate_notes,
+                        'certificate_file'      => $c->certificate_file,
+                        'certificate_attachment'=> $c->certificate_attachment,
                     ]),
-                    // 既存の調査記録をitem_name => validityのマップで返す
+
+                    // 既存の調査記録
                     'investigation_map' => $cr->investigationItems
                         ->mapWithKeys(fn($i) => [$i->item_name => [
                             'validity' => $i->validity,
@@ -137,12 +154,10 @@ class InvestigatorController extends Controller
             'items.*.notes'        => 'nullable|string',
         ]);
 
-        // 内部メモを保存
         $cr->update([
             'investigation_notes' => $validated['investigation_notes'] ?? $cr->investigation_notes,
         ]);
 
-        // 各調査項目をupsert
         foreach ($validated['items'] ?? [] as $item) {
             InvestigationItem::updateOrCreate(
                 [

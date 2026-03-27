@@ -34,16 +34,16 @@ class CvController extends Controller
     public function storeEducation(Request $request)
     {
         $request->validate([
-            'level'             => 'required|string',
-            'school'            => 'required|string|max:255',
-            'school_location'   => 'nullable|string|max:255',
-            'major'             => 'nullable|string|max:255',
-            'enrollment_date'   => 'nullable|date',
-            'graduation_date'   => 'nullable|date',
-            'graduation_status' => 'nullable|string',
-            'gpa'               => 'nullable|numeric|min:0|max:4',
-            'achievements'      => 'nullable|string',
-            'ijazah_transcript' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'education_level'      => 'required|string',
+            'school_name'          => 'required|string|max:255',
+            'school_location'      => 'nullable|string|max:255',
+            'degree_name'          => 'nullable|string|max:255',
+            'enrollment_date'      => 'nullable|date',
+            'graduation_date'      => 'nullable|date',
+            'graduation_status'    => 'nullable|string',
+            'ipk_gpa'              => 'nullable|numeric|min:0|max:4',
+            'academic_achievements'=> 'nullable|string',
+            'ijazah_transcript'    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         $data = $request->except('ijazah_transcript');
@@ -66,16 +66,16 @@ class CvController extends Controller
                     ->firstOrFail();
 
         $request->validate([
-            'level'             => 'required|string',
-            'school'            => 'required|string|max:255',
-            'school_location'   => 'nullable|string|max:255',
-            'major'             => 'nullable|string|max:255',
-            'enrollment_date'   => 'nullable|date',
-            'graduation_date'   => 'nullable|date',
-            'graduation_status' => 'nullable|string',
-            'gpa'               => 'nullable|numeric|min:0|max:4',
-            'achievements'      => 'nullable|string',
-            'ijazah_transcript' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'education_level'      => 'required|string',
+            'school_name'          => 'required|string|max:255',
+            'school_location'      => 'nullable|string|max:255',
+            'degree_name'          => 'nullable|string|max:255',
+            'enrollment_date'      => 'nullable|date',
+            'graduation_date'      => 'nullable|date',
+            'graduation_status'    => 'nullable|string',
+            'ipk_gpa'              => 'nullable|numeric|min:0|max:4',
+            'academic_achievements'=> 'nullable|string',
+            'ijazah_transcript'    => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         $data = $request->except('ijazah_transcript');
@@ -108,18 +108,18 @@ class CvController extends Controller
     public function storeWork(Request $request)
     {
         $request->validate([
-            'company'                => 'required|string|max:255',
+            'company_name'           => 'required|string|max:255',
             'company_address'        => 'nullable|string|max:255',
-            'position'               => 'required|string|max:255',
+            'department_position'    => 'required|string|max:255',
             'employment_type'        => 'required|string',
-            'start_date'             => 'required|date',
-            'end_date'               => 'nullable|date',
-            'duties'                 => 'nullable|string',
+            'employment_start_date'  => 'required|date',
+            'employment_end_date'    => 'nullable|date',
+            'job_description'        => 'nullable|string',
             'resignation_reason'     => 'nullable|string',
-            'achievements'           => 'nullable|string',
-            'supervisor_name'        => 'nullable|string|max:255',
+            'employment_achievements'=> 'nullable|string',
+            'supervisor_full_name'   => 'nullable|string|max:255',
             'supervisor_position'    => 'nullable|string|max:255',
-            'supervisor_contact'     => 'nullable|string|max:255',
+            'supervisor_phone'       => 'nullable|string|max:255',
             'employment_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
@@ -143,18 +143,18 @@ class CvController extends Controller
                     ->firstOrFail();
 
         $request->validate([
-            'company'                => 'required|string|max:255',
+            'company_name'           => 'required|string|max:255',
             'company_address'        => 'nullable|string|max:255',
-            'position'               => 'required|string|max:255',
+            'department_position'    => 'required|string|max:255',
             'employment_type'        => 'required|string',
-            'start_date'             => 'required|date',
-            'end_date'               => 'nullable|date',
-            'duties'                 => 'nullable|string',
+            'employment_start_date'  => 'required|date',
+            'employment_end_date'    => 'nullable|date',
+            'job_description'        => 'nullable|string',
             'resignation_reason'     => 'nullable|string',
-            'achievements'           => 'nullable|string',
-            'supervisor_name'        => 'nullable|string|max:255',
+            'employment_achievements'=> 'nullable|string',
+            'supervisor_full_name'   => 'nullable|string|max:255',
             'supervisor_position'    => 'nullable|string|max:255',
-            'supervisor_contact'     => 'nullable|string|max:255',
+            'supervisor_phone'       => 'nullable|string|max:255',
             'employment_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
@@ -188,21 +188,26 @@ class CvController extends Controller
     public function storeCertification(Request $request)
     {
         $request->validate([
-            'name'              => 'required|string|max:255',
-            'organization'      => 'required|string|max:255',
-            'issued_date'       => 'required|date',
-            'valid_until'       => 'nullable|date',
-            'certificate_score' => 'nullable|string|max:100',
-            'notes'             => 'nullable|string',
-            'certificate_file'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'certificate_name'      => 'required|string|max:255',
+            'issuing_organization'  => 'required|string|max:255',
+            'issue_date'            => 'required|date',
+            'expiration_date'       => 'nullable|date',
+            'certificate_score'     => 'nullable|string|max:100',
+            'certificate_notes'     => 'nullable|string',
+            'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'certificate_attachment'=> 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
-        $data = $request->except('certificate_file');
+        $data = $request->except(['certificate_file', 'certificate_attachment']);
         $data['user_id'] = Auth::id();
         $data['certification_request_id'] = null;
 
         if ($request->hasFile('certificate_file')) {
             $data['certificate_file'] = $request->file('certificate_file')
+                ->store('cv/certifications', 'public');
+        }
+        if ($request->hasFile('certificate_attachment')) {
+            $data['certificate_attachment'] = $request->file('certificate_attachment')
                 ->store('cv/certifications', 'public');
         }
 
@@ -217,22 +222,30 @@ class CvController extends Controller
                     ->firstOrFail();
 
         $request->validate([
-            'name'              => 'required|string|max:255',
-            'organization'      => 'required|string|max:255',
-            'issued_date'       => 'required|date',
-            'valid_until'       => 'nullable|date',
-            'certificate_score' => 'nullable|string|max:100',
-            'notes'             => 'nullable|string',
-            'certificate_file'  => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'certificate_name'      => 'required|string|max:255',
+            'issuing_organization'  => 'required|string|max:255',
+            'issue_date'            => 'required|date',
+            'expiration_date'       => 'nullable|date',
+            'certificate_score'     => 'nullable|string|max:100',
+            'certificate_notes'     => 'nullable|string',
+            'certificate_file'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'certificate_attachment'=> 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
-        $data = $request->except('certificate_file');
+        $data = $request->except(['certificate_file', 'certificate_attachment']);
 
         if ($request->hasFile('certificate_file')) {
             if ($item->certificate_file) {
                 Storage::disk('public')->delete($item->certificate_file);
             }
             $data['certificate_file'] = $request->file('certificate_file')
+                ->store('cv/certifications', 'public');
+        }
+        if ($request->hasFile('certificate_attachment')) {
+            if ($item->certificate_attachment) {
+                Storage::disk('public')->delete($item->certificate_attachment);
+            }
+            $data['certificate_attachment'] = $request->file('certificate_attachment')
                 ->store('cv/certifications', 'public');
         }
 
@@ -247,6 +260,9 @@ class CvController extends Controller
                     ->firstOrFail();
         if ($item->certificate_file) {
             Storage::disk('public')->delete($item->certificate_file);
+        }
+        if ($item->certificate_attachment) {
+            Storage::disk('public')->delete($item->certificate_attachment);
         }
         $item->delete();
         return back()->with('success', 'Data sertifikasi dihapus.');
@@ -266,7 +282,7 @@ class CvController extends Controller
             'self_pr'          => ['nullable', 'string'],
             'profile_photo'    => ['nullable', 'image', 'max:2048'],
         ]);
-        
+
         $profile = \App\Models\ApplicantProfile::firstOrCreate(
             ['user_id' => Auth::id()],
             [
@@ -276,22 +292,22 @@ class CvController extends Controller
                 'certification_status'          => 'not_applied',
             ]
         );
-        
+
         $data = $request->only([
             'full_name', 'gender', 'birth_date', 'nationality',
             'marital_status', 'phone_number', 'whatsapp_number',
             'current_address', 'self_pr',
         ]);
-        
+
         if ($request->hasFile('profile_photo')) {
             if ($profile->profile_photo) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($profile->profile_photo);
             }
             $data['profile_photo'] = $request->file('profile_photo')->store('profile_photos', 'public');
         }
-        
+
         $profile->update($data);
-        
+
         return back()->with('success', 'Informasi dasar berhasil disimpan.');
     }
 }

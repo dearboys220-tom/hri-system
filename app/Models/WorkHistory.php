@@ -7,21 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 class WorkHistory extends Model
 {
     protected $table = 'work_history';
+
     protected $fillable = [
         'user_id',
         'certification_request_id',
-        'company',
+        'company_name',
         'company_address',
-        'position',
+        'department_position',
         'employment_type',
-        'start_date',
-        'end_date',
-        'duties',
+        'employment_start_date',
+        'employment_end_date',
+        'job_description',
         'resignation_reason',
-        'achievements',
+        'employment_achievements',
         'reason',
-        'supervisor_name',
-        'supervisor_contact',
+        'supervisor_full_name',
+        'supervisor_phone',
         'supervisor_position',
         'employment_certificate',
     ];

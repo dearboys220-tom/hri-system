@@ -74,6 +74,7 @@ Route::middleware('auth')->group(function () {
 
     // ★ここに追加★
     Route::get('/applicant/cv', [CvController::class, 'index'])->name('applicant.cv');
+    Route::get('/applicant/certified-resume', [App\Http\Controllers\Applicant\CertifiedResumeController::class, 'show'])->name('applicant.certified_resume');
     Route::post('/applicant/cv/profile', [CvController::class, 'updateProfile'])->name('applicant.cv.profile.update');
     Route::post('/applicant/cv/education', [CvController::class, 'storeEducation'])->name('applicant.cv.education.store');
     Route::delete('/applicant/cv/education/{id}', [CvController::class, 'destroyEducation'])->name('applicant.cv.education.destroy');
@@ -94,6 +95,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // 候補者履歴書（企業向け・無料）
+    Route::get('/company/applicant/{memberId}', [App\Http\Controllers\ScoreDetailController::class, 'resume'])->name('company.applicant.resume');
+
+    // スコア詳細購入
+    Route::get('/company/score/finish',              [App\Http\Controllers\ScoreDetailController::class, 'finish'])->name('company.score.finish');
+    Route::post('/company/score/snap',               [App\Http\Controllers\ScoreDetailController::class, 'createSnap'])->name('company.score.snap');
+    Route::post('/company/score/callback',           [App\Http\Controllers\ScoreDetailController::class, 'callback'])->name('company.score.callback');
+    Route::get('/company/score/{memberId}/view',     [App\Http\Controllers\ScoreDetailController::class, 'view'])->name('company.score.view');
+    Route::get('/company/score/{memberId}',          [App\Http\Controllers\ScoreDetailController::class, 'show'])->name('company.score.payment');
 
     // ブックマーク
     Route::get('/applicant/bookmarks', [App\Http\Controllers\Applicant\BookmarkController::class, 'index'])->name('applicant.bookmarks');

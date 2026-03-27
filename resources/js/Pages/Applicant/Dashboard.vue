@@ -66,9 +66,27 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                     </span>
                 </div>
 
-                <!-- 無料バナー -->
+                <!-- ★ 認証済みバナー（Terverifikasi の場合のみ表示） -->
                 <div
-                    v-if="isFreeAvailable"
+                    v-if="step4Done()"
+                    class="bg-gradient-to-r from-blue-700 to-blue-500 rounded-2xl p-5 flex items-center gap-4 text-white shadow"
+                >
+                    <span class="text-3xl">🏆</span>
+                    <div class="flex-1">
+                        <p class="font-bold text-lg">Sertifikasi HRI Anda telah disetujui!</p>
+                        <p class="text-sm opacity-90">CV Tersertifikasi Anda sudah siap untuk diunduh dan dibagikan.</p>
+                    </div>
+                    <Link
+                        href="/applicant/certified-resume"
+                        class="shrink-0 bg-white text-blue-700 font-semibold text-sm px-5 py-2 rounded-xl hover:bg-blue-50 transition whitespace-nowrap"
+                    >
+                        📄 Lihat CV
+                    </Link>
+                </div>
+
+                <!-- 無料バナー（未認証の場合のみ表示） -->
+                <div
+                    v-else-if="isFreeAvailable"
                     class="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-5 flex items-center gap-4 text-white shadow"
                 >
                     <span class="text-3xl">🎁</span>
@@ -77,7 +95,7 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                         <p class="text-sm opacity-90">Berakhir dalam <strong>{{ daysRemaining }} hari</strong>. Ajukan sekarang sebelum masa gratis habis.</p>
                     </div>
                     <Link
-                        href="/applicant/certification/apply"
+                        href="/applicant/confirmation"
                         class="shrink-0 bg-white text-emerald-700 font-semibold text-sm px-5 py-2 rounded-xl hover:bg-emerald-50 transition"
                     >
                         Ajukan
@@ -168,7 +186,7 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                                     </span>
                                     <Link
                                         v-else-if="step2Done()"
-                                        href="/applicant/certification/apply"
+                                        href="/applicant/confirmation"
                                         class="text-xs text-indigo-600 font-medium hover:underline"
                                     >
                                         {{ isFreeAvailable ? 'Ajukan (GRATIS) →' : 'Ajukan →' }}
@@ -178,8 +196,19 @@ const step4Done = () => props.latestRequest?.survey_status === 'Terverifikasi';
                                 <p class="text-xs mt-1" :class="step2Done() ? 'text-gray-400' : 'text-gray-300'">
                                     Proses investigasi dan verifikasi oleh tim HRI
                                 </p>
+
+                                <!-- ★ 認証済みの場合：CVボタンを大きく表示 -->
                                 <Link
-                                    v-if="step3Done()"
+                                    v-if="step4Done()"
+                                    href="/applicant/certified-resume"
+                                    class="block mt-3 text-center bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition shadow-sm"
+                                >
+                                    📄 Lihat CV Tersertifikasi HRI
+                                </Link>
+
+                                <!-- 認証未完了の場合：CV確認リンク -->
+                                <Link
+                                    v-else-if="step3Done()"
                                     href="/applicant/confirmation"
                                     class="text-xs text-indigo-500 hover:underline mt-1 inline-block"
                                 >
