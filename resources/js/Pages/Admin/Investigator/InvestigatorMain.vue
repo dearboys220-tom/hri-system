@@ -75,25 +75,28 @@ watch(() => props.detail, (d) => {
         profileMemos.value[k]    = initNotes(k);
     });
 
-    // 学歴
+    // 学歴（新フィールド名）
     d.educations?.forEach((_, i) => {
-        ['school','level','major','enrollment_date','graduation_date','gpa'].forEach(k => {
+        ['school_name','education_level','school_location','degree_name',
+         'enrollment_date','graduation_date','graduation_status','ipk_gpa','academic_achievements'].forEach(k => {
             eduStatuses.value[`${i}_${k}`] = initStatus(`edu_${i}_${k}`);
             eduMemos.value[`${i}_${k}`]    = initNotes(`edu_${i}_${k}`);
         });
     });
 
-    // 職歴
+    // 職歴（新フィールド名）
     d.works?.forEach((_, i) => {
-        ['company','position','employment_type','start_date','end_date','supervisor_name','supervisor_contact'].forEach(k => {
+        ['company_name','company_address','department_position','employment_type',
+         'employment_start_date','employment_end_date','job_description',
+         'supervisor_full_name','supervisor_position','supervisor_phone'].forEach(k => {
             workStatuses.value[`${i}_${k}`] = initStatus(`work_${i}_${k}`);
             workMemos.value[`${i}_${k}`]    = initNotes(`work_${i}_${k}`);
         });
     });
 
-    // 資格
+    // 資格（新フィールド名）
     d.certifications?.forEach((_, i) => {
-        ['name','organization','issued_date','valid_until'].forEach(k => {
+        ['certificate_name','issuing_organization','issue_date','expiration_date','certificate_score'].forEach(k => {
             certStatuses.value[`${i}_${k}`] = initStatus(`cert_${i}_${k}`);
             certMemos.value[`${i}_${k}`]    = initNotes(`cert_${i}_${k}`);
         });
@@ -125,7 +128,8 @@ function buildItems() {
     });
 
     d.educations?.forEach((_, i) => {
-        ['school','level','major','enrollment_date','graduation_date','gpa'].forEach(k => {
+        ['school_name','education_level','school_location','degree_name',
+         'enrollment_date','graduation_date','graduation_status','ipk_gpa','academic_achievements'].forEach(k => {
             if (eduStatuses.value[`${i}_${k}`]) {
                 items.push({ item_name: `edu_${i}_${k}`, category: 'education', validity: eduStatuses.value[`${i}_${k}`], notes: eduMemos.value[`${i}_${k}`] ?? '' });
             }
@@ -133,7 +137,9 @@ function buildItems() {
     });
 
     d.works?.forEach((_, i) => {
-        ['company','position','employment_type','start_date','end_date','supervisor_name','supervisor_contact'].forEach(k => {
+        ['company_name','company_address','department_position','employment_type',
+         'employment_start_date','employment_end_date','job_description',
+         'supervisor_full_name','supervisor_position','supervisor_phone'].forEach(k => {
             if (workStatuses.value[`${i}_${k}`]) {
                 items.push({ item_name: `work_${i}_${k}`, category: 'work', validity: workStatuses.value[`${i}_${k}`], notes: workMemos.value[`${i}_${k}`] ?? '' });
             }
@@ -141,7 +147,7 @@ function buildItems() {
     });
 
     d.certifications?.forEach((_, i) => {
-        ['name','organization','issued_date','valid_until'].forEach(k => {
+        ['certificate_name','issuing_organization','issue_date','expiration_date','certificate_score'].forEach(k => {
             if (certStatuses.value[`${i}_${k}`]) {
                 items.push({ item_name: `cert_${i}_${k}`, category: 'certification', validity: certStatuses.value[`${i}_${k}`], notes: certMemos.value[`${i}_${k}`] ?? '' });
             }
@@ -246,15 +252,11 @@ function sendCorrection() {
                 <div class="mt-6">
                     <!-- 写真 -->
                     <div class="flex justify-center mb-6">
-                        <div
-                            class="relative w-36 cursor-pointer group"
-                            @click="detail.profile?.profile_photo && openImage('/storage/' + detail.profile.profile_photo)"
-                        >
-                            <img
-                                v-if="detail.profile?.profile_photo"
+                        <div class="relative w-36 cursor-pointer group"
+                            @click="detail.profile?.profile_photo && openImage('/storage/' + detail.profile.profile_photo)">
+                            <img v-if="detail.profile?.profile_photo"
                                 :src="'/storage/' + detail.profile.profile_photo"
-                                class="w-full aspect-square rounded-2xl object-cover border-4 border-white shadow-lg"
-                            />
+                                class="w-full aspect-square rounded-2xl object-cover border-4 border-white shadow-lg" />
                             <div v-else class="w-full aspect-square rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 text-4xl">
                                 👤
                             </div>
@@ -264,11 +266,9 @@ function sendCorrection() {
                     <!-- KTP画像 -->
                     <div v-if="detail.profile?.ktp_card" class="mb-6 p-3 bg-slate-50 rounded-xl border border-slate-200">
                         <p class="text-xs text-slate-500 mb-2">Foto KTP</p>
-                        <img
-                            :src="'/storage/' + detail.profile.ktp_card"
+                        <img :src="'/storage/' + detail.profile.ktp_card"
                             class="h-32 rounded-lg cursor-pointer"
-                            @click="openImage('/storage/' + detail.profile.ktp_card)"
-                        />
+                            @click="openImage('/storage/' + detail.profile.ktp_card)" />
                     </div>
 
                     <!-- プロフィール項目 -->
@@ -305,20 +305,30 @@ function sendCorrection() {
                     <div v-if="detail.educations?.length === 0" class="text-slate-400 text-sm">
                         Tidak ada data pendidikan
                     </div>
-                    <div
-                        v-for="(edu, i) in detail.educations"
-                        :key="edu.id"
-                        class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50"
-                    >
+                    <div v-for="(edu, i) in detail.educations" :key="edu.id"
+                        class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
                         <h3 class="font-semibold text-slate-700 mb-4">Pendidikan {{ i + 1 }}</h3>
+
+                        <!-- Ijazah添付ファイル -->
+                        <div v-if="edu.ijazah_transcript" class="mb-4 p-3 bg-white rounded-xl border border-slate-200">
+                            <p class="text-xs text-slate-500 mb-2">Ijazah &amp; Transkrip</p>
+                            <a :href="'/storage/' + edu.ijazah_transcript" target="_blank"
+                                class="text-sm text-indigo-600 hover:underline">
+                                📄 Lihat Dokumen
+                            </a>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div v-for="f in [
-                                { key: 'school',          label: 'Nama Sekolah',  value: edu.school },
-                                { key: 'level',           label: 'Jenjang',       value: edu.level },
-                                { key: 'major',           label: 'Jurusan',       value: edu.major },
-                                { key: 'enrollment_date', label: 'Tanggal Masuk', value: edu.enrollment_date },
-                                { key: 'graduation_date', label: 'Tanggal Lulus', value: edu.graduation_date },
-                                { key: 'gpa',             label: 'IPK',           value: edu.gpa },
+                                { key: 'school_name',          label: 'Nama Sekolah / Institusi', value: edu.school_name },
+                                { key: 'education_level',      label: 'Tingkat Pendidikan',       value: edu.education_level },
+                                { key: 'school_location',      label: 'Alamat Sekolah',           value: edu.school_location },
+                                { key: 'degree_name',          label: 'Jurusan / Program Studi',  value: edu.degree_name },
+                                { key: 'enrollment_date',      label: 'Tanggal Masuk',            value: edu.enrollment_date },
+                                { key: 'graduation_date',      label: 'Tanggal Lulus',            value: edu.graduation_date },
+                                { key: 'graduation_status',    label: 'Status Kelulusan',         value: edu.graduation_status },
+                                { key: 'ipk_gpa',              label: 'IPK / Nilai Akhir',        value: edu.ipk_gpa },
+                                { key: 'academic_achievements',label: 'Penghargaan / Prestasi',   value: edu.academic_achievements },
                             ]" :key="f.key" class="space-y-2">
                                 <InfoField :label="f.label" :value="f.value ?? '-'" />
                                 <StatusSelect
@@ -339,21 +349,31 @@ function sendCorrection() {
                     <div v-if="detail.works?.length === 0" class="text-slate-400 text-sm">
                         Tidak ada data pengalaman kerja
                     </div>
-                    <div
-                        v-for="(w, i) in detail.works"
-                        :key="w.id"
-                        class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50"
-                    >
+                    <div v-for="(w, i) in detail.works" :key="w.id"
+                        class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
                         <h3 class="font-semibold text-slate-700 mb-4">Pengalaman {{ i + 1 }}</h3>
+
+                        <!-- 雇用証明書添付ファイル -->
+                        <div v-if="w.employment_certificate" class="mb-4 p-3 bg-white rounded-xl border border-slate-200">
+                            <p class="text-xs text-slate-500 mb-2">Surat Keterangan Kerja</p>
+                            <a :href="'/storage/' + w.employment_certificate" target="_blank"
+                                class="text-sm text-indigo-600 hover:underline">
+                                📄 Lihat Dokumen
+                            </a>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div v-for="f in [
-                                { key: 'company',            label: 'Nama Perusahaan', value: w.company },
-                                { key: 'position',           label: 'Jabatan',         value: w.position },
-                                { key: 'employment_type',    label: 'Jenis Pekerjaan', value: w.employment_type },
-                                { key: 'start_date',         label: 'Tanggal Mulai',   value: w.start_date },
-                                { key: 'end_date',           label: 'Tanggal Selesai', value: w.end_date ?? 'Masih Bekerja' },
-                                { key: 'supervisor_name',    label: 'Nama Atasan',     value: w.supervisor_name },
-                                { key: 'supervisor_contact', label: 'Kontak Atasan',   value: w.supervisor_contact },
+                                { key: 'company_name',            label: 'Nama Perusahaan',        value: w.company_name },
+                                { key: 'company_address',         label: 'Alamat Perusahaan',      value: w.company_address },
+                                { key: 'department_position',     label: 'Jabatan / Posisi',       value: w.department_position },
+                                { key: 'employment_type',         label: 'Jenis Pekerjaan',        value: w.employment_type },
+                                { key: 'employment_start_date',   label: 'Tanggal Mulai',          value: w.employment_start_date },
+                                { key: 'employment_end_date',     label: 'Tanggal Selesai',        value: w.employment_end_date ?? 'Masih Bekerja' },
+                                { key: 'job_description',         label: 'Deskripsi Pekerjaan',    value: w.job_description },
+                                { key: 'supervisor_full_name',    label: 'Nama Atasan',            value: w.supervisor_full_name },
+                                { key: 'supervisor_position',     label: 'Jabatan Atasan',         value: w.supervisor_position },
+                                { key: 'supervisor_phone',        label: 'No. Telp Atasan',        value: w.supervisor_phone },
                             ]" :key="f.key" class="space-y-2">
                                 <InfoField :label="f.label" :value="f.value ?? '-'" />
                                 <StatusSelect
@@ -374,18 +394,26 @@ function sendCorrection() {
                     <div v-if="detail.certifications?.length === 0" class="text-slate-400 text-sm">
                         Tidak ada data sertifikat
                     </div>
-                    <div
-                        v-for="(c, i) in detail.certifications"
-                        :key="c.id"
-                        class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50"
-                    >
+                    <div v-for="(c, i) in detail.certifications" :key="c.id"
+                        class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
                         <h3 class="font-semibold text-slate-700 mb-4">Sertifikat {{ i + 1 }}</h3>
+
+                        <!-- 資格添付ファイル -->
+                        <div v-if="c.certificate_attachment" class="mb-4 p-3 bg-white rounded-xl border border-slate-200">
+                            <p class="text-xs text-slate-500 mb-2">Lampiran Sertifikat</p>
+                            <a :href="'/storage/' + c.certificate_attachment" target="_blank"
+                                class="text-sm text-indigo-600 hover:underline">
+                                📄 Lihat Dokumen
+                            </a>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div v-for="f in [
-                                { key: 'name',         label: 'Nama Sertifikat',   value: c.name },
-                                { key: 'organization', label: 'Instansi Penerbit', value: c.organization },
-                                { key: 'issued_date',  label: 'Tanggal Terbit',    value: c.issued_date },
-                                { key: 'valid_until',  label: 'Masa Berlaku',      value: c.valid_until },
+                                { key: 'certificate_name',     label: 'Nama Sertifikat',   value: c.certificate_name },
+                                { key: 'issuing_organization', label: 'Instansi Penerbit', value: c.issuing_organization },
+                                { key: 'issue_date',           label: 'Tanggal Terbit',    value: c.issue_date },
+                                { key: 'expiration_date',      label: 'Masa Berlaku',      value: c.expiration_date ?? 'Seumur Hidup' },
+                                { key: 'certificate_score',    label: 'Skor / Level',      value: c.certificate_score },
                             ]" :key="f.key" class="space-y-2">
                                 <InfoField :label="f.label" :value="f.value ?? '-'" />
                                 <StatusSelect
@@ -406,23 +434,19 @@ function sendCorrection() {
                     <div>
                         <h3 class="text-sm font-semibold text-slate-700 mb-2">Catatan Progress (Untuk Diri Sendiri)</h3>
                         <p class="text-xs text-slate-500 mb-3">Catatan ini hanya untuk Anda dan tidak dikirim ke anggota.</p>
-                        <textarea
-                            v-model="investigationNotes"
-                            rows="4"
+                        <textarea v-model="investigationNotes" rows="4"
                             placeholder="Tulis progress hari ini..."
-                            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-admin-primary-600 focus:outline-none text-sm"
-                        ></textarea>
+                            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-admin-primary-600 focus:outline-none text-sm">
+                        </textarea>
                     </div>
 
                     <div>
                         <h3 class="text-sm font-semibold text-slate-700 mb-2">Permintaan Koreksi (Opsional)</h3>
                         <p class="text-xs text-slate-500 mb-3">Isi jika perlu meminta koreksi dari anggota.</p>
-                        <textarea
-                            v-model="returnReason"
-                            rows="4"
+                        <textarea v-model="returnReason" rows="4"
                             placeholder="Detail koreksi yang diperlukan..."
-                            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-admin-primary-600 focus:outline-none text-sm"
-                        ></textarea>
+                            class="w-full rounded-xl border border-slate-300 px-4 py-3 focus:ring-2 focus:ring-admin-primary-600 focus:outline-none text-sm">
+                        </textarea>
                     </div>
                 </div>
 
@@ -445,9 +469,5 @@ function sendCorrection() {
         </Card>
     </div>
 
-    <ImageViewer
-        :show="showImage"
-        :src="viewImageSrc"
-        @close="showImage = false"
-    />
+    <ImageViewer :show="showImage" :src="viewImageSrc" @close="showImage = false" />
 </template>

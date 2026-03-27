@@ -172,17 +172,14 @@ function printPage() {
                             </tr>
                             <tr v-for="e in educations" :key="e.id">
                                 <td>
-                                    {{ e.school || '-' }}
-                                    <div v-if="e.achievements" class="sub-note">Prestasi: {{ e.achievements }}</div>
+                                    {{ e.school_name || '-' }}
+                                    <div v-if="e.academic_achievements" class="sub-note">Prestasi: {{ e.academic_achievements }}</div>
                                 </td>
-                                <td>{{ e.level || '-' }}</td>
-                                <td>
-                                    {{ e.major || '-' }}
-                                    <span v-if="e.degree" class="sub-note"> ({{ e.degree }})</span>
-                                </td>
-                                <td>N/A</td>
+                                <td>{{ e.education_level || '-' }}</td>
+                                <td>{{ e.degree_name || '-' }}</td>
+                                <td>{{ e.school_location || 'N/A' }}</td>
                                 <td>{{ formatPeriod(e.enrollment_date, e.graduation_date) }}</td>
-                                <td>{{ e.gpa || '-' }}</td>
+                                <td>{{ e.ipk_gpa || '-' }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -206,14 +203,14 @@ function printPage() {
                                 <td colspan="5" class="empty-cell">Riwayat pekerjaan tidak tersedia</td>
                             </tr>
                             <tr v-for="w in works" :key="w.id">
-                                <td>{{ w.company || '-' }}</td>
+                                <td>{{ w.company_name || '-' }}</td>
                                 <td>
-                                    {{ w.position || '-' }}
-                                    <div v-if="w.duties" class="sub-note">{{ w.duties }}</div>
+                                    {{ w.department_position || '-' }}
+                                    <div v-if="w.job_description" class="sub-note">{{ w.job_description }}</div>
                                 </td>
-                                <td>N/A</td>
+                                <td>{{ w.company_address || 'N/A' }}</td>
                                 <td>{{ w.employment_type || '-' }}</td>
-                                <td>{{ formatPeriod(w.start_date, w.end_date) }}</td>
+                                <td>{{ formatPeriod(w.employment_start_date, w.employment_end_date) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -237,11 +234,11 @@ function printPage() {
                                 <td colspan="5" class="empty-cell">Sertifikat tidak tersedia</td>
                             </tr>
                             <tr v-for="c in certifications" :key="c.id">
-                                <td>{{ c.name || '-' }}</td>
-                                <td>N/A</td>
-                                <td>{{ c.organization || '-' }}</td>
-                                <td>{{ formatDate(c.issued_date) }}</td>
-                                <td>{{ c.valid_until ? formatDate(c.valid_until) : 'Seumur hidup' }}</td>
+                                <td>{{ c.certificate_name || '-' }}</td>
+                                <td>{{ c.certificate_score || 'N/A' }}</td>
+                                <td>{{ c.issuing_organization || '-' }}</td>
+                                <td>{{ formatDate(c.issue_date) }}</td>
+                                <td>{{ c.expiration_date ? formatDate(c.expiration_date) : 'Seumur hidup' }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -264,7 +261,7 @@ function printPage() {
         </div>
     </div>
 
-    <!-- ========== 印刷時のウォーターマーク ========== -->
+    <!-- 印刷時のウォーターマーク -->
     <div class="print-watermark">
         <img src="/images/hri-certified-logo.png" alt="" />
         <div class="wm-text">HRI CERTIFIED</div>
@@ -275,9 +272,6 @@ function printPage() {
 </template>
 
 <style scoped>
-/* ============================================================
-   NAV
-   ============================================================ */
 .resume-nav {
     background: linear-gradient(135deg, #1976D2, #1565C0);
     color: white; padding: 18px 0;
@@ -301,9 +295,6 @@ function printPage() {
 .nav-btn.secondary { background: rgba(255,255,255,0.15); color: white; }
 .nav-btn.secondary:hover { background: rgba(255,255,255,0.25); }
 
-/* ============================================================
-   ALERT
-   ============================================================ */
 .expiry-warning {
     max-width: 960px; margin: 14px auto; padding: 12px 20px;
     border-radius: 8px; text-align: center; font-weight: 600; font-size: 14px;
@@ -311,167 +302,61 @@ function printPage() {
 }
 .expiry-warning.expired { background: #FEE2E2; border-color: #DC2626; color: #B91C1C; }
 
-/* ============================================================
-   CONTAINER
-   ============================================================ */
-.resume-container {
-    max-width: 960px; margin: 24px auto 0; padding: 0 16px;
-}
-#certified-resume {
-    background: white;
-    box-shadow: 0 4px 30px rgba(0,0,0,0.10);
-    overflow: hidden;
-}
+.resume-container { max-width: 960px; margin: 24px auto 0; padding: 0 16px; }
+#certified-resume { background: white; box-shadow: 0 4px 30px rgba(0,0,0,0.10); overflow: hidden; }
 
-/* ============================================================
-   HEADER
-   ※ flexboxで認証パネルを完全に高さ合わせ
-   ============================================================ */
 .resume-header {
-    background: #7499AB;
-    color: white;
-    display: flex;           /* ← gridからflexに変更して高さを完全一致 */
-    align-items: stretch;    /* ← 各列を同じ高さに */
-    min-height: 220px;
-    overflow: hidden;
+    background: #7499AB; color: white;
+    display: flex; align-items: stretch; min-height: 220px; overflow: hidden;
 }
-
-/* --- 写真 --- */
-.photo-col {
-    flex: 0 0 160px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 28px 10px 28px 24px;
-}
+.photo-col { flex: 0 0 160px; display: flex; align-items: center; justify-content: center; padding: 28px 10px 28px 24px; }
 .photo-circle {
-    width: 140px; height: 140px;
-    border-radius: 50%;
-    border: 3px solid white;
-    background: #8aacbb center/cover no-repeat;
+    width: 140px; height: 140px; border-radius: 50%;
+    border: 3px solid white; background: #8aacbb center/cover no-repeat;
     box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
-    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
 }
-
-/* --- 個人情報 --- */
-.info-col {
-    flex: 1 1 auto;
-    padding: 28px 16px;
-}
-.cv-name {
-    font-size: 30px; font-weight: 800;
-    margin: 0 0 6px;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.15);
-}
+.info-col { flex: 1 1 auto; padding: 28px 16px; }
+.cv-name { font-size: 30px; font-weight: 800; margin: 0 0 6px; text-shadow: 0 1px 3px rgba(0,0,0,0.15); }
 .cv-ref { font-size: 13px; font-weight: 700; color: #000080; margin: 0 0 4px; }
 .cv-tagline { font-size: 14px; opacity: 0.9; margin: 0 0 14px; }
-.cv-address {
-    font-size: 13px; line-height: 1.5;
-    padding: 8px 0; margin-bottom: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.25);
-}
-.cv-contacts {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 4px 16px; font-size: 13px;
-}
+.cv-address { font-size: 13px; line-height: 1.5; padding: 8px 0; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.25); }
+.cv-contacts { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 13px; }
 
-/* --- 認証パネル（斜め白） --- */
 .cert-panel {
-    flex: 0 0 230px;
-    background: white;
-    /* clip-pathで左端だけ斜めに切る。align-self:stretchで上下の線が出ない */
+    flex: 0 0 232px; background: white;
     clip-path: polygon(18% 0%, 101% 0%, 101% 100%, 0% 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* 上下の線を確実に消すため高さをヘッダーより少し大きくする */
-    margin-top: -2px;
-    margin-bottom: -2px;
-    margin-right: -2px;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: -2px; margin-bottom: -2px; margin-right: -2px;
 }
-.cert-panel-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    padding: 28px 20px 28px 48px;
-    text-align: center;
-}
+.cert-panel-content { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 28px 20px 28px 48px; text-align: center; }
 .cert-logo { width: 130px; height: auto; mix-blend-mode: multiply; }
 .cert-title { font-size: 15px; font-weight: 800; color: #1565C0; letter-spacing: 1px; margin: 0; }
 .cert-dates { font-size: 10px; color: #555; line-height: 1.8; }
 
-/* ============================================================
-   BODY
-   ============================================================ */
 .resume-body { padding: 20px 24px 16px; }
 .resume-section { margin-bottom: 20px; }
+.section-title { font-size: 17px; font-weight: 800; color: #7499AB; border-bottom: 2px solid #7499AB; padding-bottom: 6px; margin: 0 0 12px; }
 
-.section-title {
-    font-size: 17px; font-weight: 800;
-    color: #7499AB;
-    border-bottom: 2px solid #7499AB;
-    padding-bottom: 6px; margin: 0 0 12px;
-}
-
-/* 個人情報2カラム */
 .info-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .info-table { width: 100%; border-collapse: collapse; }
 .info-table td { padding: 7px 4px; font-size: 13px; border: none; }
 .info-label { font-weight: 700; width: 45%; color: #374151; }
 .verified { color: #16a34a; font-weight: 700; }
 
-/* データテーブル（学歴・職歴・資格） */
 .data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-    background: #7499AB; color: white;
-    border: 1px solid #b0c4ce;
-    padding: 10px 12px;
-    text-align: left; font-size: 12px; font-weight: 700;
-}
-.data-table td {
-    border: 1px solid #dde5eb;
-    padding: 9px 12px;
-    font-size: 12px; vertical-align: top;
-    color: #1e293b;
-}
+.data-table th { background: #7499AB; color: white; border: 1px solid #b0c4ce; padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 700; }
+.data-table td { border: 1px solid #dde5eb; padding: 9px 12px; font-size: 12px; vertical-align: top; color: #1e293b; }
 .data-table tbody tr:nth-child(even) td { background: #f7fafc; }
-.empty-cell {
-    text-align: center; color: #9CA3AF;
-    padding: 20px; font-style: italic;
-}
-.sub-note {
-    font-size: 11px; color: #6B7280;
-    margin-top: 3px; line-height: 1.5;
-}
+.empty-cell { text-align: center; color: #9CA3AF; padding: 20px; font-style: italic; }
+.sub-note { font-size: 11px; color: #6B7280; margin-top: 3px; line-height: 1.5; }
 
-/* ============================================================
-   FOOTER
-   ============================================================ */
-.footer-section {
-    max-width: 960px; margin: 0 auto 40px; padding: 0 16px;
-}
-.footer-disclaimer {
-    padding: 12px 16px;
-    border-top: 2px solid #7499AB;
-    font-size: 10px; color: #6B7280; line-height: 1.8;
-    background: white;
-    box-shadow: 0 4px 30px rgba(0,0,0,0.10);
-}
+.footer-section { max-width: 960px; margin: 0 auto 40px; padding: 0 16px; }
+.footer-disclaimer { padding: 12px 16px; border-top: 2px solid #7499AB; font-size: 10px; color: #6B7280; line-height: 1.8; background: white; box-shadow: 0 4px 30px rgba(0,0,0,0.10); }
 .footer-disclaimer div { margin-bottom: 2px; }
 
-/* ============================================================
-   WATERMARK（印刷時のみ表示）
-   ============================================================ */
-.print-watermark {
-    display: none;
-}
+.print-watermark { display: none; }
 
-/* ============================================================
-   PRINT
-   ============================================================ */
 @media print {
     .print-hide { display: none !important; }
     .resume-container { max-width: none !important; margin: 0 !important; padding: 0 !important; }
@@ -482,44 +367,16 @@ function printPage() {
     .data-table { page-break-inside: auto; }
     .data-table tr { page-break-inside: avoid; }
     .section-title { page-break-after: avoid; }
-
-    /* ウォーターマーク：印刷時のみ表示 */
     .print-watermark {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        opacity: 0.07;
-        pointer-events: none;
-        z-index: 9999;
-        gap: 4px;
-        width: 300px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        opacity: 0.07; pointer-events: none; z-index: 9999; gap: 4px; width: 300px;
     }
-    .print-watermark img {
-        width: 260px;
-        height: auto;
-    }
-    .wm-text {
-        font-size: 28px;
-        font-weight: 900;
-        color: #1565C0;
-        letter-spacing: 4px;
-        text-align: center;
-    }
-    .wm-sub {
-        font-size: 12px;
-        color: #333;
-        text-align: center;
-    }
+    .print-watermark img { width: 260px; height: auto; }
+    .wm-text { font-size: 28px; font-weight: 900; color: #1565C0; letter-spacing: 4px; text-align: center; }
+    .wm-sub { font-size: 12px; color: #333; text-align: center; }
 }
 
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
 @media (max-width: 700px) {
     .resume-header { flex-wrap: wrap; }
     .cert-panel { display: none; }
