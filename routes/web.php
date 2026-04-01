@@ -5,6 +5,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\JobController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Http\Controllers\Auth\StaffAuthController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -13,6 +14,10 @@ use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\CvController;
 use App\Http\Controllers\Applicant\IdentityController;
 use App\Http\Controllers\Applicant\ConfirmationController;
+
+// ================================================================
+// 公開ルート
+// ================================================================
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -25,16 +30,30 @@ Route::get('/login', function () {
 Route::get('/register/company', [CompanyController::class, 'create'])->name('register.company');
 Route::post('/register/company', [CompanyController::class, 'store'])->name('register.company.store');
 
+// ================================================================
+// 認証済みルート（共通）
+// ================================================================
+
 Route::middleware('auth')->group(function () {
-    // 共通ダッシュボード（fallback）
+
+    // ---- ダッシュボード（role_type 別に自動振り分け）----
     Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
+        $user = Auth::user();
+        return match($user->role_type ?? '') {
+            'admin_user'        => redirect()->route('admin.admin.index'),
+            'investigator_user' => redirect()->route('admin.investigator.index'),
+            'reviewer_user'     => redirect()->route('admin.investigator.index'),
+            'company'           => redirect()->route('company.dashboard'),
+            'applicant'         => redirect()->route('applicant.dashboard'),
+            default             => Inertia::render('Dashboard'),
+        };
     })->name('dashboard');
 
+    // ================================================================
     // 企業会員
-    Route::get('/company/dashboard', [CompanyController::class, 'dashboard'])->name('company.dashboard');
+    // ================================================================
 
-    // 企業会員プロフィール
+    Route::get('/company/dashboard', [CompanyController::class, 'dashboard'])->name('company.dashboard');
     Route::get('/company/profile', [CompanyController::class, 'showProfile'])->name('company.profile');
     Route::post('/company/profile', [CompanyController::class, 'updateProfile'])->name('company.profile.update');
 
@@ -46,65 +65,61 @@ Route::middleware('auth')->group(function () {
     Route::get('/company/jobs/{id}/edit', [JobController::class, 'edit'])->name('company.jobs.edit');
     Route::post('/company/jobs/{id}', [JobController::class, 'update'])->name('company.jobs.update');
     Route::delete('/company/jobs/{id}', [JobController::class, 'destroy'])->name('company.jobs.destroy');
+
+    // 求人応募管理
     Route::get('/company/jobs/{jobId}/applications', [App\Http\Controllers\CompanyApplicationController::class, 'index'])->name('company.applications.index');
     Route::post('/company/applications/{appId}/status', [App\Http\Controllers\CompanyApplicationController::class, 'updateStatus'])->name('company.applications.status');
     Route::get('/company/applications/{appId}', [App\Http\Controllers\CompanyApplicationController::class, 'show'])->name('company.applications.show');
 
-    // 個人会員
-    Route::get('/applicant/dashboard', [ApplicantDashboardController::class, 'index'])
-        ->name('applicant.dashboard');
-
-    // 管理チーム
-    Route::get('/admin/dashboard', function () {
-        return Inertia::render('Admin/Admin/Dashboard');
-    })->name('admin.dashboard');
-
-    // 公開求人ページ（認証不要）
-    Route::get('/jobs', [App\Http\Controllers\PublicJobController::class, 'index'])->name('jobs.index');
-    Route::get('/jobs/{id}', [App\Http\Controllers\PublicJobController::class, 'show'])->name('jobs.show');
-
-    Route::post('/jobs/{id}/apply', [App\Http\Controllers\JobApplicationController::class, 'store'])->name('jobs.apply')->middleware('auth');
-
-    Route::get('/applicant/consent', [ConsentController::class, 'show'])->name('applicant.consent');
-    Route::post('/applicant/consent', [ConsentController::class, 'store'])->name('applicant.consent.store');
     // 求人投稿支払い
     Route::post('/company/jobs/{jobId}/payment', [App\Http\Controllers\JobPaymentController::class, 'createSnap'])->name('company.jobs.payment');
     Route::post('/company/jobs/payment/callback', [App\Http\Controllers\JobPaymentController::class, 'callback'])->name('company.jobs.payment.callback');
     Route::get('/company/jobs/payment/finish', [App\Http\Controllers\JobPaymentController::class, 'finish'])->name('company.jobs.payment.finish');
 
-    // ★ここに追加★
+    // 候補者履歴書・スコア詳細
+    Route::get('/company/applicant/{memberId}', [App\Http\Controllers\ScoreDetailController::class, 'resume'])->name('company.applicant.resume');
+    Route::get('/company/score/finish',          [App\Http\Controllers\ScoreDetailController::class, 'finish'])->name('company.score.finish');
+    Route::post('/company/score/snap',           [App\Http\Controllers\ScoreDetailController::class, 'createSnap'])->name('company.score.snap');
+    Route::post('/company/score/callback',       [App\Http\Controllers\ScoreDetailController::class, 'callback'])->name('company.score.callback');
+    Route::get('/company/score/{memberId}/view', [App\Http\Controllers\ScoreDetailController::class, 'view'])->name('company.score.view');
+    Route::get('/company/score/{memberId}',      [App\Http\Controllers\ScoreDetailController::class, 'show'])->name('company.score.payment');
+
+    // ================================================================
+    // 個人会員
+    // ================================================================
+
+    Route::get('/applicant/dashboard', [ApplicantDashboardController::class, 'index'])->name('applicant.dashboard');
+
+    // 同意
+    Route::get('/applicant/consent', [ConsentController::class, 'show'])->name('applicant.consent');
+    Route::post('/applicant/consent', [ConsentController::class, 'store'])->name('applicant.consent.store');
+
+    // CV入力
     Route::get('/applicant/cv', [CvController::class, 'index'])->name('applicant.cv');
-    Route::get('/applicant/certified-resume', [App\Http\Controllers\Applicant\CertifiedResumeController::class, 'show'])->name('applicant.certified_resume');
     Route::post('/applicant/cv/profile', [CvController::class, 'updateProfile'])->name('applicant.cv.profile.update');
     Route::post('/applicant/cv/education', [CvController::class, 'storeEducation'])->name('applicant.cv.education.store');
-    Route::delete('/applicant/cv/education/{id}', [CvController::class, 'destroyEducation'])->name('applicant.cv.education.destroy');
     Route::post('/applicant/cv/education/{id}', [CvController::class, 'updateEducation'])->name('applicant.cv.education.update');
+    Route::delete('/applicant/cv/education/{id}', [CvController::class, 'destroyEducation'])->name('applicant.cv.education.destroy');
     Route::post('/applicant/cv/work', [CvController::class, 'storeWork'])->name('applicant.cv.work.store');
     Route::post('/applicant/cv/work/{id}', [CvController::class, 'updateWork'])->name('applicant.cv.work.update');
     Route::delete('/applicant/cv/work/{id}', [CvController::class, 'destroyWork'])->name('applicant.cv.work.destroy');
     Route::post('/applicant/cv/certification', [CvController::class, 'storeCertification'])->name('applicant.cv.certification.store');
     Route::post('/applicant/cv/certification/{id}', [CvController::class, 'updateCertification'])->name('applicant.cv.certification.update');
     Route::delete('/applicant/cv/certification/{id}', [CvController::class, 'destroyCertification'])->name('applicant.cv.certification.destroy');
+
+    // 本人確認・申請
     Route::get('/applicant/identity', [IdentityController::class, 'show'])->name('applicant.identity');
-    Route::post('/applicant/identity', [IdentityController::class, 'update'])->name('applicant.identity.update');  
+    Route::post('/applicant/identity', [IdentityController::class, 'update'])->name('applicant.identity.update');
     Route::get('/applicant/confirmation', [ConfirmationController::class, 'show'])->name('applicant.confirmation');
-    Route::get('/applicant/applications', [App\Http\Controllers\Applicant\ApplicationController::class, 'index'])->name('applicant.applications');
     Route::post('/applicant/confirmation', [ConfirmationController::class, 'store'])->name('applicant.confirmation.store');
+
+    // 認証済み履歴書・応募履歴
+    Route::get('/applicant/certified-resume', [App\Http\Controllers\Applicant\CertifiedResumeController::class, 'show'])->name('applicant.certified_resume');
+    Route::get('/applicant/applications', [App\Http\Controllers\Applicant\ApplicationController::class, 'index'])->name('applicant.applications');
+
+    // プロフィール
     Route::get('/applicant/profile', [App\Http\Controllers\Applicant\ProfileController::class, 'show'])->name('applicant.profile');
     Route::post('/applicant/profile', [App\Http\Controllers\Applicant\ProfileController::class, 'update'])->name('applicant.profile.update');
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // 候補者履歴書（企業向け・無料）
-    Route::get('/company/applicant/{memberId}', [App\Http\Controllers\ScoreDetailController::class, 'resume'])->name('company.applicant.resume');
-
-    // スコア詳細購入
-    Route::get('/company/score/finish',              [App\Http\Controllers\ScoreDetailController::class, 'finish'])->name('company.score.finish');
-    Route::post('/company/score/snap',               [App\Http\Controllers\ScoreDetailController::class, 'createSnap'])->name('company.score.snap');
-    Route::post('/company/score/callback',           [App\Http\Controllers\ScoreDetailController::class, 'callback'])->name('company.score.callback');
-    Route::get('/company/score/{memberId}/view',     [App\Http\Controllers\ScoreDetailController::class, 'view'])->name('company.score.view');
-    Route::get('/company/score/{memberId}',          [App\Http\Controllers\ScoreDetailController::class, 'show'])->name('company.score.payment');
 
     // ブックマーク
     Route::get('/applicant/bookmarks', [App\Http\Controllers\Applicant\BookmarkController::class, 'index'])->name('applicant.bookmarks');
@@ -114,48 +129,68 @@ Route::middleware('auth')->group(function () {
     Route::post('/applicant/certification/payment', [App\Http\Controllers\Applicant\CertificationPaymentController::class, 'createSnap'])->name('applicant.certification.payment');
     Route::post('/applicant/certification/payment/callback', [App\Http\Controllers\Applicant\CertificationPaymentController::class, 'callback'])->name('applicant.certification.payment.callback');
     Route::get('/applicant/certification/payment/finish', [App\Http\Controllers\Applicant\CertificationPaymentController::class, 'finish'])->name('applicant.certification.payment.finish');
+
+    // ================================================================
+    // 公開求人ページ
+    // ================================================================
+
+    Route::get('/jobs', [App\Http\Controllers\PublicJobController::class, 'index'])->name('jobs.index');
+    Route::get('/jobs/{id}', [App\Http\Controllers\PublicJobController::class, 'show'])->name('jobs.show');
+    Route::post('/jobs/{id}/apply', [App\Http\Controllers\JobApplicationController::class, 'store'])->name('jobs.apply');
+
+    // ================================================================
+    // 共通プロフィール
+    // ================================================================
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// ================================================================
+// 管理・スタッフルート
+// ================================================================
 
 Route::prefix('admin')
     ->name('admin.')
     ->middleware('auth')
     ->group(function () {
 
-        // 調査チーム
+        // ---- 調査部 ----
         Route::prefix('investigator')
             ->name('investigator.')
             ->group(function () {
-                Route::get('/', [App\Http\Controllers\InvestigatorController::class, 'index'])->name('index');
-                Route::post('/{id}/save', [App\Http\Controllers\InvestigatorController::class, 'save'])->name('save');
-                Route::post('/{id}/complete', [App\Http\Controllers\InvestigatorController::class, 'complete'])->name('complete');
+                Route::get('/',              [App\Http\Controllers\InvestigatorController::class, 'index'])->name('index');
+                Route::post('/{id}/save',       [App\Http\Controllers\InvestigatorController::class, 'save'])->name('save');
+                Route::post('/{id}/complete',   [App\Http\Controllers\InvestigatorController::class, 'complete'])->name('complete');
                 Route::post('/{id}/correction', [App\Http\Controllers\InvestigatorController::class, 'correction'])->name('correction');
             });
 
-        // レビューチーム
-        Route::prefix('reviewer')
-            ->name('reviewer.')
-            ->group(function () {
-                Route::get('/', [App\Http\Controllers\ReviewerController::class, 'index'])->name('index');
-                Route::post('/{id}/save', [App\Http\Controllers\ReviewerController::class, 'save'])->name('save');
-                Route::post('/{id}/complete', [App\Http\Controllers\ReviewerController::class, 'complete'])->name('complete');
-                Route::post('/{id}/return', [App\Http\Controllers\ReviewerController::class, 'returnToInvestigator'])->name('return');
-            });
-        
-        // 管理チーム
+        // ---- 審査管理部 ----
         Route::prefix('admin')
             ->name('admin.')
             ->group(function () {
-                Route::get('/',           [App\Http\Controllers\AdminController::class, 'dashboard'])->name('index');
-                Route::get('/evaluate',   [App\Http\Controllers\AdminController::class, 'index'])->name('evaluate');
-                Route::post('/{id}/approve', [App\Http\Controllers\AdminController::class, 'approve'])->name('approve');
-                Route::post('/{id}/reject',  [App\Http\Controllers\AdminController::class, 'reject'])->name('reject');
-                Route::post('/{id}/return',  [App\Http\Controllers\AdminController::class, 'returnToReviewer'])->name('return');
-                Route::get('/companies',  [App\Http\Controllers\AdminController::class, 'companies'])->name('companies');
-                Route::post('/companies/{id}/status', [App\Http\Controllers\AdminController::class, 'updateCompanyStatus'])->name('companies.status');
+                Route::get('/',          [App\Http\Controllers\AdminController::class, 'dashboard'])->name('index');
+                Route::get('/evaluate',  [App\Http\Controllers\AdminController::class, 'index'])->name('evaluate');
+
+                // 承認アクション（v2.4）
+                Route::post('/{id}/approve',           [App\Http\Controllers\AdminController::class, 'approve'])->name('approve');
+                Route::post('/{id}/conditional-approve', [App\Http\Controllers\AdminController::class, 'conditionalApprove'])->name('conditionalApprove');
+                Route::post('/{id}/reject',            [App\Http\Controllers\AdminController::class, 'reject'])->name('reject');
+                Route::post('/{id}/return',            [App\Http\Controllers\AdminController::class, 'returnToReviewer'])->name('return');
+                Route::post('/{id}/escalate',          [App\Http\Controllers\AdminController::class, 'escalateToHuman'])->name('escalate');
+
+                // 企業管理
+                Route::get('/companies',               [App\Http\Controllers\AdminController::class, 'companies'])->name('companies');
+                Route::post('/companies/{id}/status',  [App\Http\Controllers\AdminController::class, 'updateCompanyStatus'])->name('companies.status');
             });
     });
 
-    // スタッフ用ログイン
+// ================================================================
+// 認証（スタッフ・Google OAuth）
+// ================================================================
+
+// スタッフログイン
 Route::middleware('guest')->group(function () {
     Route::get('/staff/login', [StaffAuthController::class, 'create'])->name('staff.login');
     Route::post('/staff/login', [StaffAuthController::class, 'store'])->name('staff.login.store');

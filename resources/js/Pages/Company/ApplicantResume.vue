@@ -11,9 +11,9 @@ const props = defineProps({
     isPurchased:    { type: Boolean, default: false },
 })
 
-function formatDate(d) {
-    if (!d) return '-'
-    return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+// 日付はControllerで d/m/Y に変換済みなのでそのまま表示
+function displayDate(d) {
+    return d || '-'
 }
 
 function scoreColor(score) {
@@ -76,7 +76,7 @@ function goToScore() {
                             </div>
                             <div>
                                 <span class="text-gray-400">Tgl Lahir: </span>
-                                <span class="text-gray-700">{{ formatDate(applicant.birth_date) }}</span>
+                                <span class="text-gray-700">{{ displayDate(applicant.birth_date) }}</span>
                             </div>
                             <div>
                                 <span class="text-gray-400">No. HP: </span>
@@ -97,7 +97,7 @@ function goToScore() {
                         </p>
                         <p class="text-xs text-gray-400">/ 100</p>
                         <p v-if="applicant.cert_expiry" class="text-xs text-gray-400 mt-1">
-                            s/d {{ formatDate(applicant.cert_expiry) }}
+                            s/d {{ displayDate(applicant.cert_expiry) }}
                         </p>
                     </div>
                 </div>
@@ -121,16 +121,24 @@ function goToScore() {
                     <div v-for="edu in education" :key="edu.id" class="px-6 py-4">
                         <div class="flex justify-between items-start gap-4">
                             <div>
-                                <p class="font-semibold text-gray-800">{{ edu.school }}</p>
+                                <p class="font-semibold text-gray-800">{{ edu.school_name }}</p>
                                 <p class="text-sm text-gray-500 mt-0.5">
-                                    {{ edu.level }}
-                                    <span v-if="edu.major"> — {{ edu.major }}</span>
+                                    {{ edu.education_level }}
+                                    <span v-if="edu.degree_name"> — {{ edu.degree_name }}</span>
                                 </p>
-                                <p v-if="edu.degree" class="text-xs text-gray-400 mt-0.5">{{ edu.degree }}</p>
+                                <p v-if="edu.school_location" class="text-xs text-gray-400 mt-0.5">
+                                    📍 {{ edu.school_location }}
+                                </p>
+                                <p v-if="edu.graduation_status" class="text-xs text-gray-400 mt-0.5">
+                                    Status: {{ edu.graduation_status }}
+                                </p>
+                                <p v-if="edu.ipk_gpa" class="text-xs text-gray-400 mt-0.5">
+                                    IPK: {{ edu.ipk_gpa }}
+                                </p>
                             </div>
                             <div class="text-right text-sm text-gray-400 shrink-0">
-                                <p>{{ formatDate(edu.enrollment_date) }}</p>
-                                <p>{{ edu.graduation_date ? formatDate(edu.graduation_date) : '現在' }}</p>
+                                <p>{{ displayDate(edu.enrollment_date) }}</p>
+                                <p>{{ edu.graduation_date ? displayDate(edu.graduation_date) : 'Sekarang' }}</p>
                             </div>
                         </div>
                     </div>
@@ -149,16 +157,24 @@ function goToScore() {
                     <div v-for="job in work" :key="job.id" class="px-6 py-4">
                         <div class="flex justify-between items-start gap-4">
                             <div>
-                                <p class="font-semibold text-gray-800">{{ job.position }}</p>
-                                <p class="text-sm text-gray-500 mt-0.5">{{ job.company }}</p>
+                                <p class="font-semibold text-gray-800">{{ job.department_position }}</p>
+                                <p class="text-sm text-gray-500 mt-0.5">{{ job.company_name }}</p>
+                                <p v-if="job.company_address" class="text-xs text-gray-400 mt-0.5">
+                                    📍 {{ job.company_address }}
+                                </p>
                                 <p class="text-xs text-gray-400 mt-0.5">{{ job.employment_type }}</p>
                             </div>
                             <div class="text-right text-sm text-gray-400 shrink-0">
-                                <p>{{ formatDate(job.start_date) }}</p>
-                                <p>{{ job.end_date ? formatDate(job.end_date) : 'Sekarang' }}</p>
+                                <p>{{ displayDate(job.employment_start_date) }}</p>
+                                <p>{{ job.employment_end_date ? displayDate(job.employment_end_date) : 'Sekarang' }}</p>
                             </div>
                         </div>
-                        <p v-if="job.duties" class="text-sm text-gray-500 mt-2 leading-relaxed">{{ job.duties }}</p>
+                        <p v-if="job.job_description" class="text-sm text-gray-500 mt-2 leading-relaxed">
+                            {{ job.job_description }}
+                        </p>
+                        <p v-if="job.employment_achievements" class="text-xs text-gray-400 mt-1">
+                            🏆 {{ job.employment_achievements }}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -166,7 +182,7 @@ function goToScore() {
             <!-- 資格 -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100">
-                    <h2 class="font-bold text-gray-800">📜 Sertifikat & Keahlian</h2>
+                    <h2 class="font-bold text-gray-800">📜 Sertifikat &amp; Keahlian</h2>
                 </div>
                 <div v-if="certifications.length === 0" class="px-6 py-6 text-center text-gray-400 text-sm">
                     Belum ada data sertifikat.
@@ -174,12 +190,16 @@ function goToScore() {
                 <div v-else class="divide-y divide-gray-50">
                     <div v-for="cert in certifications" :key="cert.id" class="px-6 py-4 flex justify-between items-start gap-4">
                         <div>
-                            <p class="font-semibold text-gray-800">{{ cert.name }}</p>
-                            <p class="text-sm text-gray-500 mt-0.5">{{ cert.organization }}</p>
+                            <p class="font-semibold text-gray-800">{{ cert.certificate_name }}</p>
+                            <p class="text-sm text-gray-500 mt-0.5">{{ cert.issuing_organization }}</p>
+                            <p v-if="cert.certificate_score" class="text-xs text-gray-400 mt-0.5">
+                                Skor: {{ cert.certificate_score }}
+                            </p>
                         </div>
                         <div class="text-right text-sm text-gray-400 shrink-0">
-                            <p>{{ formatDate(cert.issued_date) }}</p>
-                            <p v-if="cert.valid_until">s/d {{ formatDate(cert.valid_until) }}</p>
+                            <p>{{ displayDate(cert.issue_date) }}</p>
+                            <p v-if="cert.expiration_date">s/d {{ displayDate(cert.expiration_date) }}</p>
+                            <p v-else class="text-xs">Seumur hidup</p>
                         </div>
                     </div>
                 </div>

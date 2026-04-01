@@ -44,7 +44,7 @@ class StaffAuthController extends Controller
 
         // role_type によってリダイレクト先を変える
         return match($user->role_type) {
-            'admin_user'        => redirect()->route('admin.dashboard'),
+            'admin_user'        => redirect()->route('admin.admin.index'),
             'investigator_user' => redirect()->route('admin.investigator.index'),
             'reviewer_user'     => redirect()->route('admin.reviewer.index'),
         };

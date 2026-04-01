@@ -7,6 +7,7 @@ use App\Models\InvestigationItem;
 use App\Models\EducationHistory;
 use App\Models\WorkHistory;
 use App\Models\Certification;
+use App\Services\HriAiScoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -18,8 +19,7 @@ class InvestigatorController extends Controller
     {
         $user = Auth::user();
 
-        // 自分に割り当てられた調査中の案件一覧
-        $cases = CertificationRequest::with(['user:id,name,email'])
+        $cases = CertificationRequest::with(['applicant:id,name,email'])
             ->where('assigned_investigator', $user->id)
             ->where('survey_status', 'under_investigation')
             ->orderBy('created_at', 'asc')
@@ -29,33 +29,29 @@ class InvestigatorController extends Controller
                     ->first(['member_id', 'full_name']);
                 return [
                     'id'            => $c->id,
-                    'name'          => optional($profile)->full_name ?? optional($c->user)->name,
+                    'name'          => optional($profile)->full_name ?? optional($c->applicant)->name,
                     'member_id'     => optional($profile)->member_id ?? '-',
                     'submitted_at'  => $c->created_at->format('d/m/Y'),
                     'survey_status' => $c->survey_status,
                 ];
             });
 
-        // 選択中の案件ID
         $selectedId = $request->query('id', optional($cases->first())['id']);
         $detail = null;
 
         if ($selectedId) {
             $cr = CertificationRequest::with([
-                'user:id,name,email',
+                'applicant:id,name,email',
                 'investigationItems',
             ])->where('assigned_investigator', $user->id)
               ->where('id', $selectedId)
               ->first();
 
             if ($cr) {
-                $profile = \App\Models\ApplicantProfile::where('user_id', $cr->user_id)->first();
-
-                // ===== user_id で学歴・職歴・資格を取得 =====
+                $profile    = \App\Models\ApplicantProfile::where('user_id', $cr->user_id)->first();
                 $educations = EducationHistory::where('user_id', $cr->user_id)->get();
                 $works      = WorkHistory::where('user_id', $cr->user_id)->get();
                 $certs      = Certification::where('user_id', $cr->user_id)->get();
-                // ===========================================
 
                 $detail = [
                     'id'                  => $cr->id,
@@ -79,7 +75,6 @@ class InvestigatorController extends Controller
                         'member_id'       => $profile->member_id,
                     ] : null,
 
-                    // 学歴
                     'educations' => $educations->map(fn($e) => [
                         'id'                    => $e->id,
                         'school_name'           => $e->school_name,
@@ -94,25 +89,23 @@ class InvestigatorController extends Controller
                         'ijazah_transcript'     => $e->ijazah_transcript,
                     ]),
 
-                    // 職歴
                     'works' => $works->map(fn($w) => [
-                        'id'                     => $w->id,
-                        'company_name'           => $w->company_name,
-                        'company_address'        => $w->company_address,
-                        'department_position'    => $w->department_position,
-                        'employment_type'        => $w->employment_type,
-                        'employment_start_date'  => $w->employment_start_date,
-                        'employment_end_date'    => $w->employment_end_date,
-                        'job_description'        => $w->job_description,
-                        'resignation_reason'     => $w->resignation_reason,
-                        'employment_achievements'=> $w->employment_achievements,
-                        'supervisor_full_name'   => $w->supervisor_full_name,
-                        'supervisor_position'    => $w->supervisor_position,
-                        'supervisor_phone'       => $w->supervisor_phone,
-                        'employment_certificate' => $w->employment_certificate,
+                        'id'                      => $w->id,
+                        'company_name'            => $w->company_name,
+                        'company_address'         => $w->company_address,
+                        'department_position'     => $w->department_position,
+                        'employment_type'         => $w->employment_type,
+                        'employment_start_date'   => $w->employment_start_date,
+                        'employment_end_date'     => $w->employment_end_date,
+                        'job_description'         => $w->job_description,
+                        'resignation_reason'      => $w->resignation_reason,
+                        'employment_achievements' => $w->employment_achievements,
+                        'supervisor_full_name'    => $w->supervisor_full_name,
+                        'supervisor_position'     => $w->supervisor_position,
+                        'supervisor_phone'        => $w->supervisor_phone,
+                        'employment_certificate'  => $w->employment_certificate,
                     ]),
 
-                    // 資格
                     'certifications' => $certs->map(fn($c) => [
                         'id'                     => $c->id,
                         'certificate_name'       => $c->certificate_name,
@@ -125,7 +118,6 @@ class InvestigatorController extends Controller
                         'certificate_attachment' => $c->certificate_attachment,
                     ]),
 
-                    // 既存の調査記録
                     'investigation_map' => $cr->investigationItems
                         ->mapWithKeys(fn($i) => [$i->item_name => [
                             'validity' => $i->validity,
@@ -156,7 +148,7 @@ class InvestigatorController extends Controller
             'items'                => 'array',
             'items.*.item_name'    => 'required|string|max:100',
             'items.*.category'     => 'required|string|max:50',
-            'items.*.validity'     => 'required|in:VALID,INVALID',
+            'items.*.validity'     => 'required|in:VALID,INVALID,UNVERIFIED',
             'items.*.notes'        => 'nullable|string',
         ]);
 
@@ -183,7 +175,7 @@ class InvestigatorController extends Controller
         return back()->with('success', 'Data berhasil disimpan.');
     }
 
-    // レビューチームへ送付（調査完了）
+    // ★ 調査完了 → AI自動採点 → 管理審査部へ送付
     public function complete(int $id)
     {
         $user = Auth::user();
@@ -192,13 +184,34 @@ class InvestigatorController extends Controller
             ->where('assigned_investigator', $user->id)
             ->firstOrFail();
 
-        $cr->update([
-            'ready_for_review' => true,
-            'survey_status'    => 'under_review',
-        ]);
+        // investigation_items が1件もない場合はエラー
+        $itemCount = InvestigationItem::where('certification_request_id', $id)->count();
+        if ($itemCount === 0) {
+            return back()->withErrors([
+                'error' => 'Harap isi minimal 1 item investigasi sebelum menyelesaikan.',
+            ]);
+        }
+
+        // ステータスを一時的に「レビュー中」に
+        $cr->update(['survey_status' => 'under_review']);
+
+        // AI自動採点を実行
+        $service = new HriAiScoringService();
+        $success = $service->score($cr->id);
+
+        if (!$success) {
+            // AI失敗時はフォールバック：そのまま管理部へ送付
+            $cr->update([
+                'survey_status'    => 'pending_admin',
+                'ready_for_review' => true,
+            ]);
+
+            return redirect()->route('admin.investigator.index')
+                ->with('warning', 'Investigasi selesai. AI scoring gagal — kasus dikirim ke Admin secara manual.');
+        }
 
         return redirect()->route('admin.investigator.index')
-            ->with('success', 'Kasus berhasil dikirim ke Tim Reviewer.');
+            ->with('success', 'Investigasi selesai. AI scoring berhasil — kasus dikirim ke Tim Admin.');
     }
 
     // ユーザーへ差戻し

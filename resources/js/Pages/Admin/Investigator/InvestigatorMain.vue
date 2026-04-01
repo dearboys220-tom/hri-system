@@ -55,6 +55,8 @@ const workStatuses    = ref({});
 const workMemos       = ref({});
 const certStatuses    = ref({});
 const certMemos       = ref({});
+const conductStatuses = ref({});
+const conductMemos    = ref({});
 
 const investigationNotes = ref('');
 const returnReason       = ref('');
@@ -75,7 +77,7 @@ watch(() => props.detail, (d) => {
         profileMemos.value[k]    = initNotes(k);
     });
 
-    // 学歴（新フィールド名）
+    // 学歴
     d.educations?.forEach((_, i) => {
         ['school_name','education_level','school_location','degree_name',
          'enrollment_date','graduation_date','graduation_status','ipk_gpa','academic_achievements'].forEach(k => {
@@ -84,7 +86,7 @@ watch(() => props.detail, (d) => {
         });
     });
 
-    // 職歴（新フィールド名）
+    // 職歴
     d.works?.forEach((_, i) => {
         ['company_name','company_address','department_position','employment_type',
          'employment_start_date','employment_end_date','job_description',
@@ -94,11 +96,19 @@ watch(() => props.detail, (d) => {
         });
     });
 
-    // 資格（新フィールド名）
+    // 資格
     d.certifications?.forEach((_, i) => {
         ['certificate_name','issuing_organization','issue_date','expiration_date','certificate_score'].forEach(k => {
             certStatuses.value[`${i}_${k}`] = initStatus(`cert_${i}_${k}`);
             certMemos.value[`${i}_${k}`]    = initNotes(`cert_${i}_${k}`);
+        });
+    });
+
+    // 素行（conduct）― 職歴ごとに5項目
+    d.works?.forEach((_, i) => {
+        ['stabilitas_kehadiran','kepatuhan_instruksi','kerja_sama_tim','sikap_kerja','pelanggaran_disiplin'].forEach(k => {
+            conductStatuses.value[`${i}_${k}`] = initStatus(`conduct_${i}_${k}`);
+            conductMemos.value[`${i}_${k}`]    = initNotes(`conduct_${i}_${k}`);
         });
     });
 }, { immediate: true });
@@ -117,6 +127,7 @@ function buildItems() {
     const d = props.detail;
     if (!d) return items;
 
+    // 基本情報
     const profileKeys = [
         'full_name','nik','ktp_address','gender','marital_status',
         'nationality','birth_date','current_address','phone_number','whatsapp_number'
@@ -127,6 +138,7 @@ function buildItems() {
         }
     });
 
+    // 学歴
     d.educations?.forEach((_, i) => {
         ['school_name','education_level','school_location','degree_name',
          'enrollment_date','graduation_date','graduation_status','ipk_gpa','academic_achievements'].forEach(k => {
@@ -136,6 +148,7 @@ function buildItems() {
         });
     });
 
+    // 職歴
     d.works?.forEach((_, i) => {
         ['company_name','company_address','department_position','employment_type',
          'employment_start_date','employment_end_date','job_description',
@@ -146,10 +159,26 @@ function buildItems() {
         });
     });
 
+    // 資格
     d.certifications?.forEach((_, i) => {
         ['certificate_name','issuing_organization','issue_date','expiration_date','certificate_score'].forEach(k => {
             if (certStatuses.value[`${i}_${k}`]) {
                 items.push({ item_name: `cert_${i}_${k}`, category: 'certification', validity: certStatuses.value[`${i}_${k}`], notes: certMemos.value[`${i}_${k}`] ?? '' });
+            }
+        });
+    });
+
+    // 素行（conduct）― VALID / INVALID / UNVERIFIED すべて保存
+    d.works?.forEach((_, i) => {
+        ['stabilitas_kehadiran','kepatuhan_instruksi','kerja_sama_tim','sikap_kerja','pelanggaran_disiplin'].forEach(k => {
+            const v = conductStatuses.value[`${i}_${k}`];
+            if (v) {
+                items.push({
+                    item_name: `conduct_${i}_${k}`,
+                    category:  'conduct',
+                    validity:  v,
+                    notes:     conductMemos.value[`${i}_${k}`] ?? '',
+                });
             }
         });
     });
@@ -172,7 +201,7 @@ function saveAll() {
 
 function sendComplete() {
     if (!props.detail) return;
-    if (!confirm('Kirim ke Tim Reviewer? Pastikan semua data sudah diperiksa.')) return;
+    if (!confirm('Kirim ke Tim Admin? AI akan melakukan scoring otomatis. Pastikan semua data sudah diperiksa.')) return;
     router.post(route('admin.investigator.complete', props.detail.id));
 }
 
@@ -309,7 +338,7 @@ function sendCorrection() {
                         class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
                         <h3 class="font-semibold text-slate-700 mb-4">Pendidikan {{ i + 1 }}</h3>
 
-                        <!-- Ijazah添付ファイル -->
+                        <!-- 卒業証書ファイル -->
                         <div v-if="edu.ijazah_transcript" class="mb-4 p-3 bg-white rounded-xl border border-slate-200">
                             <p class="text-xs text-slate-500 mb-2">Ijazah &amp; Transkrip</p>
                             <a :href="'/storage/' + edu.ijazah_transcript" target="_blank"
@@ -353,7 +382,7 @@ function sendCorrection() {
                         class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
                         <h3 class="font-semibold text-slate-700 mb-4">Pengalaman {{ i + 1 }}</h3>
 
-                        <!-- 雇用証明書添付ファイル -->
+                        <!-- 在職証明書ファイル -->
                         <div v-if="w.employment_certificate" class="mb-4 p-3 bg-white rounded-xl border border-slate-200">
                             <p class="text-xs text-slate-500 mb-2">Surat Keterangan Kerja</p>
                             <a :href="'/storage/' + w.employment_certificate" target="_blank"
@@ -427,7 +456,113 @@ function sendCorrection() {
 
                 <Divider class="my-8" />
 
-                <!-- ===== SECTION 5: CATATAN ===== -->
+                <!-- ===== SECTION 5: PERILAKU KERJA (CONDUCT) ★ v2.4新規 ===== -->
+                <SectionHeader
+                    title="Perilaku Kerja (Conduct)"
+                    subtitle="Konfirmasi langsung ke atasan/HR perusahaan sebelumnya"
+                />
+
+                <!-- 注意事項バナー -->
+                <div class="mt-4 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+                    <p class="font-semibold mb-2">⚠️ Panduan Conduct Investigation</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs">
+                        <li>Hubungi atasan / HR perusahaan sebelumnya menggunakan <strong>No. Telp Atasan</strong> yang tercatat di riwayat pekerjaan</li>
+                        <li>Jika tidak bisa dihubungi, pilih <strong>UNVERIFIED</strong> dan tulis alasannya di catatan</li>
+                        <li>UNVERIFIED bukan berarti otomatis 0 poin — AI akan mempertimbangkan konteksnya</li>
+                        <li class="text-red-700 font-medium">DILARANG: agama, kesehatan, keluarga, politik, kehidupan pribadi, orientasi seksual, rumor</li>
+                        <li>Hanya perilaku <strong>terkait pekerjaan</strong> yang boleh dikonfirmasi</li>
+                    </ul>
+                </div>
+
+                <div class="space-y-6">
+                    <div v-if="detail.works?.length === 0" class="text-slate-400 text-sm py-4 text-center">
+                        Tidak ada data pengalaman kerja — conduct tidak dapat dievaluasi
+                    </div>
+
+                    <div v-for="(w, i) in detail.works" :key="`conduct_${w.id}`"
+                        class="border border-amber-200 rounded-2xl p-6 bg-amber-50/30">
+
+                        <h3 class="font-semibold text-slate-700 mb-1">
+                            Conduct — {{ w.company_name || `Perusahaan ${i + 1}` }}
+                        </h3>
+
+                        <!-- 上司連絡先 -->
+                        <div class="mb-5 p-3 bg-white rounded-xl border border-amber-200 text-xs text-slate-600">
+                            <p class="font-semibold text-slate-700 mb-1">📞 Kontak untuk Konfirmasi:</p>
+                            <p class="mt-1">
+                                👤 Atasan:
+                                <span class="font-medium">{{ w.supervisor_full_name || '—' }}</span>
+                                <span v-if="w.supervisor_position" class="text-slate-400">（{{ w.supervisor_position }}）</span>
+                            </p>
+                            <p class="mt-1">
+                                📱 No. Telp:
+                                <span class="font-medium text-indigo-700">{{ w.supervisor_phone || '—' }}</span>
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div v-for="f in [
+                                {
+                                    key:  'stabilitas_kehadiran',
+                                    label: 'Stabilitas Kehadiran',
+                                    desc:  'Ketepatan waktu masuk & tingkat absensi'
+                                },
+                                {
+                                    key:  'kepatuhan_instruksi',
+                                    label: 'Kepatuhan Instruksi',
+                                    desc:  'Ketaatan pada perintah atasan & peraturan perusahaan'
+                                },
+                                {
+                                    key:  'kerja_sama_tim',
+                                    label: 'Kerja Sama Tim',
+                                    desc:  'Kemampuan bekerja sama dengan rekan & tim'
+                                },
+                                {
+                                    key:  'sikap_kerja',
+                                    label: 'Sikap Kerja',
+                                    desc:  'Inisiatif, tanggung jawab, dan etos kerja'
+                                },
+                                {
+                                    key:  'pelanggaran_disiplin',
+                                    label: 'Pelanggaran Disiplin',
+                                    desc:  'Catatan sanksi, pelanggaran, & status rekomendasi rehire'
+                                },
+                            ]" :key="f.key" class="space-y-1">
+
+                                <p class="text-sm font-medium text-slate-700">{{ f.label }}</p>
+                                <p class="text-xs text-slate-400 mb-2">{{ f.desc }}</p>
+
+                                <!-- VALID / INVALID / UNVERIFIED の3択 -->
+                                <select
+                                    v-model="conductStatuses[`${i}_${f.key}`]"
+                                    class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none transition-colors"
+                                    :class="{
+                                        'bg-green-50  border-green-400  text-green-800':  conductStatuses[`${i}_${f.key}`] === 'VALID',
+                                        'bg-red-50    border-red-400    text-red-800':    conductStatuses[`${i}_${f.key}`] === 'INVALID',
+                                        'bg-yellow-50 border-yellow-400 text-yellow-800': conductStatuses[`${i}_${f.key}`] === 'UNVERIFIED',
+                                        'bg-white border-slate-300':                      !conductStatuses[`${i}_${f.key}`],
+                                    }"
+                                >
+                                    <option value="">— Belum diperiksa —</option>
+                                    <option value="VALID">✅ VALID — Baik / Terkonfirmasi</option>
+                                    <option value="INVALID">❌ INVALID — Ada masalah</option>
+                                    <option value="UNVERIFIED">⚠️ UNVERIFIED — Tidak dapat dikonfirmasi</option>
+                                </select>
+
+                                <textarea
+                                    v-model="conductMemos[`${i}_${f.key}`]"
+                                    rows="2"
+                                    placeholder="Catatan hasil konfirmasi ke atasan/HR... (wajib jika INVALID atau UNVERIFIED)"
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-amber-400 focus:outline-none resize-none mt-1"
+                                ></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <Divider class="my-8" />
+
+                <!-- ===== SECTION 6: CATATAN ===== -->
                 <SectionHeader title="Catatan Investigator" subtitle="Internal & Permintaan Koreksi" />
 
                 <div class="space-y-6 mt-6">
@@ -441,7 +576,7 @@ function sendCorrection() {
                     </div>
 
                     <div>
-                        <h3 class="text-sm font-semibold text-slate-700 mb-2">Permintaan Koreksi (Opsional)</h3>
+                        <h3 class="text-sm font-semibold text-slate-700 mb-2">Permintaan Koreksi ke Anggota (Opsional)</h3>
                         <p class="text-xs text-slate-500 mb-3">Isi jika perlu meminta koreksi dari anggota.</p>
                         <textarea v-model="returnReason" rows="4"
                             placeholder="Detail koreksi yang diperlukan..."
@@ -455,13 +590,13 @@ function sendCorrection() {
                 <!-- ===== アクションボタン ===== -->
                 <div class="flex flex-wrap justify-end gap-3">
                     <Button variant="secondary" @click="sendCorrection">
-                        ⚠️ Minta Koreksi ke Anggota
+                        ↩️ Minta Koreksi ke Anggota
                     </Button>
                     <Button variant="outline" @click="saveAll" :disabled="saving">
                         {{ saving ? 'Menyimpan...' : '💾 Simpan' }}
                     </Button>
                     <Button @click="sendComplete">
-                        ✅ Selesai → Kirim ke Reviewer
+                        ✅ Selesai → Kirim ke Admin
                     </Button>
                 </div>
 
