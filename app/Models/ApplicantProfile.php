@@ -28,6 +28,8 @@ class ApplicantProfile extends Model
         'hri_score',
         'free_certification_used',
         'free_certification_expires_at',
+        // v2.5追加
+        'data_retention_expires_at',
     ];
 
     protected $casts = [
@@ -36,9 +38,13 @@ class ApplicantProfile extends Model
         'certification_expiry_date'     => 'date',
         'free_certification_expires_at' => 'datetime',
         'free_certification_used'       => 'boolean',
+        // v2.5追加
+        'data_retention_expires_at'     => 'date',
     ];
 
-    // users テーブルとのリレーション
+    // -------------------------------------------------------
+    // リレーション
+    // -------------------------------------------------------
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -47,5 +53,16 @@ class ApplicantProfile extends Model
     public function certificationRequests()
     {
         return $this->hasMany(CertificationRequest::class, 'user_id', 'user_id');
+    }
+
+    // -------------------------------------------------------
+    // ヘルパー
+    // -------------------------------------------------------
+
+    /** データ保存期限が到来しているか（PDP法対応） */
+    public function isRetentionExpired(): bool
+    {
+        return $this->data_retention_expires_at
+            && $this->data_retention_expires_at->isPast();
     }
 }

@@ -14,6 +14,10 @@ use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\CvController;
 use App\Http\Controllers\Applicant\IdentityController;
 use App\Http\Controllers\Applicant\ConfirmationController;
+use App\Http\Controllers\SuperAdmin\SuperAdminDashboardController;
+use App\Http\Controllers\SuperAdmin\SuperAdminLogsController;
+use App\Http\Controllers\SuperAdmin\SuperAdminUsersController;
+use App\Http\Controllers\SuperAdmin\SuperAdminExportController;
 
 // ================================================================
 // 公開ルート
@@ -45,6 +49,7 @@ Route::middleware('auth')->group(function () {
             'reviewer_user'     => redirect()->route('admin.investigator.index'),
             'company'           => redirect()->route('company.dashboard'),
             'applicant'         => redirect()->route('applicant.dashboard'),
+            'super_admin'       => redirect()->route('super-admin.dashboard'),
             default             => Inertia::render('Dashboard'),
         };
     })->name('dashboard');
@@ -174,16 +179,66 @@ Route::prefix('admin')
                 Route::get('/evaluate',  [App\Http\Controllers\AdminController::class, 'index'])->name('evaluate');
 
                 // 承認アクション（v2.4）
-                Route::post('/{id}/approve',           [App\Http\Controllers\AdminController::class, 'approve'])->name('approve');
+                Route::post('/{id}/approve',             [App\Http\Controllers\AdminController::class, 'approve'])->name('approve');
                 Route::post('/{id}/conditional-approve', [App\Http\Controllers\AdminController::class, 'conditionalApprove'])->name('conditionalApprove');
-                Route::post('/{id}/reject',            [App\Http\Controllers\AdminController::class, 'reject'])->name('reject');
-                Route::post('/{id}/return',            [App\Http\Controllers\AdminController::class, 'returnToReviewer'])->name('return');
-                Route::post('/{id}/escalate',          [App\Http\Controllers\AdminController::class, 'escalateToHuman'])->name('escalate');
+                Route::post('/{id}/reject',              [App\Http\Controllers\AdminController::class, 'reject'])->name('reject');
+                Route::post('/{id}/return',              [App\Http\Controllers\AdminController::class, 'returnToReviewer'])->name('return');
+                Route::post('/{id}/escalate',            [App\Http\Controllers\AdminController::class, 'escalateToHuman'])->name('escalate');
 
                 // 企業管理
                 Route::get('/companies',               [App\Http\Controllers\AdminController::class, 'companies'])->name('companies');
                 Route::post('/companies/{id}/status',  [App\Http\Controllers\AdminController::class, 'updateCompanyStatus'])->name('companies.status');
             });
+    });
+
+// ================================================================
+// スーパー管理者ルート ★ v2.5追加
+// ================================================================
+
+Route::prefix('super-admin')
+    ->name('super-admin.')
+    ->middleware(['auth', 'super.admin'])
+    ->group(function () {
+
+        // ダッシュボード
+        Route::get('/dashboard', [SuperAdminDashboardController::class, 'index'])
+             ->name('dashboard');
+
+        // ログ系
+        Route::get('/ai-logs',           [SuperAdminLogsController::class, 'aiLogs'])
+             ->name('ai-logs');
+        Route::get('/ai-chat-logs',      [SuperAdminLogsController::class, 'aiChatLogs'])
+             ->name('ai-chat-logs');
+        Route::get('/staff-logs',        [SuperAdminLogsController::class, 'staffLogs'])
+             ->name('staff-logs');
+        Route::get('/data-access-logs',  [SuperAdminLogsController::class, 'dataAccessLogs'])
+             ->name('data-access-logs');
+        Route::get('/ai-transfer-logs',  [SuperAdminLogsController::class, 'aiTransferLogs'])
+             ->name('ai-transfer-logs');
+        Route::get('/audit-logs',        [SuperAdminLogsController::class, 'auditLogs'])
+             ->name('audit-logs');
+
+        // PDP法対応
+        Route::get('/consent-records',   [SuperAdminLogsController::class, 'consentRecords'])
+             ->name('consent-records');
+        Route::get('/deletion-requests', [SuperAdminUsersController::class, 'deletionRequests'])
+             ->name('deletion-requests');
+        Route::patch('/deletion-requests/{id}/approve', [SuperAdminUsersController::class, 'approveDeletion'])
+             ->name('deletion-requests.approve');
+        Route::patch('/deletion-requests/{id}/reject',  [SuperAdminUsersController::class, 'rejectDeletion'])
+             ->name('deletion-requests.reject');
+
+        // ユーザー管理
+        Route::get('/users-all',         [SuperAdminUsersController::class, 'index'])
+             ->name('users-all');
+        Route::patch('/users-all/{id}/suspend', [SuperAdminUsersController::class, 'suspend'])
+             ->name('users-all.suspend');
+
+        // エクスポート
+        Route::get('/export',            [SuperAdminExportController::class, 'index'])
+             ->name('export');
+        Route::post('/export/download',  [SuperAdminExportController::class, 'download'])
+             ->name('export.download');
     });
 
 // ================================================================

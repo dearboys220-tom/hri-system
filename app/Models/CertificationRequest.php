@@ -49,6 +49,17 @@ class CertificationRequest extends Model
         'claude_overall_reason',
         'enterprise_view_summary',
         'final_decision',
+        // v2.6
+        'case_no',
+        'current_status',
+        'external_status',
+        'latest_return_id',
+        'internal_return_required',
+        'deliverable_vr_status',
+        'deliverable_ir_status',
+        'deliverable_rn_status',
+        'approved_by_user_id',
+        'approved_at',
     ];
 
     protected $casts = [
@@ -68,10 +79,47 @@ class CertificationRequest extends Model
         'consistency_percent'        => 'decimal:2',
         'hri_suitability_score'      => 'decimal:2',
         'work_ability_score'         => 'decimal:2',
+        // v2.6
+        'internal_return_required'   => 'boolean',
+        'approved_at'                => 'datetime',
     ];
 
-    // ===== リレーション =====
+    // -------------------------------------------------------
+    // current_status 定数
+    // -------------------------------------------------------
+    const STATUS_DRAFT                  = 'draft';
+    const STATUS_UNDER_INVESTIGATION    = 'under_investigation';
+    const STATUS_AI_REVIEW_PENDING      = 'ai_review_pending';
+    const STATUS_RETURNED_INTERNAL      = 'returned_internal';
+    const STATUS_HUMAN_REVIEW           = 'human_review_required';
+    const STATUS_CONDITIONALLY_VERIFIED = 'conditionally_verified';
+    const STATUS_VERIFIED               = 'verified';
+    const STATUS_REJECTED               = 'rejected';
 
+    // external_status 定数
+    const EXT_UNDER_REVIEW           = 'under_review';
+    const EXT_ADDITIONAL_CHECK       = 'additional_check_in_progress';
+    const EXT_CONDITIONALLY_VERIFIED = 'conditionally_verified';
+    const EXT_VERIFIED               = 'verified';
+    const EXT_REJECTED               = 'rejected';
+
+    // -------------------------------------------------------
+    // boot: 新規作成時に case_no を自動採番
+    // -------------------------------------------------------
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (self $request) {
+            if (empty($request->case_no)) {
+                $request->case_no = app(\App\Services\CaseNoService::class)->generate();
+            }
+        });
+    }
+
+    // -------------------------------------------------------
+    // リレーション（既存）
+    // -------------------------------------------------------
     public function applicant()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -122,19 +170,83 @@ class CertificationRequest extends Model
         return $this->belongsTo(Payment::class);
     }
 
-    // ===== ヘルパー =====
+    // -------------------------------------------------------
+    // リレーション（v2.6追加）
+    // -------------------------------------------------------
+    public function latestReturn()
+    {
+        return $this->belongsTo(CaseReturn::class, 'latest_return_id');
+    }
 
-    public function isConduct완료(): bool
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by_user_id');
+    }
+
+    public function deliverables()
+    {
+        return $this->hasMany(CaseDeliverable::class);
+    }
+
+    public function caseReturns()
+    {
+        return $this->hasMany(CaseReturn::class);
+    }
+
+    public function priorityReport()
+    {
+        return $this->hasOne(InvestigationPriorityReport::class);
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class, 'case_no', 'case_no');
+    }
+
+    public function consentRecords()
+    {
+        return $this->hasMany(ConsentRecord::class, 'case_no', 'case_no');
+    }
+
+    // -------------------------------------------------------
+    // ヘルパー（既存）
+    // -------------------------------------------------------
+    public function hasConductItems(): bool
     {
         return $this->investigationItems()
             ->where('category', 'conduct')
             ->exists();
     }
 
-    public function hasConductItems(): bool
+    // -------------------------------------------------------
+    // ヘルパー（v2.6追加）
+    // -------------------------------------------------------
+
+    /**
+     * アクティブなRNが存在するか（VR/IR発行前チェック用）
+     * CaseDeliverableService::issueAll() 内で使用する
+     */
+    public function hasActiveReturnNotice(): bool
     {
-        return $this->investigationItems()
-            ->where('category', 'conduct')
+        return $this->deliverables()
+            ->where('deliverable_type', CaseDeliverable::TYPE_RN)
+            ->where('deliverable_status', CaseDeliverable::STATUS_ISSUED)
+            ->where('is_active', true)
             ->exists();
+    }
+
+    /**
+     * current_status と external_status を同時に更新する。
+     * ⚠️ ステータス変更は必ずこのメソッド経由で行うこと。
+     *    直接 update(['survey_status' => ...]) は使わない。
+     */
+    public function updateStatus(string $currentStatus, string $externalStatus): void
+    {
+        $this->update([
+            'current_status' => $currentStatus,
+            'external_status' => $externalStatus,
+            // 後方互換用（既存の survey_status と同期）
+            'survey_status'  => $currentStatus,
+        ]);
     }
 }

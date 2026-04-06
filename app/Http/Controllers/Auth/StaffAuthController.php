@@ -31,8 +31,14 @@ class StaffAuthController extends Controller
 
         $user = Auth::user();
 
-        // スタッフ以外はここからログインさせない
-        $allowedRoles = ['admin_user', 'investigator_user', 'reviewer_user'];
+        // スタッフ・スーパー管理者以外はここからログインさせない
+        $allowedRoles = [
+            'admin_user',
+            'investigator_user',
+            'reviewer_user',
+            'super_admin',  // ★ v2.5追加
+        ];
+
         if (!in_array($user->role_type, $allowedRoles)) {
             Auth::logout();
             return back()->withErrors([
@@ -46,7 +52,8 @@ class StaffAuthController extends Controller
         return match($user->role_type) {
             'admin_user'        => redirect()->route('admin.admin.index'),
             'investigator_user' => redirect()->route('admin.investigator.index'),
-            'reviewer_user'     => redirect()->route('admin.reviewer.index'),
+            'reviewer_user'     => redirect()->route('admin.investigator.index'),
+            'super_admin'       => redirect()->route('super-admin.dashboard'),  // ★ v2.5追加
         };
     }
 
