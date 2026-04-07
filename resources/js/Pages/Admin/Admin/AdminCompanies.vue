@@ -1,5 +1,6 @@
 <script setup>
 import AdminLayout from '@/Components/Admin/Layout/AdminLayout.vue';
+import AiChatWidget from '@/Components/AiChatWidget.vue';
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -23,26 +24,23 @@ const modalOpen   = ref(false);
 const selected    = ref(null);
 const newStatus   = ref('');
 const processing  = ref(false);
+const chatOpen    = ref(false);
 
 function applySearch() {
     router.get(route('admin.admin.companies'), { search: searchInput.value, status: props.statusFilter });
 }
-
 function applyFilter(s) {
     router.get(route('admin.admin.companies'), { search: searchInput.value, status: s });
 }
-
 function openModal(company) {
-    selected.value = company;
+    selected.value  = company;
     newStatus.value = company.company_verification_status;
     modalOpen.value = true;
 }
-
 function closeModal() {
     modalOpen.value = false;
-    selected.value = null;
+    selected.value  = null;
 }
-
 function saveStatus() {
     if (!selected.value) return;
     processing.value = true;
@@ -57,10 +55,10 @@ function saveStatus() {
 }
 
 const statusMap = {
-    pending:   { label: 'Menunggu',  cls: 'bg-yellow-100 text-yellow-700' },
+    pending:   { label: 'Menunggu',      cls: 'bg-yellow-100 text-yellow-700' },
     verified:  { label: 'Terverifikasi', cls: 'bg-green-100 text-green-700' },
     suspended: { label: 'Ditangguhkan',  cls: 'bg-orange-100 text-orange-700' },
-    rejected:  { label: 'Ditolak',   cls: 'bg-red-100 text-red-700' },
+    rejected:  { label: 'Ditolak',       cls: 'bg-red-100 text-red-700' },
 };
 
 function statusBadge(s) {
@@ -112,9 +110,7 @@ const filterButtons = [
                 <button
                     @click="applySearch"
                     class="px-5 py-2.5 bg-admin-primary-700 hover:bg-admin-primary-800 text-white text-sm font-semibold rounded-xl transition"
-                >
-                    🔍 Cari
-                </button>
+                >🔍 Cari</button>
             </div>
             <div class="flex flex-wrap gap-2">
                 <button
@@ -125,9 +121,7 @@ const filterButtons = [
                     :class="statusFilter === fb.value
                         ? 'bg-admin-primary-700 text-white border-admin-primary-700'
                         : 'bg-white text-slate-600 border-slate-300 hover:border-admin-primary-400'"
-                >
-                    {{ fb.label }}
-                </button>
+                >{{ fb.label }}</button>
             </div>
         </div>
 
@@ -182,9 +176,7 @@ const filterButtons = [
                                 <button
                                     @click="openModal(c)"
                                     class="text-xs px-3 py-1.5 bg-admin-primary-50 hover:bg-admin-primary-100 text-admin-primary-700 font-medium rounded-lg transition"
-                                >
-                                    Ubah Status
-                                </button>
+                                >Ubah Status</button>
                             </td>
                         </tr>
                     </tbody>
@@ -199,7 +191,6 @@ const filterButtons = [
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
                 <h3 class="font-bold text-slate-800 text-lg mb-1">Ubah Status Perusahaan</h3>
                 <p class="text-sm text-slate-500 mb-5">{{ selected?.company_name }}</p>
-
                 <div class="space-y-3 mb-6">
                     <label
                         v-for="(opt, val) in statusMap"
@@ -212,23 +203,53 @@ const filterButtons = [
                         <span class="text-sm text-slate-600">{{ opt.label }}</span>
                     </label>
                 </div>
-
                 <div class="flex gap-3 justify-end">
-                    <button
-                        @click="closeModal"
-                        class="px-4 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
-                    >
+                    <button @click="closeModal"
+                        class="px-4 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
                         Batal
                     </button>
-                    <button
-                        @click="saveStatus"
-                        :disabled="processing"
-                        class="px-5 py-2 text-sm text-white bg-admin-primary-700 hover:bg-admin-primary-800 disabled:opacity-50 rounded-xl transition font-semibold"
-                    >
+                    <button @click="saveStatus" :disabled="processing"
+                        class="px-5 py-2 text-sm text-white bg-admin-primary-700 hover:bg-admin-primary-800 disabled:opacity-50 rounded-xl transition font-semibold">
                         {{ processing ? 'Menyimpan...' : 'Simpan' }}
                     </button>
                 </div>
             </div>
         </div>
     </Teleport>
+
+    <!-- ===== フローティング AI チャット ===== -->
+    <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-4"
+    >
+        <div
+            v-if="chatOpen"
+            class="fixed bottom-24 right-6 z-50 w-96 h-[520px] bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 flex flex-col overflow-hidden"
+        >
+            <div class="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700 flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">🤖</span>
+                    <div>
+                        <p class="text-sm font-semibold text-white">AI Asisten Admin</p>
+                        <p class="text-xs text-gray-400">Konsultasi verifikasi perusahaan</p>
+                    </div>
+                </div>
+                <button @click="chatOpen = false" class="text-gray-400 hover:text-white transition-colors text-xl leading-none">✕</button>
+            </div>
+            <AiChatWidget :requests="[]" auto-case="" />
+        </div>
+    </Transition>
+
+    <button
+        @click="chatOpen = !chatOpen"
+        class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200"
+        :class="chatOpen ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-500 hover:bg-red-400'"
+        :title="chatOpen ? 'Tutup AI Chat' : 'Konsultasi AI'"
+    >
+        {{ chatOpen ? '✕' : '🤖' }}
+    </button>
 </template>

@@ -5,6 +5,7 @@ import Divider from '@/Components/Admin/Components/Divider.vue';
 import SectionHeader from '@/Components/Admin/Components/SectionHeader.vue';
 import ImageViewer from '@/Components/Admin/Components/ImageViewer.vue';
 import AdminLayout from '@/Components/Admin/Layout/AdminLayout.vue';
+import AiChatWidget from '@/Components/AiChatWidget.vue';
 import { MagnifyingGlassIcon, UserCircleIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
@@ -21,6 +22,13 @@ const props = defineProps({
     cases:      { type: Array,  default: () => [] },
     detail:     { type: Object, default: null },
     selectedId: { type: Number, default: null },
+});
+
+// ---- フローティングチャット ----
+const chatOpen      = ref(false);
+const currentCaseNo = computed(() => {
+    if (!props.detail) return '';
+    return props.detail.case_no || `CR-ID-${props.detail.id}`;
 });
 
 // ---- 左パネル ----
@@ -63,7 +71,6 @@ function scoreBg(score) {
     if (score >= 60) return 'bg-yellow-50 border-yellow-200';
     return 'bg-red-50 border-red-200';
 }
-
 function bandColor(band) {
     const map = {
         'HIGH':     'bg-green-100 text-green-800',
@@ -73,7 +80,6 @@ function bandColor(band) {
     };
     return map[band] ?? 'bg-slate-100 text-slate-600';
 }
-
 function judgmentColor(j) {
     if (j === 'STRONGLY_RECOMMENDED_FOR_VERIFIED_VIEW') return 'bg-green-100 text-green-800';
     if (j === 'VERIFIED_WITH_RESERVATIONS')             return 'bg-blue-100 text-blue-800';
@@ -82,7 +88,6 @@ function judgmentColor(j) {
     if (j === 'RETURN_REQUIRED')                        return 'bg-red-100 text-red-800';
     return 'bg-slate-100 text-slate-600';
 }
-
 function judgmentLabel(j) {
     const map = {
         'STRONGLY_RECOMMENDED_FOR_VERIFIED_VIEW': '✅ Sangat Direkomendasikan',
@@ -93,21 +98,19 @@ function judgmentLabel(j) {
     };
     return map[j] ?? j ?? '-';
 }
-
 function validityBadge(v) {
-    if (!v)              return { text: '—',           cls: 'bg-slate-100 text-slate-400' };
-    if (v === 'VALID')   return { text: '✅ VALID',    cls: 'bg-green-100 text-green-700' };
-    if (v === 'INVALID') return { text: '❌ INVALID',  cls: 'bg-red-100 text-red-700' };
-    if (v === 'UNVERIFIED') return { text: '⚠️ UNVERIFIED', cls: 'bg-yellow-100 text-yellow-700' };
+    if (!v)                 return { text: '—',                cls: 'bg-slate-100 text-slate-400' };
+    if (v === 'VALID')      return { text: '✅ VALID',         cls: 'bg-green-100 text-green-700' };
+    if (v === 'INVALID')    return { text: '❌ INVALID',       cls: 'bg-red-100 text-red-700' };
+    if (v === 'UNVERIFIED') return { text: '⚠️ UNVERIFIED',   cls: 'bg-yellow-100 text-yellow-700' };
     return { text: v, cls: 'bg-slate-100 text-slate-500' };
 }
-
 function verificationStatusBadge(s) {
     const map = {
-        'VERIFIED':           { text: '✅ Verified',          cls: 'bg-green-100 text-green-700' },
+        'VERIFIED':           { text: '✅ Verified',           cls: 'bg-green-100 text-green-700' },
         'PARTIALLY_VERIFIED': { text: '🔵 Partially Verified', cls: 'bg-blue-100 text-blue-700' },
-        'UNVERIFIED':         { text: '⚠️ Unverified',        cls: 'bg-yellow-100 text-yellow-700' },
-        'CONTRADICTED':       { text: '❌ Contradicted',      cls: 'bg-red-100 text-red-700' },
+        'UNVERIFIED':         { text: '⚠️ Unverified',         cls: 'bg-yellow-100 text-yellow-700' },
+        'CONTRADICTED':       { text: '❌ Contradicted',       cls: 'bg-red-100 text-red-700' },
     };
     return map[s] ?? { text: s ?? '-', cls: 'bg-slate-100 text-slate-500' };
 }
@@ -125,7 +128,6 @@ function doApprove() {
         { onFinish: () => { processing.value = false; } }
     );
 }
-
 function doConditionalApprove() {
     if (!props.detail) return;
     if (!adminNotes.value.trim()) {
@@ -140,7 +142,6 @@ function doConditionalApprove() {
         { onFinish: () => { processing.value = false; } }
     );
 }
-
 function doReject() {
     if (!props.detail) return;
     if (!adminNotes.value.trim()) {
@@ -155,7 +156,6 @@ function doReject() {
         { onFinish: () => { processing.value = false; } }
     );
 }
-
 function doReturn() {
     if (!props.detail) return;
     if (!returnReason.value.trim()) {
@@ -170,7 +170,6 @@ function doReturn() {
         { onFinish: () => { processing.value = false; } }
     );
 }
-
 function doEscalate() {
     if (!props.detail) return;
     if (!adminNotes.value.trim()) {
@@ -228,7 +227,6 @@ function doEscalate() {
                             <p class="text-sm font-medium text-slate-800 truncate">{{ c.name || c.member_id }}</p>
                             <p v-if="c.name" class="text-xs text-admin-primary-600 font-mono">{{ c.member_id }}</p>
                             <p class="text-xs text-slate-500">{{ c.submitted_at }}</p>
-                            <!-- エスカレート表示 -->
                             <span v-if="c.survey_status === 'escalated_to_human'"
                                 class="inline-block mt-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
                                 👤 Eskalasi
@@ -249,7 +247,7 @@ function doEscalate() {
 
             <template v-else>
 
-                <!-- ===== エスカレートバナー ===== -->
+                <!-- エスカレートバナー -->
                 <div v-if="detail.survey_status === 'escalated_to_human'"
                     class="mb-6 p-4 bg-orange-50 border border-orange-300 rounded-xl">
                     <p class="font-semibold text-orange-800">👤 Kasus Dieskalasi untuk Pemeriksaan Manusia</p>
@@ -258,7 +256,7 @@ function doEscalate() {
                     </p>
                 </div>
 
-                <!-- ===== v2.4 AI スコアサマリー ===== -->
+                <!-- AI スコアサマリー -->
                 <div :class="['border rounded-2xl p-6 mb-6', scoreBg(detail.base_score ?? 0)]">
                     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                         <div>
@@ -278,7 +276,6 @@ function doEscalate() {
                         </div>
                     </div>
 
-                    <!-- v2.4 指標グリッド -->
                     <div class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div class="bg-white/80 rounded-xl p-3 text-center">
                             <p class="text-xs text-slate-500">Truthfulness</p>
@@ -302,7 +299,6 @@ function doEscalate() {
                         </div>
                     </div>
 
-                    <!-- Claude Overall Judgment -->
                     <div class="mt-4 p-3 bg-white/80 rounded-xl">
                         <p class="text-xs text-slate-500 mb-1">Claude Overall Judgment</p>
                         <span v-if="detail.claude_overall_judgment"
@@ -314,16 +310,15 @@ function doEscalate() {
                         </p>
                     </div>
 
-                    <!-- Enterprise View Summary -->
                     <div v-if="detail.enterprise_view_summary" class="mt-3 p-3 bg-blue-50/80 rounded-xl">
                         <p class="text-xs text-blue-600 font-semibold mb-1">📊 Ringkasan untuk Perusahaan</p>
                         <p class="text-sm text-slate-700">{{ detail.enterprise_view_summary }}</p>
                     </div>
                 </div>
 
-                <!-- ===== v2.4 カテゴリ別スコア詳細 ===== -->
+                <!-- カテゴリ別スコア -->
                 <div v-if="detail.score_items?.length" class="mb-6">
-                    <SectionHeader title="Skor per Kategori (AI v2.4)" subtitle="Sistem penambahan poin — 100 poin total" />
+                    <SectionHeader title="Skor per Kategori (AI)" subtitle="Sistem penambahan poin — 100 poin total" />
                     <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <div v-for="item in detail.score_items" :key="item.category"
                             class="bg-slate-50 border border-slate-200 rounded-xl p-4">
@@ -332,7 +327,6 @@ function doEscalate() {
                                 <span class="text-2xl font-bold text-slate-800">{{ item.actual_score }}</span>
                                 <span class="text-sm text-slate-400 mb-1">/ {{ item.max_score }}</span>
                             </div>
-                            <!-- プログレスバー -->
                             <div class="mt-2 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                 <div
                                     class="h-full rounded-full transition-all"
@@ -340,7 +334,7 @@ function doEscalate() {
                                     :class="item.actual_score / item.max_score >= 0.8 ? 'bg-green-500' : item.actual_score / item.max_score >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'"
                                 ></div>
                             </div>
-                            <span :class="['text-xs mt-1 inline-block', verificationStatusBadge(item.verification_status).cls, 'px-1.5 py-0.5 rounded']">
+                            <span :class="['text-xs mt-1 inline-block px-1.5 py-0.5 rounded', verificationStatusBadge(item.verification_status).cls]">
                                 {{ verificationStatusBadge(item.verification_status).text }}
                             </span>
                             <p v-if="item.score_reason" class="text-xs text-slate-500 mt-2 leading-relaxed">
@@ -372,7 +366,7 @@ function doEscalate() {
 
                 <Divider class="my-6" />
 
-                <!-- ===== 写真 & KTP ===== -->
+                <!-- 写真 & KTP -->
                 <SectionHeader title="Identitas Anggota" subtitle="Foto & dokumen identitas" />
                 <div class="flex gap-6 mt-4 mb-6 flex-wrap">
                     <div>
@@ -395,16 +389,14 @@ function doEscalate() {
 
                 <Divider class="my-6" />
 
-                <!-- ===== 調査結果テーブル（4セクション）===== -->
+                <!-- 調査結果テーブル -->
                 <template v-for="section in [
                     { title: 'Data Pribadi',       subtitle: 'Hasil investigasi', items: detail.inv_basic },
                     { title: 'Riwayat Pendidikan', subtitle: 'Hasil investigasi', items: detail.inv_edu   },
                     { title: 'Pengalaman Kerja',   subtitle: 'Hasil investigasi', items: detail.inv_work  },
                     { title: 'Sertifikat',         subtitle: 'Hasil investigasi', items: detail.inv_cert  },
                 ]" :key="section.title">
-
                     <SectionHeader :title="section.title" :subtitle="section.subtitle" />
-
                     <div class="mt-4 mb-8 overflow-x-auto">
                         <table class="w-full text-sm border-collapse">
                             <thead>
@@ -419,8 +411,8 @@ function doEscalate() {
                                     <tr v-for="item in section.items" :key="item.item_name"
                                         :class="[
                                             'border-b border-slate-100 transition',
-                                            item.validity === 'INVALID'     ? 'bg-red-50 hover:bg-red-100' :
-                                            item.validity === 'UNVERIFIED'  ? 'bg-yellow-50 hover:bg-yellow-100' :
+                                            item.validity === 'INVALID'    ? 'bg-red-50 hover:bg-red-100' :
+                                            item.validity === 'UNVERIFIED' ? 'bg-yellow-50 hover:bg-yellow-100' :
                                             'hover:bg-slate-50'
                                         ]">
                                         <td class="px-4 py-3 text-slate-700 font-medium">{{ item.label }}</td>
@@ -447,10 +439,9 @@ function doEscalate() {
                     </div>
                 </template>
 
-                <!-- ===== 素行（Conduct）セクション ===== -->
+                <!-- 素行（Conduct）セクション -->
                 <template v-if="detail.inv_conduct?.length">
                     <SectionHeader title="Perilaku Kerja (Conduct)" subtitle="Hasil konfirmasi ke atasan/HR perusahaan sebelumnya" />
-
                     <div class="mt-4 mb-8 overflow-x-auto">
                         <table class="w-full text-sm border-collapse">
                             <thead>
@@ -464,8 +455,8 @@ function doEscalate() {
                                 <tr v-for="item in detail.inv_conduct" :key="item.item_name"
                                     :class="[
                                         'border-b border-slate-100 transition',
-                                        item.validity === 'INVALID'     ? 'bg-red-50 hover:bg-red-100' :
-                                        item.validity === 'UNVERIFIED'  ? 'bg-yellow-50 hover:bg-yellow-100' :
+                                        item.validity === 'INVALID'    ? 'bg-red-50 hover:bg-red-100' :
+                                        item.validity === 'UNVERIFIED' ? 'bg-yellow-50 hover:bg-yellow-100' :
                                         'hover:bg-amber-50/30'
                                     ]">
                                     <td class="px-4 py-3 text-slate-500 text-xs">{{ item.company_name }}</td>
@@ -476,7 +467,7 @@ function doEscalate() {
                                                 :class="['text-xs px-2 py-1 rounded-full font-medium', validityBadge(item.validity).cls]">
                                                 {{ validityBadge(item.validity).text }}
                                             </span>
-                                            <span v-else class="text-xs text-slate-300">未調査</span>
+                                            <span v-else class="text-xs text-slate-300">—</span>
                                             <p v-if="item.inv_notes" class="text-xs text-slate-500 text-left">
                                                 {{ item.inv_notes }}
                                             </p>
@@ -490,7 +481,7 @@ function doEscalate() {
 
                 <Divider class="my-6" />
 
-                <!-- ===== 管理メモ & 差し戻し理由 ===== -->
+                <!-- 管理メモ & 差し戻し理由 -->
                 <SectionHeader title="Keputusan Admin" subtitle="Catatan & tindakan akhir" />
 
                 <div class="space-y-5 mt-5">
@@ -523,27 +514,22 @@ function doEscalate() {
 
                 <Divider class="my-6" />
 
-                <!-- ===== アクションボタン ===== -->
+                <!-- アクションボタン -->
                 <div class="flex flex-wrap justify-end gap-3">
-                    <!-- 差し戻し -->
                     <Button variant="secondary" @click="doReturn" :disabled="processing">
                         🔄 Kembalikan ke Investigator
                     </Button>
-                    <!-- エスカレート -->
                     <Button variant="secondary" @click="doEscalate" :disabled="processing"
                         class="bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100">
                         👤 Eskalasi ke Manusia
                     </Button>
-                    <!-- 却下 -->
                     <Button variant="danger" @click="doReject" :disabled="processing">
                         ❌ Tolak
                     </Button>
-                    <!-- 条件付き承認 -->
                     <Button variant="outline" @click="doConditionalApprove" :disabled="processing"
                         class="border-blue-400 text-blue-700 hover:bg-blue-50">
                         🔵 Setujui dengan Kondisi
                     </Button>
-                    <!-- 承認 -->
                     <Button @click="doApprove" :disabled="processing">
                         ✅ Setujui Sertifikasi
                     </Button>
@@ -553,5 +539,52 @@ function doEscalate() {
         </Card>
     </div>
 
+    <!-- 画像ビューアー -->
     <ImageViewer :show="showImage" :src="viewImageSrc" @close="showImage = false" />
+
+    <!-- ===== フローティング AI チャット ===== -->
+    <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-4"
+    >
+        <div
+            v-if="chatOpen"
+            class="fixed bottom-24 right-6 z-50 w-96 h-[560px] bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 flex flex-col overflow-hidden"
+        >
+            <div class="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700 flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">🤖</span>
+                    <div>
+                        <p class="text-sm font-semibold text-white">AI Asisten Peninjauan</p>
+                        <p class="text-xs text-gray-400">
+                            {{ currentCaseNo ? currentCaseNo : 'Pilih kasus terlebih dahulu' }}
+                        </p>
+                    </div>
+                </div>
+                <button
+                    @click="chatOpen = false"
+                    class="text-gray-400 hover:text-white transition-colors text-xl leading-none"
+                >
+                    ✕
+                </button>
+            </div>
+            <AiChatWidget :requests="[]" :auto-case="currentCaseNo" />
+        </div>
+    </Transition>
+
+    <!-- フローティングボタン -->
+    <button
+        @click="chatOpen = !chatOpen"
+        class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200"
+        :class="chatOpen
+            ? 'bg-gray-700 hover:bg-gray-600'
+            : 'bg-red-500 hover:bg-red-400'"
+        :title="chatOpen ? 'Tutup AI Chat' : 'Konsultasi AI'"
+    >
+        {{ chatOpen ? '✕' : '🤖' }}
+    </button>
 </template>

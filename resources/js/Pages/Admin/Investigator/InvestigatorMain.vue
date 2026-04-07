@@ -7,6 +7,7 @@ import SectionHeader from '@/Components/Admin/Components/SectionHeader.vue';
 import StatusSelect from '@/Components/Admin/Components/StatusSelect.vue';
 import ImageViewer from '@/Components/Admin/Components/ImageViewer.vue';
 import InvestReviewLayout from '@/Components/Admin/Layout/InvestReviewLayout.vue';
+import AiChatWidget from '@/Components/AiChatWidget.vue';
 import { MagnifyingGlassIcon, UserCircleIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
@@ -24,6 +25,10 @@ const props = defineProps({
     detail:     { type: Object, default: null },
     selectedId: { type: Number, default: null },
 });
+
+// ---- フローティングチャット ----
+const chatOpen      = ref(false);
+const currentCaseNo = computed(() => props.detail?.case_no ?? '');
 
 // ---- 左パネル ----
 const search = ref('');
@@ -67,7 +72,6 @@ watch(() => props.detail, (d) => {
 
     if (!d) return;
 
-    // プロフィール
     const profileKeys = [
         'full_name','nik','ktp_address','gender','marital_status',
         'nationality','birth_date','current_address','phone_number','whatsapp_number'
@@ -77,7 +81,6 @@ watch(() => props.detail, (d) => {
         profileMemos.value[k]    = initNotes(k);
     });
 
-    // 学歴
     d.educations?.forEach((_, i) => {
         ['school_name','education_level','school_location','degree_name',
          'enrollment_date','graduation_date','graduation_status','ipk_gpa','academic_achievements'].forEach(k => {
@@ -86,7 +89,6 @@ watch(() => props.detail, (d) => {
         });
     });
 
-    // 職歴
     d.works?.forEach((_, i) => {
         ['company_name','company_address','department_position','employment_type',
          'employment_start_date','employment_end_date','job_description',
@@ -96,7 +98,6 @@ watch(() => props.detail, (d) => {
         });
     });
 
-    // 資格
     d.certifications?.forEach((_, i) => {
         ['certificate_name','issuing_organization','issue_date','expiration_date','certificate_score'].forEach(k => {
             certStatuses.value[`${i}_${k}`] = initStatus(`cert_${i}_${k}`);
@@ -104,7 +105,6 @@ watch(() => props.detail, (d) => {
         });
     });
 
-    // 素行（conduct）― 職歴ごとに5項目
     d.works?.forEach((_, i) => {
         ['stabilitas_kehadiran','kepatuhan_instruksi','kerja_sama_tim','sikap_kerja','pelanggaran_disiplin'].forEach(k => {
             conductStatuses.value[`${i}_${k}`] = initStatus(`conduct_${i}_${k}`);
@@ -127,7 +127,6 @@ function buildItems() {
     const d = props.detail;
     if (!d) return items;
 
-    // 基本情報
     const profileKeys = [
         'full_name','nik','ktp_address','gender','marital_status',
         'nationality','birth_date','current_address','phone_number','whatsapp_number'
@@ -138,7 +137,6 @@ function buildItems() {
         }
     });
 
-    // 学歴
     d.educations?.forEach((_, i) => {
         ['school_name','education_level','school_location','degree_name',
          'enrollment_date','graduation_date','graduation_status','ipk_gpa','academic_achievements'].forEach(k => {
@@ -148,7 +146,6 @@ function buildItems() {
         });
     });
 
-    // 職歴
     d.works?.forEach((_, i) => {
         ['company_name','company_address','department_position','employment_type',
          'employment_start_date','employment_end_date','job_description',
@@ -159,7 +156,6 @@ function buildItems() {
         });
     });
 
-    // 資格
     d.certifications?.forEach((_, i) => {
         ['certificate_name','issuing_organization','issue_date','expiration_date','certificate_score'].forEach(k => {
             if (certStatuses.value[`${i}_${k}`]) {
@@ -168,7 +164,6 @@ function buildItems() {
         });
     });
 
-    // 素行（conduct）― VALID / INVALID / UNVERIFIED すべて保存
     d.works?.forEach((_, i) => {
         ['stabilitas_kehadiran','kepatuhan_instruksi','kerja_sama_tim','sikap_kerja','pelanggaran_disiplin'].forEach(k => {
             const v = conductStatuses.value[`${i}_${k}`];
@@ -279,7 +274,6 @@ function sendCorrection() {
                 <SectionHeader title="Profil Anggota" subtitle="Verifikasi data pribadi" />
 
                 <div class="mt-6">
-                    <!-- 写真 -->
                     <div class="flex justify-center mb-6">
                         <div class="relative w-36 cursor-pointer group"
                             @click="detail.profile?.profile_photo && openImage('/storage/' + detail.profile.profile_photo)">
@@ -292,7 +286,6 @@ function sendCorrection() {
                         </div>
                     </div>
 
-                    <!-- KTP画像 -->
                     <div v-if="detail.profile?.ktp_card" class="mb-6 p-3 bg-slate-50 rounded-xl border border-slate-200">
                         <p class="text-xs text-slate-500 mb-2">Foto KTP</p>
                         <img :src="'/storage/' + detail.profile.ktp_card"
@@ -300,7 +293,6 @@ function sendCorrection() {
                             @click="openImage('/storage/' + detail.profile.ktp_card)" />
                     </div>
 
-                    <!-- プロフィール項目 -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <template v-for="field in [
                             { key: 'full_name',       label: 'Nama Lengkap',      value: detail.profile?.full_name },
@@ -338,7 +330,6 @@ function sendCorrection() {
                         class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
                         <h3 class="font-semibold text-slate-700 mb-4">Pendidikan {{ i + 1 }}</h3>
 
-                        <!-- 卒業証書ファイル -->
                         <div v-if="edu.ijazah_transcript" class="mb-4 p-3 bg-white rounded-xl border border-slate-200">
                             <p class="text-xs text-slate-500 mb-2">Ijazah &amp; Transkrip</p>
                             <a :href="'/storage/' + edu.ijazah_transcript" target="_blank"
@@ -349,15 +340,15 @@ function sendCorrection() {
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div v-for="f in [
-                                { key: 'school_name',          label: 'Nama Sekolah / Institusi', value: edu.school_name },
-                                { key: 'education_level',      label: 'Tingkat Pendidikan',       value: edu.education_level },
-                                { key: 'school_location',      label: 'Alamat Sekolah',           value: edu.school_location },
-                                { key: 'degree_name',          label: 'Jurusan / Program Studi',  value: edu.degree_name },
-                                { key: 'enrollment_date',      label: 'Tanggal Masuk',            value: edu.enrollment_date },
-                                { key: 'graduation_date',      label: 'Tanggal Lulus',            value: edu.graduation_date },
-                                { key: 'graduation_status',    label: 'Status Kelulusan',         value: edu.graduation_status },
-                                { key: 'ipk_gpa',              label: 'IPK / Nilai Akhir',        value: edu.ipk_gpa },
-                                { key: 'academic_achievements',label: 'Penghargaan / Prestasi',   value: edu.academic_achievements },
+                                { key: 'school_name',           label: 'Nama Sekolah / Institusi', value: edu.school_name },
+                                { key: 'education_level',       label: 'Tingkat Pendidikan',       value: edu.education_level },
+                                { key: 'school_location',       label: 'Alamat Sekolah',           value: edu.school_location },
+                                { key: 'degree_name',           label: 'Jurusan / Program Studi',  value: edu.degree_name },
+                                { key: 'enrollment_date',       label: 'Tanggal Masuk',            value: edu.enrollment_date },
+                                { key: 'graduation_date',       label: 'Tanggal Lulus',            value: edu.graduation_date },
+                                { key: 'graduation_status',     label: 'Status Kelulusan',         value: edu.graduation_status },
+                                { key: 'ipk_gpa',               label: 'IPK / Nilai Akhir',        value: edu.ipk_gpa },
+                                { key: 'academic_achievements', label: 'Penghargaan / Prestasi',   value: edu.academic_achievements },
                             ]" :key="f.key" class="space-y-2">
                                 <InfoField :label="f.label" :value="f.value ?? '-'" />
                                 <StatusSelect
@@ -382,7 +373,6 @@ function sendCorrection() {
                         class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
                         <h3 class="font-semibold text-slate-700 mb-4">Pengalaman {{ i + 1 }}</h3>
 
-                        <!-- 在職証明書ファイル -->
                         <div v-if="w.employment_certificate" class="mb-4 p-3 bg-white rounded-xl border border-slate-200">
                             <p class="text-xs text-slate-500 mb-2">Surat Keterangan Kerja</p>
                             <a :href="'/storage/' + w.employment_certificate" target="_blank"
@@ -393,16 +383,16 @@ function sendCorrection() {
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div v-for="f in [
-                                { key: 'company_name',            label: 'Nama Perusahaan',        value: w.company_name },
-                                { key: 'company_address',         label: 'Alamat Perusahaan',      value: w.company_address },
-                                { key: 'department_position',     label: 'Jabatan / Posisi',       value: w.department_position },
-                                { key: 'employment_type',         label: 'Jenis Pekerjaan',        value: w.employment_type },
-                                { key: 'employment_start_date',   label: 'Tanggal Mulai',          value: w.employment_start_date },
-                                { key: 'employment_end_date',     label: 'Tanggal Selesai',        value: w.employment_end_date ?? 'Masih Bekerja' },
-                                { key: 'job_description',         label: 'Deskripsi Pekerjaan',    value: w.job_description },
-                                { key: 'supervisor_full_name',    label: 'Nama Atasan',            value: w.supervisor_full_name },
-                                { key: 'supervisor_position',     label: 'Jabatan Atasan',         value: w.supervisor_position },
-                                { key: 'supervisor_phone',        label: 'No. Telp Atasan',        value: w.supervisor_phone },
+                                { key: 'company_name',          label: 'Nama Perusahaan',     value: w.company_name },
+                                { key: 'company_address',       label: 'Alamat Perusahaan',   value: w.company_address },
+                                { key: 'department_position',   label: 'Jabatan / Posisi',    value: w.department_position },
+                                { key: 'employment_type',       label: 'Jenis Pekerjaan',     value: w.employment_type },
+                                { key: 'employment_start_date', label: 'Tanggal Mulai',       value: w.employment_start_date },
+                                { key: 'employment_end_date',   label: 'Tanggal Selesai',     value: w.employment_end_date ?? 'Masih Bekerja' },
+                                { key: 'job_description',       label: 'Deskripsi Pekerjaan', value: w.job_description },
+                                { key: 'supervisor_full_name',  label: 'Nama Atasan',         value: w.supervisor_full_name },
+                                { key: 'supervisor_position',   label: 'Jabatan Atasan',      value: w.supervisor_position },
+                                { key: 'supervisor_phone',      label: 'No. Telp Atasan',     value: w.supervisor_phone },
                             ]" :key="f.key" class="space-y-2">
                                 <InfoField :label="f.label" :value="f.value ?? '-'" />
                                 <StatusSelect
@@ -427,7 +417,6 @@ function sendCorrection() {
                         class="border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
                         <h3 class="font-semibold text-slate-700 mb-4">Sertifikat {{ i + 1 }}</h3>
 
-                        <!-- 資格添付ファイル -->
                         <div v-if="c.certificate_attachment" class="mb-4 p-3 bg-white rounded-xl border border-slate-200">
                             <p class="text-xs text-slate-500 mb-2">Lampiran Sertifikat</p>
                             <a :href="'/storage/' + c.certificate_attachment" target="_blank"
@@ -456,17 +445,16 @@ function sendCorrection() {
 
                 <Divider class="my-8" />
 
-                <!-- ===== SECTION 5: PERILAKU KERJA (CONDUCT) ★ v2.4新規 ===== -->
+                <!-- ===== SECTION 5: PERILAKU KERJA (CONDUCT) ===== -->
                 <SectionHeader
                     title="Perilaku Kerja (Conduct)"
                     subtitle="Konfirmasi langsung ke atasan/HR perusahaan sebelumnya"
                 />
 
-                <!-- 注意事項バナー -->
                 <div class="mt-4 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
                     <p class="font-semibold mb-2">⚠️ Panduan Conduct Investigation</p>
                     <ul class="list-disc list-inside space-y-1 text-xs">
-                        <li>Hubungi atasan / HR perusahaan sebelumnya menggunakan <strong>No. Telp Atasan</strong> yang tercatat di riwayat pekerjaan</li>
+                        <li>Hubungi atasan / HR perusahaan sebelumnya menggunakan <strong>No. Telp Atasan</strong></li>
                         <li>Jika tidak bisa dihubungi, pilih <strong>UNVERIFIED</strong> dan tulis alasannya di catatan</li>
                         <li>UNVERIFIED bukan berarti otomatis 0 poin — AI akan mempertimbangkan konteksnya</li>
                         <li class="text-red-700 font-medium">DILARANG: agama, kesehatan, keluarga, politik, kehidupan pribadi, orientasi seksual, rumor</li>
@@ -486,7 +474,6 @@ function sendCorrection() {
                             Conduct — {{ w.company_name || `Perusahaan ${i + 1}` }}
                         </h3>
 
-                        <!-- 上司連絡先 -->
                         <div class="mb-5 p-3 bg-white rounded-xl border border-amber-200 text-xs text-slate-600">
                             <p class="font-semibold text-slate-700 mb-1">📞 Kontak untuk Konfirmasi:</p>
                             <p class="mt-1">
@@ -502,37 +489,14 @@ function sendCorrection() {
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div v-for="f in [
-                                {
-                                    key:  'stabilitas_kehadiran',
-                                    label: 'Stabilitas Kehadiran',
-                                    desc:  'Ketepatan waktu masuk & tingkat absensi'
-                                },
-                                {
-                                    key:  'kepatuhan_instruksi',
-                                    label: 'Kepatuhan Instruksi',
-                                    desc:  'Ketaatan pada perintah atasan & peraturan perusahaan'
-                                },
-                                {
-                                    key:  'kerja_sama_tim',
-                                    label: 'Kerja Sama Tim',
-                                    desc:  'Kemampuan bekerja sama dengan rekan & tim'
-                                },
-                                {
-                                    key:  'sikap_kerja',
-                                    label: 'Sikap Kerja',
-                                    desc:  'Inisiatif, tanggung jawab, dan etos kerja'
-                                },
-                                {
-                                    key:  'pelanggaran_disiplin',
-                                    label: 'Pelanggaran Disiplin',
-                                    desc:  'Catatan sanksi, pelanggaran, & status rekomendasi rehire'
-                                },
+                                { key: 'stabilitas_kehadiran', label: 'Stabilitas Kehadiran', desc: 'Ketepatan waktu masuk & tingkat absensi' },
+                                { key: 'kepatuhan_instruksi',  label: 'Kepatuhan Instruksi',  desc: 'Ketaatan pada perintah atasan & peraturan perusahaan' },
+                                { key: 'kerja_sama_tim',       label: 'Kerja Sama Tim',       desc: 'Kemampuan bekerja sama dengan rekan & tim' },
+                                { key: 'sikap_kerja',          label: 'Sikap Kerja',          desc: 'Inisiatif, tanggung jawab, dan etos kerja' },
+                                { key: 'pelanggaran_disiplin', label: 'Pelanggaran Disiplin', desc: 'Catatan sanksi, pelanggaran, & status rekomendasi rehire' },
                             ]" :key="f.key" class="space-y-1">
-
                                 <p class="text-sm font-medium text-slate-700">{{ f.label }}</p>
                                 <p class="text-xs text-slate-400 mb-2">{{ f.desc }}</p>
-
-                                <!-- VALID / INVALID / UNVERIFIED の3択 -->
                                 <select
                                     v-model="conductStatuses[`${i}_${f.key}`]"
                                     class="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none transition-colors"
@@ -548,7 +512,6 @@ function sendCorrection() {
                                     <option value="INVALID">❌ INVALID — Ada masalah</option>
                                     <option value="UNVERIFIED">⚠️ UNVERIFIED — Tidak dapat dikonfirmasi</option>
                                 </select>
-
                                 <textarea
                                     v-model="conductMemos[`${i}_${f.key}`]"
                                     rows="2"
@@ -604,5 +567,55 @@ function sendCorrection() {
         </Card>
     </div>
 
+    <!-- ===== 画像ビューアー ===== -->
     <ImageViewer :show="showImage" :src="viewImageSrc" @close="showImage = false" />
+
+    <!-- ===== フローティング AI チャット ===== -->
+    <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-4"
+    >
+        <div
+            v-if="chatOpen"
+            class="fixed bottom-24 right-6 z-50 w-96 h-[560px] bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 flex flex-col overflow-hidden"
+        >
+            <!-- パネルヘッダー -->
+            <div class="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700 flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">🤖</span>
+                    <div>
+                        <p class="text-sm font-semibold text-white">AI Asisten Investigasi</p>
+                        <p class="text-xs text-gray-400">
+                            {{ currentCaseNo ? currentCaseNo : 'Pilih kasus terlebih dahulu' }}
+                        </p>
+                    </div>
+                </div>
+                <button
+                    @click="chatOpen = false"
+                    class="text-gray-400 hover:text-white transition-colors text-xl leading-none"
+                >
+                    ✕
+                </button>
+            </div>
+
+            <!-- チャットウィジェット（autoCase で案件を自動セット・ドロップダウン非表示） -->
+            <AiChatWidget :requests="[]" :auto-case="currentCaseNo" />
+        </div>
+    </Transition>
+
+    <!-- フローティングボタン -->
+    <button
+        @click="chatOpen = !chatOpen"
+        class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200"
+        :class="chatOpen
+            ? 'bg-gray-700 hover:bg-gray-600'
+            : 'bg-yellow-500 hover:bg-yellow-400'"
+        :title="chatOpen ? 'Tutup AI Chat' : 'Konsultasi AI'"
+    >
+        {{ chatOpen ? '✕' : '🤖' }}
+    </button>
 </template>

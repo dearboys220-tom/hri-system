@@ -21,6 +21,7 @@
     "vue": "^3.4.0"
   },
   "dependencies": {
-    "@heroicons/vue": "^2.2.0"
+    "@heroicons/vue": "^2.2.0",
+    "uuid": "^13.0.0"
   }
 }

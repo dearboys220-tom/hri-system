@@ -18,6 +18,7 @@ use App\Http\Controllers\SuperAdmin\SuperAdminDashboardController;
 use App\Http\Controllers\SuperAdmin\SuperAdminLogsController;
 use App\Http\Controllers\SuperAdmin\SuperAdminUsersController;
 use App\Http\Controllers\SuperAdmin\SuperAdminExportController;
+use App\Http\Controllers\AiChatController;
 
 // ================================================================
 // 公開ルート
@@ -165,10 +166,13 @@ Route::prefix('admin')
         Route::prefix('investigator')
             ->name('investigator.')
             ->group(function () {
-                Route::get('/',              [App\Http\Controllers\InvestigatorController::class, 'index'])->name('index');
-                Route::post('/{id}/save',       [App\Http\Controllers\InvestigatorController::class, 'save'])->name('save');
-                Route::post('/{id}/complete',   [App\Http\Controllers\InvestigatorController::class, 'complete'])->name('complete');
-                Route::post('/{id}/correction', [App\Http\Controllers\InvestigatorController::class, 'correction'])->name('correction');
+                Route::get('/',                  [App\Http\Controllers\InvestigatorController::class, 'index'])->name('index');
+                Route::post('/{id}/save',        [App\Http\Controllers\InvestigatorController::class, 'save'])->name('save');
+                Route::post('/{id}/complete',    [App\Http\Controllers\InvestigatorController::class, 'complete'])->name('complete');
+                Route::post('/{id}/correction',  [App\Http\Controllers\InvestigatorController::class, 'correction'])->name('correction');
+
+                // ★ v2.6 AIチャット（調査部）
+                Route::get('/ai-chat', [AiChatController::class, 'investigatorIndex'])->name('ai-chat');
             });
 
         // ---- 審査管理部 ----
@@ -188,7 +192,13 @@ Route::prefix('admin')
                 // 企業管理
                 Route::get('/companies',               [App\Http\Controllers\AdminController::class, 'companies'])->name('companies');
                 Route::post('/companies/{id}/status',  [App\Http\Controllers\AdminController::class, 'updateCompanyStatus'])->name('companies.status');
+
+                // ★ v2.6 AIチャット（審査管理部）
+                Route::get('/ai-chat', [AiChatController::class, 'adminIndex'])->name('ai-chat');
             });
+
+        // ★ v2.6 AIチャット送信（共通 API エンドポイント）
+        Route::post('/ai-chat/send', [AiChatController::class, 'send'])->name('ai-chat.send');
     });
 
 // ================================================================

@@ -1,5 +1,6 @@
 <script setup>
 import AdminLayout from '@/Components/Admin/Layout/AdminLayout.vue';
+import AiChatWidget from '@/Components/AiChatWidget.vue';
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -22,15 +23,14 @@ const props = defineProps({
 });
 
 const searchInput = ref(props.search);
+const chatOpen    = ref(false);
 
 function applyFilter(status) {
     router.get(route('admin.admin.index'), { status, search: searchInput.value, page_num: 1 });
 }
-
 function applySearch() {
     router.get(route('admin.admin.index'), { status: props.statusFilter, search: searchInput.value, page_num: 1 });
 }
-
 function goPage(p) {
     router.get(route('admin.admin.index'), { status: props.statusFilter, search: searchInput.value, page_num: p });
 }
@@ -97,7 +97,6 @@ function statusBadge(status) {
                     class="px-5 py-2.5 bg-admin-primary-700 hover:bg-admin-primary-800 text-white text-sm font-semibold rounded-xl transition"
                 >🔍 Cari</button>
             </div>
-
             <div class="flex flex-wrap gap-2">
                 <button
                     v-for="fb in filterButtons"
@@ -119,7 +118,6 @@ function statusBadge(status) {
                     <span class="text-sm font-normal text-slate-400 ml-2">{{ total }} orang</span>
                 </h2>
             </div>
-
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead class="bg-slate-50 text-slate-600">
@@ -183,4 +181,40 @@ function statusBadge(status) {
             </div>
         </div>
     </div>
+
+    <!-- ===== フローティング AI チャット ===== -->
+    <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-4"
+    >
+        <div
+            v-if="chatOpen"
+            class="fixed bottom-24 right-6 z-50 w-96 h-[520px] bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 flex flex-col overflow-hidden"
+        >
+            <div class="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700 flex-shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">🤖</span>
+                    <div>
+                        <p class="text-sm font-semibold text-white">AI Asisten Admin</p>
+                        <p class="text-xs text-gray-400">Konsultasi kebijakan & panduan umum</p>
+                    </div>
+                </div>
+                <button @click="chatOpen = false" class="text-gray-400 hover:text-white transition-colors text-xl leading-none">✕</button>
+            </div>
+            <AiChatWidget :requests="[]" auto-case="" />
+        </div>
+    </Transition>
+
+    <button
+        @click="chatOpen = !chatOpen"
+        class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200"
+        :class="chatOpen ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-500 hover:bg-red-400'"
+        :title="chatOpen ? 'Tutup AI Chat' : 'Konsultasi AI'"
+    >
+        {{ chatOpen ? '✕' : '🤖' }}
+    </button>
 </template>
