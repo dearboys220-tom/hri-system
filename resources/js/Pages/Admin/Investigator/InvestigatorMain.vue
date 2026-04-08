@@ -270,6 +270,104 @@ function sendCorrection() {
 
             <template v-else>
 
+                <!-- ★★★ AI事前分析レポート（SectionHeader より前に配置） ★★★ -->
+                <div v-if="detail.priority_report" class="mb-8 rounded-2xl border border-yellow-400/40 bg-yellow-50/60 p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🤖</span>
+                            <div>
+                                <p class="text-sm font-bold text-yellow-800">Laporan Prioritas Investigasi (AI)</p>
+                                <p class="text-xs text-yellow-600">Gunakan laporan ini sebagai panduan investigasi</p>
+                            </div>
+                        </div>
+                        <span class="text-xs text-slate-400">{{ detail.priority_report.generated_at }}</span>
+                    </div>
+
+                    <!-- AI サマリー -->
+                    <p v-if="detail.priority_report.summary"
+                       class="text-sm text-slate-700 bg-white rounded-xl px-4 py-3 mb-4 border border-yellow-200 leading-relaxed">
+                        {{ detail.priority_report.summary }}
+                    </p>
+
+                    <!-- リスクフラグ -->
+                    <div v-if="detail.priority_report.risk_flags?.length" class="mb-4">
+                        <p class="text-xs font-semibold text-red-600 mb-2">⚠️ Risiko Terdeteksi</p>
+                        <div
+                            v-for="(flag, i) in detail.priority_report.risk_flags" :key="i"
+                            class="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-1"
+                        >
+                            <span class="font-semibold uppercase mr-1">[{{ flag.type }}]</span>{{ flag.description }}
+                        </div>
+                    </div>
+
+                    <!-- 優先度3列 -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- 🔴 最優先 -->
+                        <div>
+                            <p class="text-xs font-semibold text-red-600 mb-2">🔴 Prioritas Tinggi</p>
+                            <template v-if="detail.priority_report.priority_high?.length">
+                                <div
+                                    v-for="(item, i) in detail.priority_report.priority_high" :key="i"
+                                    class="text-xs bg-red-50 border border-red-200 rounded-lg p-2 mb-2"
+                                >
+                                    <p class="font-semibold text-red-700">{{ item.item }}</p>
+                                    <p class="text-slate-500 mt-0.5">{{ item.reason }}</p>
+                                </div>
+                            </template>
+                            <p v-else class="text-xs text-slate-400">Tidak ada</p>
+                        </div>
+
+                        <!-- 🟡 確認推奨 -->
+                        <div>
+                            <p class="text-xs font-semibold text-yellow-600 mb-2">🟡 Prioritas Sedang</p>
+                            <template v-if="detail.priority_report.priority_medium?.length">
+                                <div
+                                    v-for="(item, i) in detail.priority_report.priority_medium" :key="i"
+                                    class="text-xs bg-yellow-50 border border-yellow-200 rounded-lg p-2 mb-2"
+                                >
+                                    <p class="font-semibold text-yellow-700">{{ item.item }}</p>
+                                    <p class="text-slate-500 mt-0.5">{{ item.reason }}</p>
+                                </div>
+                            </template>
+                            <p v-else class="text-xs text-slate-400">Tidak ada</p>
+                        </div>
+
+                        <!-- 🟢 省略可能 -->
+                        <div>
+                            <p class="text-xs font-semibold text-green-600 mb-2">🟢 Prioritas Rendah</p>
+                            <template v-if="detail.priority_report.priority_low?.length">
+                                <div
+                                    v-for="(item, i) in detail.priority_report.priority_low" :key="i"
+                                    class="text-xs bg-green-50 border border-green-200 rounded-lg p-2 mb-2"
+                                >
+                                    <p class="font-semibold text-green-700">{{ item.item }}</p>
+                                    <p class="text-slate-500 mt-0.5">{{ item.reason }}</p>
+                                </div>
+                            </template>
+                            <p v-else class="text-xs text-slate-400">Tidak ada</p>
+                        </div>
+                    </div>
+
+                    <!-- 上司連絡先まとめ -->
+                    <div v-if="detail.priority_report.conduct_contacts?.length" class="mt-4">
+                        <p class="text-xs font-semibold text-blue-600 mb-2">📞 Daftar Kontak Atasan</p>
+                        <div
+                            v-for="(contact, i) in detail.priority_report.conduct_contacts" :key="i"
+                            class="text-xs bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-1"
+                        >
+                            <span class="font-semibold text-blue-700">{{ contact.company }}</span>
+                            <span v-if="contact.supervisor_name" class="text-slate-500 ml-2">— {{ contact.supervisor_name }}</span>
+                            <p v-if="contact.note" class="text-slate-400 mt-0.5">{{ contact.note }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- レポート未生成の場合 -->
+                <div v-else class="mb-8 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
+                    <p class="text-sm text-slate-400">⏳ Laporan prioritas AI belum tersedia untuk kasus ini</p>
+                </div>
+                <!-- ★★★ ここまでレポートブロック ★★★ -->
+
                 <!-- ===== SECTION 1: PROFIL ===== -->
                 <SectionHeader title="Profil Anggota" subtitle="Verifikasi data pribadi" />
 
@@ -583,7 +681,6 @@ function sendCorrection() {
             v-if="chatOpen"
             class="fixed bottom-24 right-6 z-50 w-96 h-[560px] bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 flex flex-col overflow-hidden"
         >
-            <!-- パネルヘッダー -->
             <div class="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-700 flex-shrink-0">
                 <div class="flex items-center gap-2">
                     <span class="text-lg">🤖</span>
@@ -601,8 +698,6 @@ function sendCorrection() {
                     ✕
                 </button>
             </div>
-
-            <!-- チャットウィジェット（autoCase で案件を自動セット・ドロップダウン非表示） -->
             <AiChatWidget :requests="[]" :auto-case="currentCaseNo" />
         </div>
     </Transition>

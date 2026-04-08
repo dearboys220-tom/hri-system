@@ -7,6 +7,7 @@ use App\Models\InvestigationItem;
 use App\Models\EducationHistory;
 use App\Models\WorkHistory;
 use App\Models\Certification;
+use App\Models\InvestigationPriorityReport;   // ★ 追加
 use App\Services\HriAiScoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -52,6 +53,11 @@ class InvestigatorController extends Controller
                 $educations = EducationHistory::where('user_id', $cr->user_id)->get();
                 $works      = WorkHistory::where('user_id', $cr->user_id)->get();
                 $certs      = Certification::where('user_id', $cr->user_id)->get();
+
+                // ★ AI事前分析レポートを取得
+                $priorityReport = InvestigationPriorityReport::where('certification_request_id', $cr->id)
+                    ->latest()
+                    ->first();
 
                 $detail = [
                     'id'                  => $cr->id,
@@ -123,6 +129,17 @@ class InvestigatorController extends Controller
                             'validity' => $i->validity,
                             'notes'    => $i->notes,
                         ]]),
+
+                    // ★ AI事前分析レポート
+                    'priority_report' => $priorityReport ? [
+                        'priority_high'    => $priorityReport->priority_high_json ?? [],
+                        'priority_medium'  => $priorityReport->priority_medium_json ?? [],
+                        'priority_low'     => $priorityReport->priority_low_json ?? [],
+                        'conduct_contacts' => $priorityReport->conduct_contacts_json ?? [],
+                        'risk_flags'       => $priorityReport->risk_flags_json ?? [],
+                        'summary'          => $priorityReport->ai_analysis_summary,
+                        'generated_at'     => optional($priorityReport->generated_at)->format('d/m/Y H:i'),
+                    ] : null,
                 ];
             }
         }

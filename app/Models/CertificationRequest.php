@@ -120,9 +120,19 @@ class CertificationRequest extends Model
     // -------------------------------------------------------
     // リレーション（既存）
     // -------------------------------------------------------
+
     public function applicant()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * ★ v2.6追加: applicant_profiles との1:1リレーション
+     * user_id を共通キーとして applicant_profiles と紐付ける
+     */
+    public function applicantProfile()
+    {
+        return $this->belongsTo(ApplicantProfile::class, 'user_id', 'user_id');
     }
 
     public function investigator()
@@ -173,6 +183,7 @@ class CertificationRequest extends Model
     // -------------------------------------------------------
     // リレーション（v2.6追加）
     // -------------------------------------------------------
+
     public function latestReturn()
     {
         return $this->belongsTo(CaseReturn::class, 'latest_return_id');
@@ -211,6 +222,7 @@ class CertificationRequest extends Model
     // -------------------------------------------------------
     // ヘルパー（既存）
     // -------------------------------------------------------
+
     public function hasConductItems(): bool
     {
         return $this->investigationItems()
@@ -224,7 +236,6 @@ class CertificationRequest extends Model
 
     /**
      * アクティブなRNが存在するか（VR/IR発行前チェック用）
-     * CaseDeliverableService::issueAll() 内で使用する
      */
     public function hasActiveReturnNotice(): bool
     {
@@ -238,15 +249,13 @@ class CertificationRequest extends Model
     /**
      * current_status と external_status を同時に更新する。
      * ⚠️ ステータス変更は必ずこのメソッド経由で行うこと。
-     *    直接 update(['survey_status' => ...]) は使わない。
      */
     public function updateStatus(string $currentStatus, string $externalStatus): void
     {
         $this->update([
             'current_status' => $currentStatus,
             'external_status' => $externalStatus,
-            // 後方互換用（既存の survey_status と同期）
-            'survey_status'  => $currentStatus,
+            'survey_status'  => $currentStatus, // 後方互換用
         ]);
     }
 }
