@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class AbsenceRequestController extends Controller
 {
@@ -22,8 +23,9 @@ class AbsenceRequestController extends Controller
             ->map(fn($r) => [
                 'id'              => $r->id,
                 'absence_type'    => $r->absence_type,
-                'start_date'      => $r->start_date,
-                'end_date'        => $r->end_date,
+                'start_date'      => $r->absence_date_from,
+                'end_date'        => $r->absence_date_to,
+                'absence_days'    => $r->absence_days,
                 'reason'          => $r->reason,
                 'approval_status' => $r->approval_status,
                 'created_at'      => $r->created_at->format('Y-m-d H:i'),
@@ -37,43 +39,50 @@ class AbsenceRequestController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'absence_type' => 'required|in:SICK,PERSONAL,ANNUAL_LEAVE,OTHER',
+            'absence_type' => 'required|in:SICK,PERSONAL,ANNUAL_LEAVE,EMERGENCY,OTHER',
             'start_date'   => 'required|date|after_or_equal:today',
             'end_date'     => 'required|date|after_or_equal:start_date',
             'reason'       => 'required|string|max:1000',
-            'document_url' => 'nullable|url|max:500',
+            'document_url' => 'nullable|string|max:500',
         ]);
 
         $user = Auth::user();
 
+        // 重複申請チェック
         $overlap = EmployeeAbsenceRequest::where('staff_user_id', $user->id)
             ->whereIn('approval_status', ['PENDING', 'APPROVED'])
             ->where(function ($q) use ($request) {
-                $q->whereBetween('start_date', [$request->start_date, $request->end_date])
-                  ->orWhereBetween('end_date', [$request->start_date, $request->end_date]);
+                $q->whereBetween('absence_date_from', [$request->start_date, $request->end_date])
+                  ->orWhereBetween('absence_date_to', [$request->start_date, $request->end_date]);
             })->exists();
 
         if ($overlap) {
             return back()->withErrors(['start_date' => 'Sudah ada pengajuan izin pada periode tersebut.']);
         }
 
+        // 欠勤日数を計算
+        $absenceDays = Carbon::parse($request->start_date)
+            ->diffInDays(Carbon::parse($request->end_date)) + 1;
+
         $absenceRequest = EmployeeAbsenceRequest::create([
-            'staff_user_id'   => $user->id,
-            'absence_type'    => $request->absence_type,
-            'start_date'      => $request->start_date,
-            'end_date'        => $request->end_date,
-            'reason'          => $request->reason,
-            'document_url'    => $request->document_url,
-            'approval_status' => 'PENDING',
+            'staff_user_id'      => $user->id,
+            'absence_type'       => $request->absence_type,
+            'absence_date_from'  => $request->start_date,
+            'absence_date_to'    => $request->end_date,
+            'absence_days'       => $absenceDays,
+            'reason'             => $request->reason,
+            'supporting_doc_path'=> $request->document_url,
+            'approval_status'    => 'PENDING',
         ]);
 
         AuditLog::recordHuman(
             'ABSENCE_REQUESTED',
             null,
             ['new' => [
-                'absence_type' => $request->absence_type,
-                'start_date'   => $request->start_date,
-                'end_date'     => $request->end_date,
+                'absence_type'      => $request->absence_type,
+                'absence_date_from' => $request->start_date,
+                'absence_date_to'   => $request->end_date,
+                'absence_days'      => $absenceDays,
             ]]
         );
 
@@ -84,20 +93,20 @@ class AbsenceRequestController extends Controller
     {
         $requests = EmployeeAbsenceRequest::with(['staffUser:id,name,role_type'])
             ->orderByRaw("FIELD(approval_status, 'PENDING', 'APPROVED', 'REJECTED')")
-            ->orderBy('start_date', 'asc')
+            ->orderBy('absence_date_from', 'asc')
             ->get()
             ->map(fn($r) => [
                 'id'              => $r->id,
                 'staff_name'      => optional($r->staffUser)->name ?? '—',
                 'role_type'       => optional($r->staffUser)->role_type ?? '—',
                 'absence_type'    => $r->absence_type,
-                'start_date'      => $r->start_date,
-                'end_date'        => $r->end_date,
+                'start_date'      => $r->absence_date_from,
+                'end_date'        => $r->absence_date_to,
+                'absence_days'    => $r->absence_days,
                 'reason'          => $r->reason,
-                'document_url'    => $r->document_url,
+                'document_url'    => $r->supporting_doc_path,
                 'approval_status' => $r->approval_status,
-                'approved_by'     => $r->approvedBy?->name ?? null,
-                'manager_note'    => $r->manager_note,
+                'rejection_reason'=> $r->rejection_reason,
                 'created_at'      => $r->created_at->format('Y-m-d H:i'),
             ]);
 
@@ -123,14 +132,14 @@ class AbsenceRequestController extends Controller
             'approval_status'     => 'APPROVED',
             'approved_by_user_id' => $manager->id,
             'approved_at'         => now(),
-            'manager_note'        => $request->manager_note,
         ]);
 
+        // staff_availability を ON_LEAVE に更新
         $availability = StaffAvailability::where('staff_user_id', $absence->staff_user_id)->first();
         if ($availability) {
             $availability->update([
                 'availability_status' => StaffAvailability::STATUS_ON_LEAVE,
-                'absence_until'       => $absence->end_date,
+                'absence_until'       => $absence->absence_date_to,
             ]);
         }
 
@@ -138,9 +147,9 @@ class AbsenceRequestController extends Controller
             'ABSENCE_APPROVED',
             null,
             ['new' => [
-                'absence_id'     => $absence->id,
-                'approval_status'=> 'APPROVED',
-                'absence_until'  => $absence->end_date,
+                'absence_id'      => $absence->id,
+                'approval_status' => 'APPROVED',
+                'absence_until'   => $absence->absence_date_to,
             ]]
         );
 
@@ -164,16 +173,16 @@ class AbsenceRequestController extends Controller
             'approval_status'     => 'REJECTED',
             'approved_by_user_id' => $manager->id,
             'approved_at'         => now(),
-            'manager_note'        => $request->manager_note,
+            'rejection_reason'    => $request->manager_note,
         ]);
 
         AuditLog::recordHuman(
             'ABSENCE_APPROVED',
             null,
             ['new' => [
-                'absence_id'      => $absence->id,
-                'approval_status' => 'REJECTED',
-                'manager_note'    => $request->manager_note,
+                'absence_id'       => $absence->id,
+                'approval_status'  => 'REJECTED',
+                'rejection_reason' => $request->manager_note,
             ]]
         );
 

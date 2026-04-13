@@ -12,20 +12,22 @@ class EmployeeAbsenceRequest extends Model
     protected $fillable = [
         'staff_user_id',
         'absence_type',
-        'start_date',
-        'end_date',
+        'absence_date_from',
+        'absence_date_to',
+        'absence_days',
         'reason',
-        'document_url',
+        'supporting_doc_path',
         'approval_status',
         'approved_by_user_id',
         'approved_at',
-        'manager_note',
+        'rejection_reason',
     ];
 
     protected $casts = [
-        'start_date'  => 'date',
-        'end_date'    => 'date',
-        'approved_at' => 'datetime',
+        'absence_date_from' => 'date',
+        'absence_date_to'   => 'date',
+        'approved_at'       => 'datetime',
+        'absence_days'      => 'integer',
     ];
 
     public function staffUser()

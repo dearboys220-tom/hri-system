@@ -3,9 +3,15 @@
         <div class="max-w-5xl mx-auto space-y-6">
 
             <!-- ヘッダー -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h1 class="text-xl font-bold text-gray-800">📋 Laporan Tugas Staf</h1>
-                <p class="text-sm text-gray-500 mt-1">Daftar laporan yang dikirim oleh staf.</p>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">📋 Laporan Tugas Staf</h1>
+                    <p class="text-sm text-gray-500 mt-1">Daftar laporan yang dikirim oleh staf.</p>
+                </div>
+                <a :href="route('manager.dashboard')"
+                   class="text-sm text-blue-500 hover:underline flex items-center gap-1">
+                    ← Kembali ke Dashboard
+                </a>
             </div>
 
             <!-- フラッシュ -->
@@ -18,9 +24,12 @@
             <div class="flex gap-2 flex-wrap">
                 <button v-for="f in filters" :key="f.value"
                         @click="activeFilter = f.value"
-                        :class="activeFilter === f.value ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200'"
+                        :class="activeFilter === f.value
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-600 border border-gray-200'"
                         class="px-4 py-2 rounded-xl text-sm font-medium transition">
                     {{ f.label }}
+                    <span class="ml-1 text-xs opacity-70">（{{ countByFilter(f.value) }}）</span>
                 </button>
             </div>
 
@@ -35,6 +44,8 @@
 
                 <div class="flex items-start justify-between gap-3">
                     <div class="flex-1">
+
+                        <!-- スタッフ名・バッジ -->
                         <div class="flex items-center gap-2 flex-wrap mb-1">
                             <p class="font-semibold text-gray-800 text-sm">{{ r.staff_name }}</p>
                             <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
@@ -50,13 +61,15 @@
                             </span>
                         </div>
 
+                        <!-- タスク名・日時 -->
                         <p class="text-xs text-gray-400 mb-2">
-                            📋 {{ r.task_title }} ·
-                            🕐 {{ r.reported_at }}
+                            📋 {{ r.task_title }} · 🕐 {{ r.reported_at }}
                         </p>
 
+                        <!-- 報告本文 -->
                         <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ r.report_body }}</p>
 
+                        <!-- AI要約（あれば） -->
                         <div v-if="r.ai_summary"
                              class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
                             🤖 AI要約: {{ r.ai_summary }}
@@ -72,6 +85,18 @@
                 </div>
             </div>
 
+            <!-- ページネーション -->
+            <div v-if="reports.last_page > 1" class="flex justify-center gap-2">
+                <button v-for="page in reports.last_page" :key="page"
+                        @click="goToPage(page)"
+                        :class="page === reports.current_page
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
+                        class="w-9 h-9 rounded-xl text-sm font-medium transition">
+                    {{ page }}
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -83,7 +108,9 @@
             <p class="text-sm text-gray-600 mb-4">
                 Laporan dari <strong>{{ flagModal.staffName }}</strong> akan ditandai sebagai tidak sesuai.
             </p>
-            <label class="text-sm font-medium text-gray-700">Alasan <span class="text-red-500">*</span></label>
+            <label class="text-sm font-medium text-gray-700">
+                Alasan <span class="text-red-500">*</span>
+            </label>
             <textarea v-model="flagModal.reason" rows="3"
                       class="w-full mt-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
                       placeholder="Jelaskan alasan ketidaksesuaian..."></textarea>
@@ -111,11 +138,12 @@ const props = defineProps({
     reports: Object, // paginate
 })
 
+// フィルター
 const activeFilter = ref('ALL')
 const filters = [
-    { value: 'ALL',      label: 'Semua' },
-    { value: 'NORMAL',   label: '✅ Normal' },
-    { value: 'FLAGGED',  label: '⚠️ Bermasalah' },
+    { value: 'ALL',     label: 'Semua' },
+    { value: 'NORMAL',  label: '✅ Normal' },
+    { value: 'FLAGGED', label: '⚠️ Bermasalah' },
 ]
 
 const filteredReports = computed(() => {
@@ -125,11 +153,39 @@ const filteredReports = computed(() => {
     return data
 })
 
-// フラグモーダル
-const flagModal = ref({ show: false, reportId: null, staffName: '', reason: '', loading: false, error: '' })
-const openFlag  = (r) => {
-    flagModal.value = { show: true, reportId: r.id, staffName: r.staff_name, reason: '', loading: false, error: '' }
+const countByFilter = (val) => {
+    const data = props.reports.data ?? []
+    if (val === 'FLAGGED') return data.filter(r => r.inconsistency_flag).length
+    if (val === 'NORMAL')  return data.filter(r => !r.inconsistency_flag).length
+    return data.length
 }
+
+// ページネーション
+const goToPage = (page) => {
+    router.get(route('manager.reports.index'), { page }, { preserveScroll: true })
+}
+
+// フラグモーダル
+const flagModal = ref({
+    show:      false,
+    reportId:  null,
+    staffName: '',
+    reason:    '',
+    loading:   false,
+    error:     '',
+})
+
+const openFlag = (r) => {
+    flagModal.value = {
+        show:      true,
+        reportId:  r.id,
+        staffName: r.staff_name,
+        reason:    '',
+        loading:   false,
+        error:     '',
+    }
+}
+
 const submitFlag = () => {
     if (!flagModal.value.reason.trim()) {
         flagModal.value.error = 'Alasan wajib diisi.'
@@ -145,8 +201,11 @@ const submitFlag = () => {
 }
 
 const roleLabel = (r) => ({
-    investigator_user: 'Investigator', admin_user: 'Admin',
-    em_staff: 'Staff', strategy_user: 'Strategy',
-    ai_dev_user: 'AI Dev', marketing_user: 'Marketing',
+    investigator_user: 'Investigator',
+    admin_user:        'Admin',
+    em_staff:          'Staff',
+    strategy_user:     'Strategy',
+    ai_dev_user:       'AI Dev',
+    marketing_user:    'Marketing',
 }[r] ?? r)
 </script>

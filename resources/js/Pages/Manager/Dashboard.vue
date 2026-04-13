@@ -6,7 +6,30 @@ const page = usePage()
 const user = computed(() => page.props.auth?.user)
 
 const menuItems = [
-    { label: 'Manajemen Staf', href: '/manager/staff', icon: '👥', desc: 'Daftar & pendaftaran staf internal' },
+    {
+        label: 'Manajemen Staf',
+        href:  '/manager/staff',
+        icon:  '👥',
+        desc:  'Daftar & pendaftaran staf internal',
+    },
+    {
+        label: 'Instruksi Tugas',
+        href:  '/manager/task-orders',
+        icon:  '📋',
+        desc:  'Buat dan kelola instruksi kerja untuk staf',
+    },
+    {
+        label: 'Laporan Tugas',
+        href:  '/manager/reports',
+        icon:  '📝',
+        desc:  'Daftar laporan yang dikirim oleh staf',
+    },
+    {
+        label: 'Pengajuan Izin',
+        href:  '/manager/absence-requests',
+        icon:  '📅',
+        desc:  'Setujui atau tolak pengajuan izin staf',
+    },
 ]
 
 function logout() {

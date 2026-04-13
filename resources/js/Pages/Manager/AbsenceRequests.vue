@@ -3,9 +3,15 @@
         <div class="max-w-4xl mx-auto space-y-6">
 
             <!-- ヘッダー -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h1 class="text-xl font-bold text-gray-800">📋 Manajemen Pengajuan Izin</h1>
-                <p class="text-sm text-gray-500 mt-1">Setujui atau tolak pengajuan izin staf.</p>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">📋 Manajemen Pengajuan Izin</h1>
+                    <p class="text-sm text-gray-500 mt-1">Setujui atau tolak pengajuan izin staf.</p>
+                </div>
+                <a :href="route('manager.dashboard')"
+                   class="text-sm text-blue-500 hover:underline flex items-center gap-1">
+                    ← Kembali ke Dashboard
+                </a>
             </div>
 
             <!-- フラッシュメッセージ -->
@@ -49,15 +55,18 @@
                         </div>
 
                         <div class="mt-2 text-sm text-gray-600 space-y-1">
-                            <p>📅 <span class="font-medium">{{ absenceTypeLabel(r.absence_type) }}</span>
-                               　{{ r.start_date }} ~ {{ r.end_date }}</p>
+                            <p>
+                                📅 <span class="font-medium">{{ absenceTypeLabel(r.absence_type) }}</span>
+                                　{{ r.start_date }} ~ {{ r.end_date }}
+                                <span class="text-xs text-gray-400 ml-1">（{{ r.absence_days }}日）</span>
+                            </p>
                             <p>📝 {{ r.reason }}</p>
                             <p v-if="r.document_url">
                                 🔗 <a :href="r.document_url" target="_blank"
                                       class="text-blue-500 underline text-xs">Lihat Dokumen</a>
                             </p>
-                            <p v-if="r.manager_note" class="text-gray-400 text-xs">
-                                💬 Catatan: {{ r.manager_note }}
+                            <p v-if="r.rejection_reason" class="text-gray-400 text-xs">
+                                💬 Alasan Penolakan: {{ r.rejection_reason }}
                             </p>
                         </div>
 
@@ -92,6 +101,7 @@
             </p>
             <p class="text-sm text-gray-500 mb-4">
                 {{ approveModal.request?.start_date }} ~ {{ approveModal.request?.end_date }}
+                （{{ approveModal.request?.absence_days }}日）
             </p>
             <label class="text-sm font-medium text-gray-700">Catatan (opsional)</label>
             <textarea v-model="approveModal.note" rows="2"
@@ -120,7 +130,9 @@
                 <strong>{{ rejectModal.request?.staff_name }}</strong> —
                 {{ absenceTypeLabel(rejectModal.request?.absence_type) }}
             </p>
-            <label class="text-sm font-medium text-gray-700">Alasan Penolakan <span class="text-red-500">*</span></label>
+            <label class="text-sm font-medium text-gray-700">
+                Alasan Penolakan <span class="text-red-500">*</span>
+            </label>
             <textarea v-model="rejectModal.note" rows="3"
                       class="w-full mt-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
                       placeholder="Jelaskan alasan penolakan..."></textarea>
@@ -151,8 +163,8 @@ const props = defineProps({
 // フィルター
 const activeFilter = ref('ALL')
 const filters = [
-    { value: 'ALL', label: 'Semua' },
-    { value: 'PENDING', label: 'Menunggu' },
+    { value: 'ALL',      label: 'Semua' },
+    { value: 'PENDING',  label: 'Menunggu' },
     { value: 'APPROVED', label: 'Disetujui' },
     { value: 'REJECTED', label: 'Ditolak' },
 ]
@@ -168,20 +180,20 @@ const countByStatus = (status) =>
 
 // 承認モーダル
 const approveModal = ref({ show: false, request: null, note: '', loading: false })
-const openApprove = (r) => { approveModal.value = { show: true, request: r, note: '', loading: false } }
+const openApprove  = (r) => { approveModal.value = { show: true, request: r, note: '', loading: false } }
 const submitApprove = () => {
     approveModal.value.loading = true
     router.post(route('manager.absence.approve', approveModal.value.request.id), {
         manager_note: approveModal.value.note,
     }, {
         onSuccess: () => { approveModal.value.show = false },
-        onFinish: () => { approveModal.value.loading = false },
+        onFinish:  () => { approveModal.value.loading = false },
     })
 }
 
 // 却下モーダル
 const rejectModal = ref({ show: false, request: null, note: '', loading: false, error: '' })
-const openReject = (r) => { rejectModal.value = { show: true, request: r, note: '', loading: false, error: '' } }
+const openReject   = (r) => { rejectModal.value = { show: true, request: r, note: '', loading: false, error: '' } }
 const submitReject = () => {
     if (!rejectModal.value.note.trim()) {
         rejectModal.value.error = 'Alasan penolakan wajib diisi.'
@@ -192,25 +204,36 @@ const submitReject = () => {
         manager_note: rejectModal.value.note,
     }, {
         onSuccess: () => { rejectModal.value.show = false },
-        onFinish: () => { rejectModal.value.loading = false },
+        onFinish:  () => { rejectModal.value.loading = false },
     })
 }
 
 const absenceTypeLabel = (type) => ({
-    SICK: '🤒 Sakit', PERSONAL: '👤 Keperluan Pribadi',
-    ANNUAL_LEAVE: '🌴 Cuti Tahunan', OTHER: '📝 Lainnya',
+    SICK:         '🤒 Sakit',
+    PERSONAL:     '👤 Keperluan Pribadi',
+    ANNUAL_LEAVE: '🌴 Cuti Tahunan',
+    EMERGENCY:    '🚨 Darurat',
+    OTHER:        '📝 Lainnya',
 }[type] ?? type)
 
-const statusLabel = (s) => ({ PENDING: 'Menunggu', APPROVED: 'Disetujui', REJECTED: 'Ditolak' }[s] ?? s)
+const statusLabel = (s) => ({
+    PENDING:  'Menunggu',
+    APPROVED: 'Disetujui',
+    REJECTED: 'Ditolak',
+}[s] ?? s)
+
 const statusClass = (s) => ({
-    PENDING: 'bg-yellow-100 text-yellow-700',
+    PENDING:  'bg-yellow-100 text-yellow-700',
     APPROVED: 'bg-green-100 text-green-700',
     REJECTED: 'bg-red-100 text-red-700',
 }[s] ?? 'bg-gray-100 text-gray-600')
 
 const roleLabel = (role) => ({
-    investigator_user: 'Investigator', admin_user: 'Admin',
-    em_staff: 'Staff', strategy_user: 'Strategy',
-    ai_dev_user: 'AI Dev', marketing_user: 'Marketing',
+    investigator_user: 'Investigator',
+    admin_user:        'Admin',
+    em_staff:          'Staff',
+    strategy_user:     'Strategy',
+    ai_dev_user:       'AI Dev',
+    marketing_user:    'Marketing',
 }[role] ?? role)
 </script>

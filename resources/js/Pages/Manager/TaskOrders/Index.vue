@@ -8,10 +8,16 @@
                     <h1 class="text-xl font-bold text-gray-800">📋 Manajemen Instruksi Tugas</h1>
                     <p class="text-sm text-gray-500 mt-1">Buat dan kelola instruksi kerja untuk staf.</p>
                 </div>
-                <button @click="showForm = !showForm"
-                        class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
-                    {{ showForm ? '✕ Tutup' : '＋ Buat Instruksi' }}
-                </button>
+                <div class="flex items-center gap-3">
+                    <a :href="route('manager.dashboard')"
+                       class="text-sm text-blue-500 hover:underline flex items-center gap-1">
+                        ← Dashboard
+                    </a>
+                    <button @click="showForm = !showForm"
+                            class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
+                        {{ showForm ? '✕ Tutup' : '＋ Buat Instruksi' }}
+                    </button>
+                </div>
             </div>
 
             <!-- フラッシュ -->
@@ -25,10 +31,12 @@
                 <h2 class="font-semibold text-gray-700 mb-4">Formulir Instruksi Baru</h2>
 
                 <div class="space-y-4">
+
                     <!-- タイトル -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Judul Instruksi *</label>
-                        <input type="text" v-model="form.title" placeholder="Contoh: Riset pasar tenaga kerja Q2 2026"
+                        <input type="text" v-model="form.title"
+                               placeholder="Contoh: Riset pasar tenaga kerja Q2 2026"
                                class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
                         <p v-if="errors.title" class="text-red-500 text-xs mt-1">{{ errors.title }}</p>
                     </div>
@@ -43,6 +51,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
                         <!-- 対象部署 -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Divisi Target *</label>
@@ -226,7 +235,10 @@ const submitOrder = () => {
     router.post(route('manager.task-orders.store'), form.value, {
         onSuccess: () => {
             showForm.value = false
-            form.value = { title: '', description: '', target_division: '', priority: 'NORMAL', due_date: '', assignee_ids: [] }
+            form.value = {
+                title: '', description: '', target_division: '',
+                priority: 'NORMAL', due_date: '', assignee_ids: [],
+            }
         },
         onError:  (e) => { errors.value = e },
         onFinish: ()  => { loading.value = false },
@@ -240,12 +252,57 @@ const submitCancel  = () => {
     })
 }
 
-const priorityLabel = (p) => ({ LOW: '🟢 Rendah', NORMAL: '🔵 Normal', HIGH: '🟠 Tinggi', URGENT: '🔴 Mendesak' }[p] ?? p)
-const priorityClass = (p) => ({ LOW: 'bg-green-100 text-green-700', NORMAL: 'bg-blue-100 text-blue-700', HIGH: 'bg-orange-100 text-orange-700', URGENT: 'bg-red-100 text-red-700' }[p] ?? 'bg-gray-100 text-gray-600')
-const statusLabel   = (s) => ({ DRAFT: 'Draft', PENDING_APPROVAL: 'Menunggu', APPROVED: 'Disetujui', IN_PROGRESS: 'Berjalan', COMPLETED: 'Selesai', CANCELLED: 'Dibatalkan', CLOSED: 'Ditutup' }[s] ?? s)
-const statusClass   = (s) => ({ APPROVED: 'bg-green-100 text-green-700', IN_PROGRESS: 'bg-blue-100 text-blue-700', COMPLETED: 'bg-gray-100 text-gray-600', CANCELLED: 'bg-red-100 text-red-500' }[s] ?? 'bg-yellow-100 text-yellow-700')
-const assignStatusLabel = (s) => ({ ASSIGNED: 'Ditugaskan', IN_PROGRESS: 'Berjalan', COMPLETED: 'Selesai', ESCALATED: 'Eskalasi', CANCELLED: 'Dibatalkan' }[s] ?? s)
-const assignStatusClass = (s) => ({ ASSIGNED: 'bg-yellow-50 text-yellow-700 border-yellow-200', IN_PROGRESS: 'bg-blue-50 text-blue-700 border-blue-200', COMPLETED: 'bg-green-50 text-green-700 border-green-200', ESCALATED: 'bg-red-50 text-red-700 border-red-200' }[s] ?? 'bg-gray-50 text-gray-500 border-gray-200')
-const roleLabel  = (r) => ({ investigator_user: 'Investigator', admin_user: 'Admin', em_staff: 'Staff', strategy_user: 'Strategy', ai_dev_user: 'AI Dev', marketing_user: 'Marketing' }[r] ?? r)
-const deptLabel  = (d) => ({ INVESTIGATION: 'Investigasi', ADMIN: 'Admin', STRATEGY: 'Strategi', AI_DEV: 'AI Dev', MARKETING: 'Marketing' }[d] ?? d)
+const priorityLabel = (p) => ({
+    LOW: '🟢 Rendah', NORMAL: '🔵 Normal',
+    HIGH: '🟠 Tinggi', URGENT: '🔴 Mendesak',
+}[p] ?? p)
+
+const priorityClass = (p) => ({
+    LOW:    'bg-green-100 text-green-700',
+    NORMAL: 'bg-blue-100 text-blue-700',
+    HIGH:   'bg-orange-100 text-orange-700',
+    URGENT: 'bg-red-100 text-red-700',
+}[p] ?? 'bg-gray-100 text-gray-600')
+
+const statusLabel = (s) => ({
+    DRAFT: 'Draft', PENDING_APPROVAL: 'Menunggu', APPROVED: 'Disetujui',
+    IN_PROGRESS: 'Berjalan', COMPLETED: 'Selesai',
+    CANCELLED: 'Dibatalkan', CLOSED: 'Ditutup',
+}[s] ?? s)
+
+const statusClass = (s) => ({
+    APPROVED:    'bg-green-100 text-green-700',
+    IN_PROGRESS: 'bg-blue-100 text-blue-700',
+    COMPLETED:   'bg-gray-100 text-gray-600',
+    CANCELLED:   'bg-red-100 text-red-500',
+}[s] ?? 'bg-yellow-100 text-yellow-700')
+
+const assignStatusLabel = (s) => ({
+    ASSIGNED:    'Ditugaskan',
+    ACKNOWLEDGED:'Diterima',
+    IN_PROGRESS: 'Berjalan',
+    COMPLETED:   'Selesai',
+    ESCALATED:   'Eskalasi',
+    FAILED:      'Gagal',
+}[s] ?? s)
+
+const assignStatusClass = (s) => ({
+    ASSIGNED:    'bg-yellow-50 text-yellow-700 border-yellow-200',
+    ACKNOWLEDGED:'bg-purple-50 text-purple-700 border-purple-200',
+    IN_PROGRESS: 'bg-blue-50 text-blue-700 border-blue-200',
+    COMPLETED:   'bg-green-50 text-green-700 border-green-200',
+    ESCALATED:   'bg-red-50 text-red-700 border-red-200',
+    FAILED:      'bg-gray-50 text-gray-500 border-gray-200',
+}[s] ?? 'bg-gray-50 text-gray-500 border-gray-200')
+
+const roleLabel = (r) => ({
+    investigator_user: 'Investigator', admin_user: 'Admin',
+    em_staff: 'Staff', strategy_user: 'Strategy',
+    ai_dev_user: 'AI Dev', marketing_user: 'Marketing',
+}[r] ?? r)
+
+const deptLabel = (d) => ({
+    INVESTIGATION: 'Investigasi', ADMIN: 'Admin',
+    STRATEGY: 'Strategi', AI_DEV: 'AI Dev', MARKETING: 'Marketing',
+}[d] ?? d)
 </script>
