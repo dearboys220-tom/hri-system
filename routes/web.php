@@ -20,8 +20,9 @@ use App\Http\Controllers\SuperAdmin\SuperAdminUsersController;
 use App\Http\Controllers\SuperAdmin\SuperAdminExportController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\Manager\StaffManagementController;
-use App\Http\Controllers\AbsenceRequestController;  // ★ v2.8追加
-use App\Http\Controllers\TaskOrderController;        // ★ v2.8追加
+use App\Http\Controllers\AbsenceRequestController;    // ★ v2.8追加
+use App\Http\Controllers\TaskOrderController;          // ★ v2.8追加
+use App\Http\Controllers\EmployeeReportController;    // ★ v2.8追加
 
 // ================================================================
 // 公開ルート
@@ -191,8 +192,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/staff/absence',       [AbsenceRequestController::class, 'store'])->name('staff.absence.store');
 
     // 業務指示（スタッフ側）★ v2.8追加
-    Route::get('/staff/tasks',              [TaskOrderController::class, 'staffIndex'])->name('staff.tasks.index');
-    Route::post('/staff/tasks/{id}/start',  [TaskOrderController::class, 'startTask'])->name('staff.tasks.start');
+    Route::get('/staff/tasks',             [TaskOrderController::class, 'staffIndex'])->name('staff.tasks.index');
+    Route::post('/staff/tasks/{id}/start', [TaskOrderController::class, 'startTask'])->name('staff.tasks.start');
+
+    // 業務報告（スタッフ側）★ v2.8追加
+    Route::post('/staff/reports', [EmployeeReportController::class, 'store'])->name('staff.reports.store');
 });
 
 // ================================================================
@@ -279,6 +283,12 @@ Route::prefix('manager')
             [TaskOrderController::class, 'store'])->name('task-orders.store');
         Route::post('/task-orders/{id}/cancel',
             [TaskOrderController::class, 'cancel'])->name('task-orders.cancel');
+
+        // 報告管理（マネージャー側）★ v2.8追加
+        Route::get('/reports',
+            [EmployeeReportController::class, 'index'])->name('reports.index');
+        Route::post('/reports/{id}/flag',
+            [EmployeeReportController::class, 'flagInconsistency'])->name('reports.flag');
     });
 
 // ================================================================
