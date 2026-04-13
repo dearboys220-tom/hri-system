@@ -20,7 +20,8 @@ use App\Http\Controllers\SuperAdmin\SuperAdminUsersController;
 use App\Http\Controllers\SuperAdmin\SuperAdminExportController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\Manager\StaffManagementController;
-use App\Http\Controllers\AbsenceRequestController; // ★ v2.8追加
+use App\Http\Controllers\AbsenceRequestController;  // ★ v2.8追加
+use App\Http\Controllers\TaskOrderController;        // ★ v2.8追加
 
 // ================================================================
 // 公開ルート
@@ -134,8 +135,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/applicant/cv/certification/{id}', [CvController::class, 'destroyCertification'])->name('applicant.cv.certification.destroy');
 
     // 本人確認・申請
-    Route::get('/applicant/identity',    [IdentityController::class, 'show'])->name('applicant.identity');
-    Route::post('/applicant/identity',   [IdentityController::class, 'update'])->name('applicant.identity.update');
+    Route::get('/applicant/identity',      [IdentityController::class, 'show'])->name('applicant.identity');
+    Route::post('/applicant/identity',     [IdentityController::class, 'update'])->name('applicant.identity.update');
     Route::get('/applicant/confirmation',  [ConfirmationController::class, 'show'])->name('applicant.confirmation');
     Route::post('/applicant/confirmation', [ConfirmationController::class, 'store'])->name('applicant.confirmation.store');
 
@@ -169,8 +170,8 @@ Route::middleware('auth')->group(function () {
     // 公開求人ページ
     // ================================================================
 
-    Route::get('/jobs',          [App\Http\Controllers\PublicJobController::class, 'index'])->name('jobs.index');
-    Route::get('/jobs/{id}',     [App\Http\Controllers\PublicJobController::class, 'show'])->name('jobs.show');
+    Route::get('/jobs',             [App\Http\Controllers\PublicJobController::class, 'index'])->name('jobs.index');
+    Route::get('/jobs/{id}',        [App\Http\Controllers\PublicJobController::class, 'show'])->name('jobs.show');
     Route::post('/jobs/{id}/apply', [App\Http\Controllers\JobApplicationController::class, 'store'])->name('jobs.apply');
 
     // ================================================================
@@ -188,6 +189,10 @@ Route::middleware('auth')->group(function () {
     // 欠勤申請（スタッフ側）
     Route::get('/staff/absence/create', [AbsenceRequestController::class, 'create'])->name('staff.absence.create');
     Route::post('/staff/absence',       [AbsenceRequestController::class, 'store'])->name('staff.absence.store');
+
+    // 業務指示（スタッフ側）★ v2.8追加
+    Route::get('/staff/tasks',              [TaskOrderController::class, 'staffIndex'])->name('staff.tasks.index');
+    Route::post('/staff/tasks/{id}/start',  [TaskOrderController::class, 'startTask'])->name('staff.tasks.start');
 });
 
 // ================================================================
@@ -266,6 +271,14 @@ Route::prefix('manager')
             [AbsenceRequestController::class, 'approve'])->name('absence.approve');
         Route::post('/absence-requests/{id}/reject',
             [AbsenceRequestController::class, 'reject'])->name('absence.reject');
+
+        // 業務指示管理（マネージャー側）★ v2.8追加
+        Route::get('/task-orders',
+            [TaskOrderController::class, 'index'])->name('task-orders.index');
+        Route::post('/task-orders',
+            [TaskOrderController::class, 'store'])->name('task-orders.store');
+        Route::post('/task-orders/{id}/cancel',
+            [TaskOrderController::class, 'cancel'])->name('task-orders.cancel');
     });
 
 // ================================================================

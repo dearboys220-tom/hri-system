@@ -1,0 +1,243 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AiTaskOrder;
+use App\Models\AiTaskAssignment;
+use App\Models\StaffAvailability;
+use App\Models\AuditLog;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+
+class TaskOrderController extends Controller
+{
+    // ─────────────────────────────────────────────
+    // マネージャー側：指示一覧
+    // ─────────────────────────────────────────────
+    public function index()
+    {
+        $manager = Auth::user();
+
+        $orders = AiTaskOrder::with(['assignments.employee:id,name,role_type'])
+            ->where('issued_by_user_id', $manager->id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn($o) => [
+                'id'              => $o->id,
+                'title'           => $o->instruction_title,
+                'description'     => $o->instruction_body,
+                'target_division' => $o->target_division,
+                'priority'        => $o->priority_level,
+                'due_date'        => $o->due_at?->format('Y-m-d'),
+                'approval_status' => $o->approval_status,
+                'created_at'      => $o->created_at->format('Y-m-d H:i'),
+                'assignments'     => $o->assignments->map(fn($a) => [
+                    'id'          => $a->id,
+                    'staff_name'  => optional($a->employee)->name ?? '—',
+                    'role_type'   => optional($a->employee)->role_type ?? '—',
+                    'task_status' => $a->task_status,
+                ]),
+            ]);
+
+        // 空きスタッフ一覧（割当候補）
+        $availableStaff = StaffAvailability::with('staffUser:id,name,role_type')
+            ->where('availability_status', 'AVAILABLE')
+            ->orderBy('active_task_count', 'asc')
+            ->get()
+            ->map(fn($a) => [
+                'user_id'           => $a->staff_user_id,
+                'name'              => optional($a->staffUser)->name ?? '—',
+                'role_type'         => optional($a->staffUser)->role_type ?? '—',
+                'department_code'   => $a->department_code,
+                'active_task_count' => $a->active_task_count,
+            ]);
+
+        return Inertia::render('Manager/TaskOrders/Index', [
+            'orders'         => $orders,
+            'availableStaff' => $availableStaff,
+        ]);
+    }
+
+    // ─────────────────────────────────────────────
+    // マネージャー側：指示を作成
+    // ─────────────────────────────────────────────
+    public function store(Request $request)
+    {
+        $request->validate([
+            'title'           => 'required|string|max:200',
+            'description'     => 'required|string|max:3000',
+            'target_division' => 'required|string',
+            'priority'        => 'required|in:LOW,NORMAL,HIGH,URGENT',
+            'due_date'        => 'nullable|date|after_or_equal:today',
+            'assignee_ids'    => 'required|array|min:1',
+            'assignee_ids.*'  => 'integer|exists:users,id',
+        ]);
+
+        $manager = Auth::user();
+
+        DB::transaction(function () use ($request, $manager) {
+
+            $order = AiTaskOrder::create([
+                'issued_by_user_id'    => $manager->id,
+                'instruction_title'    => $request->title,
+                'instruction_body'     => $request->description,
+                'target_division'      => $request->target_division,
+                'priority_level'       => $request->priority,
+                'due_at'               => $request->due_date,
+                'approval_status'      => AiTaskOrder::APPROVAL_APPROVED,
+                'ai_processing_status' => AiTaskOrder::AI_ASSIGNED,
+            ]);
+
+            foreach ($request->assignee_ids as $userId) {
+                AiTaskAssignment::create([
+                    'task_order_id'    => $order->id,
+                    'employee_user_id' => $userId,
+                    'task_status'      => AiTaskAssignment::STATUS_ASSIGNED,
+                    'assigned_by_ai_at' => now(),
+                    'due_at'           => $request->due_date,
+                ]);
+
+                // active_task_count をインクリメント
+                StaffAvailability::where('staff_user_id', $userId)
+                    ->increment('active_task_count');
+
+                // max に達したら BUSY へ
+                $avail = StaffAvailability::where('staff_user_id', $userId)->first();
+                if ($avail && $avail->active_task_count >= $avail->max_concurrent_tasks) {
+                    $avail->update(['availability_status' => 'BUSY']);
+                }
+            }
+
+            AuditLog::create([
+                'user_id'      => $manager->id,
+                'action_type'  => 'TASK_ORDER_CREATED',
+                'target_table' => 'ai_task_orders',
+                'target_id'    => $order->id,
+                'new_values'   => json_encode([
+                    'instruction_title' => $order->instruction_title,
+                    'priority_level'    => $order->priority_level,
+                    'assignee_count'    => count($request->assignee_ids),
+                ]),
+                'memo' => "指示作成・割当完了: [{$order->priority_level}] {$order->instruction_title}",
+            ]);
+        });
+
+        return back()->with('success', 'Instruksi berhasil dibuat dan ditugaskan kepada staf.');
+    }
+
+    // ─────────────────────────────────────────────
+    // マネージャー側：指示をキャンセル
+    // ─────────────────────────────────────────────
+    public function cancel($id)
+    {
+        $manager = Auth::user();
+        $order   = AiTaskOrder::where('issued_by_user_id', $manager->id)->findOrFail($id);
+
+        if (!in_array($order->approval_status, [
+            AiTaskOrder::APPROVAL_DRAFT,
+            AiTaskOrder::APPROVAL_APPROVED,
+        ])) {
+            return back()->withErrors(['error' => 'Instruksi yang sedang berjalan tidak dapat dibatalkan.']);
+        }
+
+        DB::transaction(function () use ($order, $manager) {
+
+            foreach ($order->assignments as $assignment) {
+                if (in_array($assignment->task_status, [
+                    AiTaskAssignment::STATUS_ASSIGNED,
+                    AiTaskAssignment::STATUS_ACKNOWLEDGED,
+                ])) {
+                    // active_task_count を戻す
+                    StaffAvailability::where('staff_user_id', $assignment->employee_user_id)
+                        ->decrement('active_task_count');
+
+                    // BUSY → AVAILABLE に戻す
+                    $avail = StaffAvailability::where('staff_user_id', $assignment->employee_user_id)->first();
+                    if ($avail && $avail->active_task_count < $avail->max_concurrent_tasks) {
+                        $avail->update(['availability_status' => 'AVAILABLE']);
+                    }
+
+                    $assignment->update(['task_status' => AiTaskAssignment::STATUS_FAILED]);
+                }
+            }
+
+            $order->update(['approval_status' => AiTaskOrder::APPROVAL_CANCELLED]);
+
+            AuditLog::create([
+                'user_id'      => $manager->id,
+                'action_type'  => 'TASK_ORDER_CREATED',
+                'target_table' => 'ai_task_orders',
+                'target_id'    => $order->id,
+                'memo'         => "指示キャンセル: {$order->instruction_title}",
+            ]);
+        });
+
+        return back()->with('success', 'Instruksi berhasil dibatalkan.');
+    }
+
+    // ─────────────────────────────────────────────
+    // スタッフ側：自分宛て指示一覧
+    // ─────────────────────────────────────────────
+    public function staffIndex()
+    {
+        $user = Auth::user();
+
+        $assignments = AiTaskAssignment::with(['taskOrder'])
+            ->where('employee_user_id', $user->id)
+            ->orderByRaw("FIELD(task_status,
+                'ASSIGNED','ACKNOWLEDGED','IN_PROGRESS',
+                'DELAYED','ESCALATED','COMPLETED','FAILED')")
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn($a) => [
+                'id'            => $a->id,
+                'task_order_id' => $a->task_order_id,
+                'title'         => optional($a->taskOrder)->instruction_title ?? '—',
+                'description'   => optional($a->taskOrder)->instruction_body ?? '—',
+                'priority'      => optional($a->taskOrder)->priority_level ?? 'NORMAL',
+                'due_date'      => $a->due_at?->format('Y-m-d'),
+                'task_status'   => $a->task_status,
+                'delay_flag'    => $a->delay_flag,
+                'started_at'    => $a->started_at?->format('Y-m-d H:i'),
+                'completed_at'  => $a->completed_at?->format('Y-m-d H:i'),
+                'assigned_at'   => $a->assigned_by_ai_at?->format('Y-m-d H:i'),
+            ]);
+
+        return Inertia::render('Staff/Tasks/Index', [
+            'assignments' => $assignments,
+        ]);
+    }
+
+    // ─────────────────────────────────────────────
+    // スタッフ側：着手（ASSIGNED → IN_PROGRESS）
+    // ─────────────────────────────────────────────
+    public function startTask($id)
+    {
+        $user       = Auth::user();
+        $assignment = AiTaskAssignment::where('employee_user_id', $user->id)->findOrFail($id);
+
+        if (!in_array($assignment->task_status, [
+            AiTaskAssignment::STATUS_ASSIGNED,
+            AiTaskAssignment::STATUS_ACKNOWLEDGED,
+        ])) {
+            return back()->withErrors(['error' => 'Status tugas tidak valid untuk dimulai.']);
+        }
+
+        $assignment->update([
+            'task_status' => AiTaskAssignment::STATUS_IN_PROGRESS,
+            'started_at'  => now(),
+        ]);
+
+        AuditLog::create([
+            'user_id'      => $user->id,
+            'action_type'  => 'TASK_ASSIGNED',
+            'target_table' => 'ai_task_assignments',
+            'target_id'    => $assignment->id,
+            'memo'         => "着手: assignment_id={$assignment->id}",
+        ]);
+
+        return back()->with('success', 'Tugas dimulai. Selamat bekerja!');
+    }
+}
