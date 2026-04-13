@@ -42,14 +42,14 @@ class TaskOrderController extends Controller
             ]);
 
         // 空きスタッフ一覧（割当候補）
-        $availableStaff = StaffAvailability::with('staffUser:id,name,role_type')
-            ->where('availability_status', 'AVAILABLE')
+        $availableStaff = StaffAvailability::with('user:id,name,role_type')
+            ->where('availability_status', StaffAvailability::STATUS_AVAILABLE)
             ->orderBy('active_task_count', 'asc')
             ->get()
             ->map(fn($a) => [
                 'user_id'           => $a->staff_user_id,
-                'name'              => optional($a->staffUser)->name ?? '—',
-                'role_type'         => optional($a->staffUser)->role_type ?? '—',
+                'name'              => optional($a->user)->name ?? '—',
+                'role_type'         => optional($a->user)->role_type ?? '—',
                 'department_code'   => $a->department_code,
                 'active_task_count' => $a->active_task_count,
             ]);
@@ -79,6 +79,7 @@ class TaskOrderController extends Controller
 
         DB::transaction(function () use ($request, $manager) {
 
+            // 指示レコード作成
             $order = AiTaskOrder::create([
                 'issued_by_user_id'    => $manager->id,
                 'instruction_title'    => $request->title,
@@ -90,26 +91,24 @@ class TaskOrderController extends Controller
                 'ai_processing_status' => AiTaskOrder::AI_ASSIGNED,
             ]);
 
+            // 担当者別割当を生成
             foreach ($request->assignee_ids as $userId) {
                 AiTaskAssignment::create([
-                    'task_order_id'    => $order->id,
-                    'employee_user_id' => $userId,
-                    'task_status'      => AiTaskAssignment::STATUS_ASSIGNED,
+                    'task_order_id'     => $order->id,
+                    'employee_user_id'  => $userId,
+                    'task_status'       => AiTaskAssignment::STATUS_ASSIGNED,
                     'assigned_by_ai_at' => now(),
-                    'due_at'           => $request->due_date,
+                    'due_at'            => $request->due_date,
                 ]);
 
-                // active_task_count をインクリメント
-                StaffAvailability::where('staff_user_id', $userId)
-                    ->increment('active_task_count');
-
-                // max に達したら BUSY へ
+                // 既存モデルのヘルパーで active_task_count 更新・BUSY判定
                 $avail = StaffAvailability::where('staff_user_id', $userId)->first();
-                if ($avail && $avail->active_task_count >= $avail->max_concurrent_tasks) {
-                    $avail->update(['availability_status' => 'BUSY']);
+                if ($avail) {
+                    $avail->incrementTaskCount();
                 }
             }
 
+            // 監査ログ
             AuditLog::create([
                 'user_id'      => $manager->id,
                 'action_type'  => 'TASK_ORDER_CREATED',
@@ -149,14 +148,10 @@ class TaskOrderController extends Controller
                     AiTaskAssignment::STATUS_ASSIGNED,
                     AiTaskAssignment::STATUS_ACKNOWLEDGED,
                 ])) {
-                    // active_task_count を戻す
-                    StaffAvailability::where('staff_user_id', $assignment->employee_user_id)
-                        ->decrement('active_task_count');
-
-                    // BUSY → AVAILABLE に戻す
+                    // 既存モデルのヘルパーで active_task_count を戻す
                     $avail = StaffAvailability::where('staff_user_id', $assignment->employee_user_id)->first();
-                    if ($avail && $avail->active_task_count < $avail->max_concurrent_tasks) {
-                        $avail->update(['availability_status' => 'AVAILABLE']);
+                    if ($avail) {
+                        $avail->decrementTaskCount();
                     }
 
                     $assignment->update(['task_status' => AiTaskAssignment::STATUS_FAILED]);
@@ -211,7 +206,7 @@ class TaskOrderController extends Controller
     }
 
     // ─────────────────────────────────────────────
-    // スタッフ側：着手（ASSIGNED → IN_PROGRESS）
+    // スタッフ側：着手（ASSIGNED / ACKNOWLEDGED → IN_PROGRESS）
     // ─────────────────────────────────────────────
     public function startTask($id)
     {
@@ -230,12 +225,16 @@ class TaskOrderController extends Controller
             'started_at'  => now(),
         ]);
 
+        // staff_availability の last_reported_at を更新
+        StaffAvailability::where('staff_user_id', $user->id)
+            ->update(['last_reported_at' => now()]);
+
         AuditLog::create([
             'user_id'      => $user->id,
             'action_type'  => 'TASK_ASSIGNED',
             'target_table' => 'ai_task_assignments',
             'target_id'    => $assignment->id,
-            'memo'         => "着手: assignment_id={$assignment->id}",
+            'memo'         => "着手: assignment_id={$assignment->id} / task_order_id={$assignment->task_order_id}",
         ]);
 
         return back()->with('success', 'Tugas dimulai. Selamat bekerja!');
