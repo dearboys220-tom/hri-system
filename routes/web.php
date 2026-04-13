@@ -20,9 +20,10 @@ use App\Http\Controllers\SuperAdmin\SuperAdminUsersController;
 use App\Http\Controllers\SuperAdmin\SuperAdminExportController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\Manager\StaffManagementController;
-use App\Http\Controllers\AbsenceRequestController;    // ★ v2.8追加
-use App\Http\Controllers\TaskOrderController;          // ★ v2.8追加
-use App\Http\Controllers\EmployeeReportController;    // ★ v2.8追加
+use App\Http\Controllers\AbsenceRequestController;
+use App\Http\Controllers\TaskOrderController;
+use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\StaffEvaluationController; // ★ v2.8追加
 
 // ================================================================
 // 公開ルート
@@ -184,18 +185,18 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // ================================================================
-    // スタッフ共通ルート（全社内ロール）★ v2.8追加
+    // スタッフ共通ルート（全社内ロール）
     // ================================================================
 
     // 欠勤申請（スタッフ側）
     Route::get('/staff/absence/create', [AbsenceRequestController::class, 'create'])->name('staff.absence.create');
     Route::post('/staff/absence',       [AbsenceRequestController::class, 'store'])->name('staff.absence.store');
 
-    // 業務指示（スタッフ側）★ v2.8追加
+    // 業務指示（スタッフ側）
     Route::get('/staff/tasks',             [TaskOrderController::class, 'staffIndex'])->name('staff.tasks.index');
     Route::post('/staff/tasks/{id}/start', [TaskOrderController::class, 'startTask'])->name('staff.tasks.start');
 
-    // 業務報告（スタッフ側）★ v2.8追加
+    // 業務報告（スタッフ側）
     Route::post('/staff/reports', [EmployeeReportController::class, 'store'])->name('staff.reports.store');
 });
 
@@ -217,7 +218,7 @@ Route::prefix('admin')
                 Route::post('/{id}/complete',   [App\Http\Controllers\InvestigatorController::class, 'complete'])->name('complete');
                 Route::post('/{id}/correction', [App\Http\Controllers\InvestigatorController::class, 'correction'])->name('correction');
 
-                // v2.6 AIチャット（調査部）
+                // AIチャット（調査部）
                 Route::get('/ai-chat', [AiChatController::class, 'investigatorIndex'])->name('ai-chat');
             });
 
@@ -228,7 +229,7 @@ Route::prefix('admin')
                 Route::get('/',         [App\Http\Controllers\AdminController::class, 'dashboard'])->name('index');
                 Route::get('/evaluate', [App\Http\Controllers\AdminController::class, 'index'])->name('evaluate');
 
-                // 承認アクション（v2.4）
+                // 承認アクション
                 Route::post('/{id}/approve',             [App\Http\Controllers\AdminController::class, 'approve'])->name('approve');
                 Route::post('/{id}/conditional-approve', [App\Http\Controllers\AdminController::class, 'conditionalApprove'])->name('conditionalApprove');
                 Route::post('/{id}/reject',              [App\Http\Controllers\AdminController::class, 'reject'])->name('reject');
@@ -239,16 +240,16 @@ Route::prefix('admin')
                 Route::get('/companies',              [App\Http\Controllers\AdminController::class, 'companies'])->name('companies');
                 Route::post('/companies/{id}/status', [App\Http\Controllers\AdminController::class, 'updateCompanyStatus'])->name('companies.status');
 
-                // v2.6 AIチャット（審査管理部）
+                // AIチャット（審査管理部）
                 Route::get('/ai-chat', [AiChatController::class, 'adminIndex'])->name('ai-chat');
             });
 
-        // v2.6 AIチャット送信（共通 API エンドポイント）
+        // AIチャット送信（共通 API エンドポイント）
         Route::post('/ai-chat/send', [AiChatController::class, 'send'])->name('ai-chat.send');
     });
 
 // ================================================================
-// マネージャールート（local_manager / president）★ v2.8追加
+// マネージャールート（local_manager / president）
 // ================================================================
 
 Route::prefix('manager')
@@ -268,7 +269,7 @@ Route::prefix('manager')
         Route::post('/staff/{id}',   [StaffManagementController::class, 'update'])->name('staff.update');
         Route::delete('/staff/{id}', [StaffManagementController::class, 'destroy'])->name('staff.destroy');
 
-        // 欠勤申請管理（マネージャー側）★ v2.8追加
+        // 欠勤申請管理（マネージャー側）
         Route::get('/absence-requests',
             [AbsenceRequestController::class, 'index'])->name('absence.index');
         Route::post('/absence-requests/{id}/approve',
@@ -276,7 +277,7 @@ Route::prefix('manager')
         Route::post('/absence-requests/{id}/reject',
             [AbsenceRequestController::class, 'reject'])->name('absence.reject');
 
-        // 業務指示管理（マネージャー側）★ v2.8追加
+        // 業務指示管理（マネージャー側）
         Route::get('/task-orders',
             [TaskOrderController::class, 'index'])->name('task-orders.index');
         Route::post('/task-orders',
@@ -284,15 +285,23 @@ Route::prefix('manager')
         Route::post('/task-orders/{id}/cancel',
             [TaskOrderController::class, 'cancel'])->name('task-orders.cancel');
 
-        // 報告管理（マネージャー側）★ v2.8追加
+        // 報告管理（マネージャー側）
         Route::get('/reports',
             [EmployeeReportController::class, 'index'])->name('reports.index');
         Route::post('/reports/{id}/flag',
             [EmployeeReportController::class, 'flagInconsistency'])->name('reports.flag');
+
+        // ★ 査定管理（マネージャー側）v2.8追加
+        Route::get('/evaluations',
+            [StaffEvaluationController::class, 'index'])->name('evaluations.index');
+        Route::post('/evaluations/generate',
+            [StaffEvaluationController::class, 'generate'])->name('evaluations.generate');
+        Route::post('/evaluations/{evaluation}/approve',
+            [StaffEvaluationController::class, 'approve'])->name('evaluations.approve');
     });
 
 // ================================================================
-// president ルート ★ v2.8追加
+// president ルート
 // ================================================================
 
 Route::prefix('president')
@@ -306,7 +315,7 @@ Route::prefix('president')
     });
 
 // ================================================================
-// em_staff ルート ★ v2.8追加（仮）
+// em_staff ルート（仮）
 // ================================================================
 
 Route::prefix('em')
@@ -320,7 +329,7 @@ Route::prefix('em')
     });
 
 // ================================================================
-// 新3部署ルート ★ v2.8追加（仮 — 画面作成後に正式実装）
+// 新3部署ルート（仮 — 画面作成後に正式実装）
 // ================================================================
 
 Route::middleware('auth')->group(function () {
@@ -342,7 +351,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // ================================================================
-// スーパー管理者ルート ★ v2.5追加
+// スーパー管理者ルート
 // ================================================================
 
 Route::prefix('super-admin')
