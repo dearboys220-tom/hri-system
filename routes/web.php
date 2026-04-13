@@ -19,6 +19,7 @@ use App\Http\Controllers\SuperAdmin\SuperAdminLogsController;
 use App\Http\Controllers\SuperAdmin\SuperAdminUsersController;
 use App\Http\Controllers\SuperAdmin\SuperAdminExportController;
 use App\Http\Controllers\AiChatController;
+use App\Http\Controllers\Manager\StaffManagementController; // ★ v2.8追加
 
 // ================================================================
 // 公開ルート
@@ -51,6 +52,12 @@ Route::middleware('auth')->group(function () {
             'company'           => redirect()->route('company.dashboard'),
             'applicant'         => redirect()->route('applicant.dashboard'),
             'super_admin'       => redirect()->route('super-admin.dashboard'),
+            'local_manager'     => redirect()->route('manager.dashboard'),     // ★ v2.8追加
+            'president'         => redirect()->route('president.dashboard'),   // ★ v2.8追加
+            'em_staff'          => redirect()->route('em.dashboard'),          // ★ v2.8追加
+            'strategy_user'     => redirect()->route('strategy.dashboard'),    // ★ v2.8追加
+            'ai_dev_user'       => redirect()->route('ai-dev.dashboard'),      // ★ v2.8追加
+            'marketing_user'    => redirect()->route('marketing.dashboard'),   // ★ v2.8追加
             default             => Inertia::render('Dashboard'),
         };
     })->name('dashboard');
@@ -166,10 +173,10 @@ Route::prefix('admin')
         Route::prefix('investigator')
             ->name('investigator.')
             ->group(function () {
-                Route::get('/',                  [App\Http\Controllers\InvestigatorController::class, 'index'])->name('index');
-                Route::post('/{id}/save',        [App\Http\Controllers\InvestigatorController::class, 'save'])->name('save');
-                Route::post('/{id}/complete',    [App\Http\Controllers\InvestigatorController::class, 'complete'])->name('complete');
-                Route::post('/{id}/correction',  [App\Http\Controllers\InvestigatorController::class, 'correction'])->name('correction');
+                Route::get('/',                 [App\Http\Controllers\InvestigatorController::class, 'index'])->name('index');
+                Route::post('/{id}/save',       [App\Http\Controllers\InvestigatorController::class, 'save'])->name('save');
+                Route::post('/{id}/complete',   [App\Http\Controllers\InvestigatorController::class, 'complete'])->name('complete');
+                Route::post('/{id}/correction', [App\Http\Controllers\InvestigatorController::class, 'correction'])->name('correction');
 
                 // ★ v2.6 AIチャット（調査部）
                 Route::get('/ai-chat', [AiChatController::class, 'investigatorIndex'])->name('ai-chat');
@@ -179,8 +186,8 @@ Route::prefix('admin')
         Route::prefix('admin')
             ->name('admin.')
             ->group(function () {
-                Route::get('/',          [App\Http\Controllers\AdminController::class, 'dashboard'])->name('index');
-                Route::get('/evaluate',  [App\Http\Controllers\AdminController::class, 'index'])->name('evaluate');
+                Route::get('/',         [App\Http\Controllers\AdminController::class, 'dashboard'])->name('index');
+                Route::get('/evaluate', [App\Http\Controllers\AdminController::class, 'index'])->name('evaluate');
 
                 // 承認アクション（v2.4）
                 Route::post('/{id}/approve',             [App\Http\Controllers\AdminController::class, 'approve'])->name('approve');
@@ -190,8 +197,8 @@ Route::prefix('admin')
                 Route::post('/{id}/escalate',            [App\Http\Controllers\AdminController::class, 'escalateToHuman'])->name('escalate');
 
                 // 企業管理
-                Route::get('/companies',               [App\Http\Controllers\AdminController::class, 'companies'])->name('companies');
-                Route::post('/companies/{id}/status',  [App\Http\Controllers\AdminController::class, 'updateCompanyStatus'])->name('companies.status');
+                Route::get('/companies',              [App\Http\Controllers\AdminController::class, 'companies'])->name('companies');
+                Route::post('/companies/{id}/status', [App\Http\Controllers\AdminController::class, 'updateCompanyStatus'])->name('companies.status');
 
                 // ★ v2.6 AIチャット（審査管理部）
                 Route::get('/ai-chat', [AiChatController::class, 'adminIndex'])->name('ai-chat');
@@ -200,6 +207,78 @@ Route::prefix('admin')
         // ★ v2.6 AIチャット送信（共通 API エンドポイント）
         Route::post('/ai-chat/send', [AiChatController::class, 'send'])->name('ai-chat.send');
     });
+
+// ================================================================
+// マネージャールート（local_manager / president）★ v2.8追加
+// ================================================================
+
+Route::prefix('manager')
+    ->name('manager.')
+    ->middleware(['auth', App\Http\Middleware\EnsureIsManager::class])
+    ->group(function () {
+
+        // ダッシュボード
+        Route::get('/dashboard', function () {
+            return Inertia::render('Manager/Dashboard');
+        })->name('dashboard');
+
+        // スタッフ管理
+        Route::get('/staff',       [StaffManagementController::class, 'index'])->name('staff.index');
+        Route::post('/staff',      [StaffManagementController::class, 'store'])->name('staff.store');
+        Route::get('/staff/{id}',  [StaffManagementController::class, 'show'])->name('staff.show');
+        Route::post('/staff/{id}', [StaffManagementController::class, 'update'])->name('staff.update');
+        Route::delete('/staff/{id}',   [StaffManagementController::class, 'destroy'])->name('staff.destroy');
+    });
+
+// ================================================================
+// president ルート ★ v2.8追加
+// ================================================================
+
+Route::prefix('president')
+    ->name('president.')
+    ->middleware('auth')
+    ->group(function () {
+
+        Route::get('/dashboard', function () {
+            return Inertia::render('Manager/Dashboard');
+        })->name('dashboard');
+    });
+
+// ================================================================
+// em_staff ルート ★ v2.8追加（仮）
+// ================================================================
+
+Route::prefix('em')
+    ->name('em.')
+    ->middleware('auth')
+    ->group(function () {
+
+        Route::get('/dashboard', function () {
+            return Inertia::render('Manager/Dashboard');
+        })->name('dashboard');
+    });
+
+// ================================================================
+// 新3部署ルート ★ v2.8追加（仮 — 画面作成後に正式実装）
+// ================================================================
+
+Route::middleware('auth')->group(function () {
+
+    // 戦略マネジメント部
+    Route::get('/strategy/dashboard', function () {
+        return Inertia::render('Manager/Dashboard');
+    })->name('strategy.dashboard');
+
+    // AI開発部
+    Route::get('/ai-dev/dashboard', function () {
+        return Inertia::render('Manager/Dashboard');
+    })->name('ai-dev.dashboard');
+
+    // マーケティング部
+    Route::get('/marketing/dashboard', function () {
+        return Inertia::render('Manager/Dashboard');
+    })->name('marketing.dashboard');
+});
 
 // ================================================================
 // スーパー管理者ルート ★ v2.5追加
@@ -215,40 +294,26 @@ Route::prefix('super-admin')
              ->name('dashboard');
 
         // ログ系
-        Route::get('/ai-logs',           [SuperAdminLogsController::class, 'aiLogs'])
-             ->name('ai-logs');
-        Route::get('/ai-chat-logs',      [SuperAdminLogsController::class, 'aiChatLogs'])
-             ->name('ai-chat-logs');
-        Route::get('/staff-logs',        [SuperAdminLogsController::class, 'staffLogs'])
-             ->name('staff-logs');
-        Route::get('/data-access-logs',  [SuperAdminLogsController::class, 'dataAccessLogs'])
-             ->name('data-access-logs');
-        Route::get('/ai-transfer-logs',  [SuperAdminLogsController::class, 'aiTransferLogs'])
-             ->name('ai-transfer-logs');
-        Route::get('/audit-logs',        [SuperAdminLogsController::class, 'auditLogs'])
-             ->name('audit-logs');
+        Route::get('/ai-logs',          [SuperAdminLogsController::class, 'aiLogs'])->name('ai-logs');
+        Route::get('/ai-chat-logs',     [SuperAdminLogsController::class, 'aiChatLogs'])->name('ai-chat-logs');
+        Route::get('/staff-logs',       [SuperAdminLogsController::class, 'staffLogs'])->name('staff-logs');
+        Route::get('/data-access-logs', [SuperAdminLogsController::class, 'dataAccessLogs'])->name('data-access-logs');
+        Route::get('/ai-transfer-logs', [SuperAdminLogsController::class, 'aiTransferLogs'])->name('ai-transfer-logs');
+        Route::get('/audit-logs',       [SuperAdminLogsController::class, 'auditLogs'])->name('audit-logs');
 
         // PDP法対応
-        Route::get('/consent-records',   [SuperAdminLogsController::class, 'consentRecords'])
-             ->name('consent-records');
-        Route::get('/deletion-requests', [SuperAdminUsersController::class, 'deletionRequests'])
-             ->name('deletion-requests');
-        Route::patch('/deletion-requests/{id}/approve', [SuperAdminUsersController::class, 'approveDeletion'])
-             ->name('deletion-requests.approve');
-        Route::patch('/deletion-requests/{id}/reject',  [SuperAdminUsersController::class, 'rejectDeletion'])
-             ->name('deletion-requests.reject');
+        Route::get('/consent-records',   [SuperAdminLogsController::class, 'consentRecords'])->name('consent-records');
+        Route::get('/deletion-requests', [SuperAdminUsersController::class, 'deletionRequests'])->name('deletion-requests');
+        Route::patch('/deletion-requests/{id}/approve', [SuperAdminUsersController::class, 'approveDeletion'])->name('deletion-requests.approve');
+        Route::patch('/deletion-requests/{id}/reject',  [SuperAdminUsersController::class, 'rejectDeletion'])->name('deletion-requests.reject');
 
         // ユーザー管理
-        Route::get('/users-all',         [SuperAdminUsersController::class, 'index'])
-             ->name('users-all');
-        Route::patch('/users-all/{id}/suspend', [SuperAdminUsersController::class, 'suspend'])
-             ->name('users-all.suspend');
+        Route::get('/users-all', [SuperAdminUsersController::class, 'index'])->name('users-all');
+        Route::patch('/users-all/{id}/suspend', [SuperAdminUsersController::class, 'suspend'])->name('users-all.suspend');
 
         // エクスポート
-        Route::get('/export',            [SuperAdminExportController::class, 'index'])
-             ->name('export');
-        Route::post('/export/download',  [SuperAdminExportController::class, 'download'])
-             ->name('export.download');
+        Route::get('/export',           [SuperAdminExportController::class, 'index'])->name('export');
+        Route::post('/export/download', [SuperAdminExportController::class, 'download'])->name('export.download');
     });
 
 // ================================================================
@@ -257,7 +322,7 @@ Route::prefix('super-admin')
 
 // スタッフログイン
 Route::middleware('guest')->group(function () {
-    Route::get('/staff/login', [StaffAuthController::class, 'create'])->name('staff.login');
+    Route::get('/staff/login',  [StaffAuthController::class, 'create'])->name('staff.login');
     Route::post('/staff/login', [StaffAuthController::class, 'store'])->name('staff.login.store');
 });
 
@@ -267,7 +332,7 @@ Route::middleware('auth')->group(function () {
 
 // Google OAuth（個人会員のみ）
 Route::middleware('guest')->group(function () {
-    Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
+    Route::get('/auth/google',          [GoogleAuthController::class, 'redirect'])->name('google.redirect');
     Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
 });
 

@@ -37,39 +37,57 @@ function goPage(p) {
 
 const totalPages = Math.ceil(props.total / props.perPage);
 
+// ★ Sedang Dinilai を削除・Kondisional を追加
 const statCards = [
     { key: 'pending_payment',     label: 'Menunggu Pembayaran', color: 'bg-gray-100 text-gray-600',     icon: '💳' },
     { key: 'under_investigation', label: 'Sedang Diselidiki',   color: 'bg-orange-100 text-orange-600', icon: '🔍' },
-    { key: 'under_review',        label: 'Sedang Dinilai',      color: 'bg-blue-100 text-blue-600',     icon: '📋' },
     { key: 'pending_admin',       label: 'Menunggu Admin',      color: 'bg-red-100 text-red-600',       icon: '⏳' },
     { key: 'perlu_koreksi',       label: 'Perlu Koreksi',       color: 'bg-purple-100 text-purple-600', icon: '⚠️' },
     { key: 'terverifikasi',       label: 'Terverifikasi',       color: 'bg-green-100 text-green-600',   icon: '✅' },
+    { key: 'conditional',         label: 'Kondisional',         color: 'bg-yellow-100 text-yellow-600', icon: '🔶' },
     { key: 'ditolak',             label: 'Ditolak',             color: 'bg-slate-100 text-slate-500',   icon: '❌' },
 ];
 
 const filterButtons = [
-    { value: 'all',           label: 'Semua' },
-    { value: 'Terdaftar',     label: 'Terdaftar' },
-    { value: 'Terverifikasi', label: 'Terverifikasi' },
-    { value: 'Ditolak',       label: 'Ditolak' },
-    { value: 'Perlu Koreksi', label: 'Perlu Koreksi' },
+    { value: 'all',                 label: 'Semua' },
+    { value: 'Terdaftar',           label: 'Terdaftar' },
+    { value: 'Terverifikasi',       label: 'Terverifikasi' },
+    { value: 'conditional_approved',label: 'Kondisional' },
+    { value: 'Ditolak',             label: 'Ditolak' },
+    { value: 'Perlu Koreksi',       label: 'Perlu Koreksi' },
 ];
 
 function statusBadge(status) {
     const map = {
-        'Terverifikasi': 'bg-green-100 text-green-700',
-        'Ditolak':       'bg-red-100 text-red-700',
-        'Perlu Koreksi': 'bg-purple-100 text-purple-700',
-        'Terdaftar':     'bg-slate-100 text-slate-600',
+        'Terverifikasi':        'bg-green-100 text-green-700',
+        'conditional_approved': 'bg-yellow-100 text-yellow-700',
+        'Ditolak':              'bg-red-100 text-red-700',
+        'Perlu Koreksi':        'bg-purple-100 text-purple-700',
+        'not_certified':        'bg-orange-100 text-orange-600',
+        'not_applied':          'bg-slate-100 text-slate-500',
+        'Terdaftar':            'bg-slate-100 text-slate-600',
     };
     return map[status] ?? 'bg-slate-100 text-slate-500';
+}
+
+function statusLabel(status) {
+    const map = {
+        'Terverifikasi':        'Terverifikasi',
+        'conditional_approved': 'Kondisional',
+        'Ditolak':              'Ditolak',
+        'Perlu Koreksi':        'Perlu Koreksi',
+        'not_certified':        'Belum Tersertifikasi',
+        'not_applied':          'Belum Mendaftar',
+        'Terdaftar':            'Terdaftar',
+    };
+    return map[status] ?? status ?? 'Terdaftar';
 }
 </script>
 
 <template>
     <div class="space-y-6">
 
-        <!-- 統計カード -->
+        <!-- 統計カード（7枚） -->
         <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-4">
             <div
                 v-for="card in statCards"
@@ -78,7 +96,7 @@ function statusBadge(status) {
             >
                 <div class="text-2xl mb-1">{{ card.icon }}</div>
                 <div class="text-3xl font-extrabold">{{ stats[card.key] ?? 0 }}</div>
-                <div class="text-xs mt-1 font-medium">{{ card.label }}</div>
+                <div class="text-xs mt-1 font-medium leading-tight">{{ card.label }}</div>
             </div>
         </div>
 
@@ -146,7 +164,7 @@ function statusBadge(status) {
                             <td class="px-6 py-3 font-mono text-admin-primary-600 text-xs">{{ m.member_id }}</td>
                             <td class="px-6 py-3">
                                 <span :class="['text-xs px-2.5 py-1 rounded-full font-medium', statusBadge(m.certification_status)]">
-                                    {{ m.certification_status ?? 'Terdaftar' }}
+                                    {{ statusLabel(m.certification_status) }}
                                 </span>
                             </td>
                             <td class="px-6 py-3 text-center">
@@ -155,7 +173,10 @@ function statusBadge(status) {
                             </td>
                             <td class="px-6 py-3 text-slate-500 text-xs">{{ m.registered_at }}</td>
                             <td class="px-6 py-3">
-                                <a href="/admin/admin/evaluate" class="text-xs text-admin-primary-600 hover:underline">Lihat →</a>
+                                <a
+                                    :href="'/admin/admin/evaluate?id=' + m.user_id"
+                                    class="text-xs text-admin-primary-600 hover:underline"
+                                >Lihat →</a>
                             </td>
                         </tr>
                     </tbody>

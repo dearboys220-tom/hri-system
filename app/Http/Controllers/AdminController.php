@@ -8,6 +8,10 @@ use App\Models\EducationHistory;
 use App\Models\WorkHistory;
 use App\Models\Certification;
 use App\Models\CaseReview;
+use App\Models\CaseReturn;
+use App\Models\CaseDeliverable;
+use App\Services\CaseDeliverableService;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -15,31 +19,43 @@ use Carbon\Carbon;
 
 class AdminController extends Controller
 {
+    public function __construct(
+        private CaseDeliverableService $deliverableService,
+        private AuditLogService        $auditLogService,
+    ) {}
+
     // ================================================================
     // 案件一覧 + 詳細
     // ================================================================
 
     public function index(Request $request)
     {
-        // pending_admin に加えて escalated_to_human も表示
+        // ★ v2.6: current_status / survey_status 両対応
         $cases = CertificationRequest::with(['applicant:id,name'])
-            ->whereIn('survey_status', ['pending_admin', 'escalated_to_human'])
+            ->where(function ($q) {
+                $q->whereIn('current_status', [
+                        CertificationRequest::STATUS_AI_REVIEW_PENDING,
+                        CertificationRequest::STATUS_HUMAN_REVIEW,
+                    ])
+                  ->orWhereIn('survey_status', ['pending_admin', 'escalated_to_human']);
+            })
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(function ($c) {
                 $profile = ApplicantProfile::where('user_id', $c->user_id)
                     ->first(['member_id', 'full_name']);
                 return [
-                    'id'            => $c->id,
-                    'name'          => optional($profile)->full_name ?? optional($c->applicant)->name,
-                    'member_id'     => optional($profile)->member_id ?? '-',
-                    'submitted_at'  => $c->created_at->format('d/m/Y'),
-                    'survey_status' => $c->survey_status,
+                    'id'             => $c->id,
+                    'case_no'        => $c->case_no,
+                    'name'           => optional($profile)->full_name ?? optional($c->applicant)->name,
+                    'member_id'      => optional($profile)->member_id ?? '-',
+                    'submitted_at'   => $c->created_at->format('d/m/Y'),
+                    'current_status' => $c->current_status ?? $c->survey_status,
                 ];
             });
 
         $selectedId = $request->query('id', optional($cases->first())['id']);
-        $detail = null;
+        $detail     = null;
 
         if ($selectedId) {
             $cr = CertificationRequest::with([
@@ -47,51 +63,73 @@ class AdminController extends Controller
                 'investigationItems',
                 'reviewItems',
                 'latestCaseReview',
+                'priorityReport',
             ])->where('id', $selectedId)
-              ->whereIn('survey_status', ['pending_admin', 'escalated_to_human'])
+              ->where(function ($q) {
+                  $q->whereIn('current_status', [
+                          CertificationRequest::STATUS_AI_REVIEW_PENDING,
+                          CertificationRequest::STATUS_HUMAN_REVIEW,
+                      ])
+                    ->orWhereIn('survey_status', ['pending_admin', 'escalated_to_human']);
+              })
               ->first();
 
             if ($cr) {
                 $profile    = ApplicantProfile::where('user_id', $cr->user_id)->first();
                 $invMap     = $cr->investigationItems->keyBy('item_name');
-                $educations = EducationHistory::where('user_id', $cr->user_id)->get();
-                $works      = WorkHistory::where('user_id', $cr->user_id)->get();
-                $certs      = Certification::where('user_id', $cr->user_id)->get();
-
-                // v2.4 加点方式スコア
+                $educations = EducationHistory::where('certification_request_id', $cr->id)->get();
+                $works      = WorkHistory::where('certification_request_id', $cr->id)->get();
+                $certs      = Certification::where('certification_request_id', $cr->id)->get();
                 $scoreData  = $this->buildScoreData($cr);
 
+                // ★ v2.6: case_reviews の3分離フィールドを整形
+                $caseReview = null;
+                if ($cr->latestCaseReview) {
+                    $rev = $cr->latestCaseReview;
+                    $caseReview = [
+                        'ai_proposed_decision'    => $rev->ai_proposed_decision,
+                        'human_override_decision' => $rev->human_override_decision,
+                        'effective_decision'      => $rev->effective_decision,
+                        'confidence_level'        => $rev->confidence_level,
+                        'verified_items'          => $rev->verified_items_json   ?? [],
+                        'unverified_items'        => $rev->unverified_items_json ?? [],
+                        'risk_flags'              => $rev->risk_flags_json       ?? [],
+                        'conditions'              => $rev->conditions_json       ?? [],
+                        'compliance_return'       => $rev->compliance_return_json ?? null,
+                    ];
+                }
+
                 $detail = [
-                    'id'            => $cr->id,
-                    'survey_status' => $cr->survey_status,
-                    'admin_notes'   => $cr->admin_notes,
+                    'id'              => $cr->id,
+                    'case_no'         => $cr->case_no,
+                    'current_status'  => $cr->current_status ?? $cr->survey_status,
+                    'external_status' => $cr->external_status,
+                    'admin_notes'     => $cr->admin_notes,
 
-                    // v2.4 Claudeスコア指標
-                    'base_score'               => $cr->base_score,
-                    'truthfulness_percent'     => $cr->truthfulness_percent,
-                    'consistency_percent'      => $cr->consistency_percent,
-                    'hri_suitability_score'    => $cr->hri_suitability_score,
-                    'work_ability_score'       => $cr->work_ability_score,
-                    'work_ability_band'        => $cr->work_ability_band,
-                    'claude_overall_judgment'  => $cr->claude_overall_judgment,
-                    'claude_overall_reason'    => $cr->claude_overall_reason,
-                    'enterprise_view_summary'  => $cr->enterprise_view_summary,
-                    'final_decision'           => $cr->final_decision,
-                    'ai_review_completed_at'   => $cr->ai_review_completed_at
-                        ? Carbon::parse($cr->ai_review_completed_at)->format('d/m/Y H:i')
-                        : null,
+                    'base_score'              => $cr->base_score,
+                    'truthfulness_percent'    => $cr->truthfulness_percent,
+                    'consistency_percent'     => $cr->consistency_percent,
+                    'hri_suitability_score'   => $cr->hri_suitability_score,
+                    'work_ability_score'      => $cr->work_ability_score,
+                    'work_ability_band'       => $cr->work_ability_band,
+                    'claude_overall_judgment' => $cr->claude_overall_judgment,
+                    'claude_overall_reason'   => $cr->claude_overall_reason,
+                    'enterprise_view_summary' => $cr->enterprise_view_summary,
+                    'ai_review_completed_at'  => $cr->ai_review_completed_at
+                        ? Carbon::parse($cr->ai_review_completed_at)->format('d/m/Y H:i') : null,
 
-                    // review_items（項目別スコア詳細）
-                    'score_items' => $scoreData,
+                    'score_items'  => $scoreData,
+                    'case_review'  => $caseReview,  // ★ v2.6 3分離
 
-                    // case_reviews（Claude総合判定の生データ）
-                    'case_review' => $cr->latestCaseReview ? [
-                        'final_decision'          => $cr->latestCaseReview->final_decision,
-                        'verified_items'          => $cr->latestCaseReview->verified_items_json ?? [],
-                        'unverified_items'        => $cr->latestCaseReview->unverified_items_json ?? [],
-                        'risk_flags'              => $cr->latestCaseReview->risk_flags_json ?? [],
-                        'conditions'              => $cr->latestCaseReview->conditions_json ?? [],
-                        'compliance_return'       => $cr->latestCaseReview->compliance_return_json ?? null,
+                    // ★ v2.6: AI事前分析レポート
+                    'priority_report' => $cr->priorityReport ? [
+                        'priority_high'   => $cr->priorityReport->priority_high_json   ?? [],
+                        'priority_medium' => $cr->priorityReport->priority_medium_json ?? [],
+                        'priority_low'    => $cr->priorityReport->priority_low_json    ?? [],
+                        'risk_flags'      => $cr->priorityReport->risk_flags_json      ?? [],
+                        'summary'         => $cr->priorityReport->ai_analysis_summary,
+                        'generated_at'    => $cr->priorityReport->generated_at
+                            ? Carbon::parse($cr->priorityReport->generated_at)->format('d/m/Y H:i') : null,
                     ] : null,
 
                     'profile' => $profile ? [
@@ -103,8 +141,7 @@ class AdminController extends Controller
                         'marital_status'  => $profile->marital_status,
                         'nationality'     => $profile->nationality,
                         'birth_date'      => $profile->birth_date
-                            ? Carbon::parse($profile->birth_date)->format('d/m/Y')
-                            : null,
+                            ? Carbon::parse($profile->birth_date)->format('d/m/Y') : null,
                         'current_address' => $profile->current_address,
                         'phone_number'    => $profile->phone_number,
                         'whatsapp_number' => $profile->whatsapp_number,
@@ -112,7 +149,6 @@ class AdminController extends Controller
                         'member_id'       => $profile->member_id,
                     ] : null,
 
-                    // 調査結果（カテゴリ別）
                     'inv_basic'   => $this->buildSection($this->basicFields($profile), $invMap),
                     'inv_edu'     => $this->buildEduSection($educations, $invMap),
                     'inv_work'    => $this->buildWorkSection($works, $invMap),
@@ -130,27 +166,47 @@ class AdminController extends Controller
     }
 
     // ================================================================
-    // 承認アクション
+    // ✅ 承認（★ v2.6: 3分離 + case_deliverables + audit_logs）
     // ================================================================
 
-    // ✅ 承認
     public function approve(Request $request, int $id)
     {
         $validated = $request->validate([
-            'admin_notes' => 'nullable|string|max:1000',
+            'admin_notes'             => 'nullable|string|max:1000',
+            'human_override_decision' => 'nullable|in:APPROVE,CONDITIONAL_APPROVE,REJECT',
         ]);
 
-        $cr = CertificationRequest::whereIn('survey_status', ['pending_admin', 'escalated_to_human'])
-            ->findOrFail($id);
-
-        $profile    = ApplicantProfile::where('user_id', $cr->user_id)->firstOrFail();
+        $cr        = $this->findPendingCase($id);
+        $profile   = ApplicantProfile::where('user_id', $cr->user_id)->firstOrFail();
+        $adminUser = Auth::user();
         $finalScore = (int) round($cr->base_score ?? 0);
+
+        // ★ v2.6: case_reviews の3分離を更新
+        if ($cr->latestCaseReview) {
+            $override  = $validated['human_override_decision'] ?? null;
+            $effective = $override ?? $cr->latestCaseReview->ai_proposed_decision ?? 'APPROVE';
+
+            $cr->latestCaseReview->update([
+                'human_override_decision' => $override,
+                'human_override_reason'   => $validated['admin_notes'] ?? null,
+                'effective_decision'      => $effective,
+                'approved_by_user_id'     => $adminUser->id,
+                'approved_at'             => now(),
+            ]);
+        }
+
+        // ★ v2.6: current_status / external_status の二重更新
+        $cr->updateStatus(
+            CertificationRequest::STATUS_VERIFIED,
+            CertificationRequest::EXT_VERIFIED
+        );
 
         $cr->update([
             'admin_approved'      => true,
             'admin_approval_date' => now(),
             'admin_notes'         => $validated['admin_notes'] ?? null,
-            'survey_status'       => 'Terverifikasi',
+            'approved_by_user_id' => $adminUser->id,
+            'approved_at'         => now(),
         ]);
 
         $profile->update([
@@ -160,28 +216,63 @@ class AdminController extends Controller
             'certification_expiry_date' => now()->addMonths(3),
         ]);
 
+        // ★ v2.6: VR / IR を ISSUED に発行
+        try {
+            $this->deliverableService->issueAll($cr->id, $adminUser->id);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("deliverableService::issueAll 失敗: " . $e->getMessage());
+        }
+
+        // ★ v2.6: audit_logs に記録
+        $this->auditLogService->log(
+            actionType: 'APPROVED',
+            caseNo: $cr->case_no,
+            userId: $adminUser->id,
+            actorType: 'human',
+            newValues: ['status' => 'verified', 'score' => $finalScore],
+        );
+
         return redirect()->route('admin.admin.evaluate')
             ->with('success', 'Sertifikasi berhasil disetujui.');
     }
 
-    // ✅ 条件付き承認 [v2.4]
+    // ================================================================
+    // ✅ 条件付き承認（★ v2.6: 3分離）
+    // ================================================================
+
     public function conditionalApprove(Request $request, int $id)
     {
         $validated = $request->validate([
             'admin_notes' => 'required|string|max:1000',
         ]);
 
-        $cr = CertificationRequest::whereIn('survey_status', ['pending_admin', 'escalated_to_human'])
-            ->findOrFail($id);
-
-        $profile    = ApplicantProfile::where('user_id', $cr->user_id)->firstOrFail();
+        $cr        = $this->findPendingCase($id);
+        $profile   = ApplicantProfile::where('user_id', $cr->user_id)->firstOrFail();
+        $adminUser = Auth::user();
         $finalScore = (int) round($cr->base_score ?? 0);
+
+        // ★ v2.6: 人間が CONDITIONAL_APPROVE に上書き
+        if ($cr->latestCaseReview) {
+            $cr->latestCaseReview->update([
+                'human_override_decision' => 'CONDITIONAL_APPROVE',
+                'human_override_reason'   => $validated['admin_notes'],
+                'effective_decision'      => 'CONDITIONAL_APPROVE',
+                'approved_by_user_id'     => $adminUser->id,
+                'approved_at'             => now(),
+            ]);
+        }
+
+        $cr->updateStatus(
+            CertificationRequest::STATUS_CONDITIONALLY_VERIFIED,
+            CertificationRequest::EXT_CONDITIONALLY_VERIFIED
+        );
 
         $cr->update([
             'admin_approved'      => true,
             'admin_approval_date' => now(),
             'admin_notes'         => $validated['admin_notes'],
-            'survey_status'       => 'conditional_approved',
+            'approved_by_user_id' => $adminUser->id,
+            'approved_at'         => now(),
         ]);
 
         $profile->update([
@@ -191,65 +282,193 @@ class AdminController extends Controller
             'certification_expiry_date' => now()->addMonths(3),
         ]);
 
+        $this->auditLogService->log(
+            actionType: 'CONDITIONAL_APPROVED',
+            caseNo: $cr->case_no,
+            userId: $adminUser->id,
+            actorType: 'human',
+            newValues: ['status' => 'conditionally_verified'],
+        );
+
         return redirect()->route('admin.admin.evaluate')
             ->with('success', 'Sertifikasi disetujui dengan kondisi.');
     }
 
-    // ❌ 却下
+    // ================================================================
+    // ❌ 却下（★ v2.6: 3分離 + deliverable VOID）
+    // ================================================================
+
     public function reject(Request $request, int $id)
     {
         $validated = $request->validate([
             'admin_notes' => 'required|string|max:1000',
         ]);
 
-        $cr = CertificationRequest::whereIn('survey_status', ['pending_admin', 'escalated_to_human'])
-            ->findOrFail($id);
+        $cr        = $this->findPendingCase($id);
+        $adminUser = Auth::user();
+
+        // ★ v2.6: 人間が REJECT に上書き
+        if ($cr->latestCaseReview) {
+            $cr->latestCaseReview->update([
+                'human_override_decision' => 'REJECT',
+                'human_override_reason'   => $validated['admin_notes'],
+                'effective_decision'      => 'REJECT',
+                'approved_by_user_id'     => $adminUser->id,
+                'approved_at'             => now(),
+            ]);
+        }
+
+        $cr->updateStatus(
+            CertificationRequest::STATUS_REJECTED,
+            CertificationRequest::EXT_REJECTED
+        );
 
         $cr->update([
-            'survey_status'  => 'Ditolak',
-            'admin_notes'    => $validated['admin_notes'],
             'admin_approved' => false,
+            'admin_notes'    => $validated['admin_notes'],
         ]);
+
+        // ★ v2.6: VR / IR を VOID に失効
+        CaseDeliverable::where('certification_request_id', $cr->id)
+            ->whereIn('deliverable_type', [CaseDeliverable::TYPE_VR, CaseDeliverable::TYPE_IR])
+            ->update([
+                'deliverable_status' => CaseDeliverable::STATUS_VOID,
+                'is_active'          => false,
+            ]);
+
+        $this->auditLogService->log(
+            actionType: 'REJECTED',
+            caseNo: $cr->case_no,
+            userId: $adminUser->id,
+            actorType: 'human',
+            newValues: ['status' => 'rejected'],
+        );
 
         return redirect()->route('admin.admin.evaluate')
             ->with('success', 'Kasus berhasil ditolak.');
     }
 
-    // ⚠️ 調査部へ差し戻し
+    // ================================================================
+    // ⚠️ 差し戻し（★ v2.6: case_returns + RN発行 + VR/IR保留）
+    // ================================================================
+
     public function returnToReviewer(Request $request, int $id)
     {
         $validated = $request->validate([
             'return_reason' => 'required|string|max:1000',
         ]);
 
-        $cr = CertificationRequest::whereIn('survey_status', ['pending_admin', 'escalated_to_human'])
-            ->findOrFail($id);
+        $cr        = $this->findPendingCase($id);
+        $adminUser = Auth::user();
+
+        // ★ v2.6: case_reviews の3分離
+        if ($cr->latestCaseReview) {
+            $cr->latestCaseReview->update([
+                'human_override_decision' => 'RETURN_TO_INVESTIGATION',
+                'human_override_reason'   => $validated['return_reason'],
+                'effective_decision'      => 'RETURN_TO_INVESTIGATION',
+                'approved_by_user_id'     => $adminUser->id,
+                'approved_at'             => now(),
+            ]);
+        }
+
+        // ★ v2.6: case_returns レコードを作成
+        $caseReturn = CaseReturn::create([
+            'case_no'                  => $cr->case_no,
+            'certification_request_id' => $cr->id,
+            'case_review_id'           => $cr->latest_case_review_id,
+            'return_reason_code'       => 'INCOMPLETE_INVESTIGATION',
+            'return_reason_summary'    => $validated['return_reason'],
+            'returned_at'              => now(),
+        ]);
+
+        // ★ v2.6: VR/IR = PENDING 保留 / RN = ISSUED 発行
+        try {
+            $this->deliverableService->issueReturnNotice($cr->id, $caseReturn->id);
+        } catch (\Exception $e) {
+            CaseDeliverable::where('certification_request_id', $cr->id)
+                ->whereIn('deliverable_type', [CaseDeliverable::TYPE_VR, CaseDeliverable::TYPE_IR])
+                ->update(['deliverable_status' => CaseDeliverable::STATUS_PENDING]);
+
+            CaseDeliverable::updateOrCreate(
+                [
+                    'certification_request_id' => $cr->id,
+                    'deliverable_type'         => CaseDeliverable::TYPE_RN,
+                ],
+                [
+                    'case_no'            => $cr->case_no,
+                    'deliverable_status' => CaseDeliverable::STATUS_ISSUED,
+                    'visibility_scope'   => 'INTERNAL_ONLY',
+                    'is_active'          => true,
+                    'generated_at'       => now(),
+                ]
+            );
+        }
+
+        // ★ v2.6: returned_internal / additional_check_in_progress
+        $cr->updateStatus(
+            CertificationRequest::STATUS_RETURNED_INTERNAL,
+            CertificationRequest::EXT_ADDITIONAL_CHECK
+        );
 
         $cr->update([
-            'survey_status'         => 'under_investigation',
-            'returned_to_applicant' => false,
-            'return_reason'         => $validated['return_reason'],
-            'ready_for_review'      => false,
+            'internal_return_required' => true,
+            'latest_return_id'         => $caseReturn->id,
+            'ready_for_review'         => false,
         ]);
+
+        $this->auditLogService->log(
+            actionType: 'RETURN_CREATED',
+            caseNo: $cr->case_no,
+            userId: $adminUser->id,
+            actorType: 'human',
+            newValues: [
+                'status'        => 'returned_internal',
+                'return_reason' => $validated['return_reason'],
+            ],
+        );
 
         return redirect()->route('admin.admin.evaluate')
             ->with('success', 'Kasus dikembalikan ke Tim Investigator.');
     }
 
-    // 👤 人間確認へエスカレート [v2.4]
+    // ================================================================
+    // 👤 人間確認へエスカレート（★ v2.6: current_status対応）
+    // ================================================================
+
     public function escalateToHuman(Request $request, int $id)
     {
         $validated = $request->validate([
             'admin_notes' => 'required|string|max:1000',
         ]);
 
-        $cr = CertificationRequest::where('survey_status', 'pending_admin')
-            ->findOrFail($id);
+        $cr        = $this->findPendingCase($id);
+        $adminUser = Auth::user();
 
-        $cr->update([
-            'survey_status' => 'escalated_to_human',
-            'admin_notes'   => $validated['admin_notes'],
-        ]);
+        if ($cr->latestCaseReview) {
+            $cr->latestCaseReview->update([
+                'human_override_decision' => 'ESCALATE_TO_HUMAN',
+                'human_override_reason'   => $validated['admin_notes'],
+                'effective_decision'      => 'ESCALATE_TO_HUMAN',
+                'approved_by_user_id'     => $adminUser->id,
+                'approved_at'             => now(),
+            ]);
+        }
+
+        $cr->updateStatus(
+            CertificationRequest::STATUS_HUMAN_REVIEW,
+            CertificationRequest::EXT_UNDER_REVIEW
+        );
+
+        $cr->update(['admin_notes' => $validated['admin_notes']]);
+
+        $this->auditLogService->log(
+            actionType: 'HUMAN_REVIEW_ASSIGNED',
+            caseNo: $cr->case_no,
+            userId: $adminUser->id,
+            actorType: 'human',
+            newValues: ['status' => 'human_review_required'],
+        );
 
         return redirect()->route('admin.admin.evaluate')
             ->with('success', 'Kasus dieskalasi untuk pemeriksaan manusia.');
@@ -267,15 +486,39 @@ class AdminController extends Controller
         $perPage      = 20;
 
         $stats = [
-            'pending_payment'     => CertificationRequest::where('survey_status', 'pending_payment')->count(),
-            'under_investigation' => CertificationRequest::where('survey_status', 'under_investigation')->count(),
-            'under_review'        => CertificationRequest::where('survey_status', 'under_review')->count(),
-            'pending_admin'       => CertificationRequest::where('survey_status', 'pending_admin')->count(),
-            'escalated_to_human'  => CertificationRequest::where('survey_status', 'escalated_to_human')->count(),
-            'perlu_koreksi'       => CertificationRequest::where('survey_status', 'Perlu Koreksi')->count(),
-            'terverifikasi'       => ApplicantProfile::where('certification_status', 'Terverifikasi')->count(),
-            'conditional'         => ApplicantProfile::where('certification_status', 'conditional_approved')->count(),
-            'ditolak'             => CertificationRequest::where('survey_status', 'Ditolak')->count(),
+            // 支払い待ち
+            'pending_payment' => CertificationRequest::where('survey_status', 'pending_payment')->count(),
+
+            // 調査中 + 差し戻し中（current_status / survey_status 両対応）
+            'under_investigation' => CertificationRequest::where(function ($q) {
+                $q->whereIn('current_status', [
+                    CertificationRequest::STATUS_UNDER_INVESTIGATION,
+                    CertificationRequest::STATUS_RETURNED_INTERNAL,
+                ])->orWhere('survey_status', 'under_investigation');
+            })->count(),
+
+            // ★ Menunggu Admin = AI審査中 + 人間確認中 + 旧pending_admin/escalated
+            'pending_admin' => CertificationRequest::where(function ($q) {
+                $q->whereIn('current_status', [
+                    CertificationRequest::STATUS_AI_REVIEW_PENDING,
+                    CertificationRequest::STATUS_HUMAN_REVIEW,
+                ])->orWhereIn('survey_status', ['pending_admin', 'escalated_to_human']);
+            })->count(),
+
+            // 差し戻し中 = returned_internal + 旧Perlu Koreksi
+            'perlu_koreksi' => CertificationRequest::where(function ($q) {
+                $q->where('current_status', CertificationRequest::STATUS_RETURNED_INTERNAL)
+                  ->orWhere('survey_status', 'Perlu Koreksi');
+            })->count(),
+
+            'terverifikasi' => ApplicantProfile::where('certification_status', 'Terverifikasi')->count(),
+            'conditional'   => ApplicantProfile::where('certification_status', 'conditional_approved')->count(),
+
+            // 却下
+            'ditolak' => CertificationRequest::where(function ($q) {
+                $q->where('current_status', CertificationRequest::STATUS_REJECTED)
+                  ->orWhere('survey_status', 'Ditolak');
+            })->count(),
         ];
 
         $query = ApplicantProfile::with('user:id,name,email,created_at')
@@ -392,17 +635,27 @@ class AdminController extends Controller
     // ヘルパー
     // ================================================================
 
+    private function findPendingCase(int $id): CertificationRequest
+    {
+        return CertificationRequest::where('id', $id)
+            ->where(function ($q) {
+                $q->whereIn('current_status', [
+                        CertificationRequest::STATUS_AI_REVIEW_PENDING,
+                        CertificationRequest::STATUS_HUMAN_REVIEW,
+                    ])
+                  ->orWhereIn('survey_status', ['pending_admin', 'escalated_to_human']);
+            })
+            ->with('latestCaseReview')
+            ->firstOrFail();
+    }
+
     private function formatDate($date): ?string
     {
         if (!$date) return null;
-        try {
-            return Carbon::parse($date)->format('d/m/Y');
-        } catch (\Exception $e) {
-            return $date;
-        }
+        try { return Carbon::parse($date)->format('d/m/Y'); }
+        catch (\Exception $e) { return $date; }
     }
 
-    // v2.4 加点方式スコアデータ構築
     private function buildScoreData(CertificationRequest $cr): array
     {
         $categoryLabels = [
@@ -415,10 +668,9 @@ class AdminController extends Controller
         ];
 
         $result = [];
-        foreach ($cr->reviewItems->where('is_ai_scored', true) as $item) {
+        foreach ($cr->reviewItems as $item) {
             $cat    = $item->category;
             $config = $categoryLabels[$cat] ?? ['label' => $cat, 'max' => 0];
-
             $result[] = [
                 'category'            => $cat,
                 'label'               => $config['label'],
@@ -428,7 +680,6 @@ class AdminController extends Controller
                 'verification_status' => $item->verification_status,
             ];
         }
-
         return $result;
     }
 
@@ -437,11 +688,11 @@ class AdminController extends Controller
         return array_map(function ($f) use ($invMap) {
             $inv = $invMap->get($f['key']);
             return [
-                'item_name'   => $f['key'],
-                'label'       => $f['label'],
-                'value'       => $f['value'] ?? '-',
-                'validity'    => $inv ? $inv->validity : null,
-                'inv_notes'   => $inv ? $inv->notes    : null,
+                'item_name' => $f['key'],
+                'label'     => $f['label'],
+                'value'     => $f['value'] ?? '-',
+                'validity'  => $inv ? $inv->validity : null,
+                'inv_notes' => $inv ? $inv->notes    : null,
             ];
         }, $fields);
     }
@@ -478,14 +729,8 @@ class AdminController extends Controller
                 ["edu_{$i}_ipk_gpa",           'Pendidikan '.($i+1).' - IPK / Nilai Akhir',  $edu->ipk_gpa],
             ];
             foreach ($fields as [$key, $label, $val]) {
-                $inv      = $invMap->get($key);
-                $result[] = [
-                    'item_name' => $key,
-                    'label'     => $label,
-                    'value'     => $val ?? '-',
-                    'validity'  => $inv ? $inv->validity : null,
-                    'inv_notes' => $inv ? $inv->notes    : null,
-                ];
+                $inv = $invMap->get($key);
+                $result[] = ['item_name' => $key, 'label' => $label, 'value' => $val ?? '-', 'validity' => $inv?->validity, 'inv_notes' => $inv?->notes];
             }
         }
         return $result;
@@ -506,14 +751,8 @@ class AdminController extends Controller
                 ["work_{$i}_supervisor_phone",      'Kerja '.($i+1).' - No. Telp Atasan',   $w->supervisor_phone],
             ];
             foreach ($fields as [$key, $label, $val]) {
-                $inv      = $invMap->get($key);
-                $result[] = [
-                    'item_name' => $key,
-                    'label'     => $label,
-                    'value'     => $val ?? '-',
-                    'validity'  => $inv ? $inv->validity : null,
-                    'inv_notes' => $inv ? $inv->notes    : null,
-                ];
+                $inv = $invMap->get($key);
+                $result[] = ['item_name' => $key, 'label' => $label, 'value' => $val ?? '-', 'validity' => $inv?->validity, 'inv_notes' => $inv?->notes];
             }
         }
         return $result;
@@ -531,20 +770,13 @@ class AdminController extends Controller
                 ["cert_{$i}_certificate_score",    'Sertifikat '.($i+1).' - Skor / Level',      $c->certificate_score],
             ];
             foreach ($fields as [$key, $label, $val]) {
-                $inv      = $invMap->get($key);
-                $result[] = [
-                    'item_name' => $key,
-                    'label'     => $label,
-                    'value'     => $val ?? '-',
-                    'validity'  => $inv ? $inv->validity : null,
-                    'inv_notes' => $inv ? $inv->notes    : null,
-                ];
+                $inv = $invMap->get($key);
+                $result[] = ['item_name' => $key, 'label' => $label, 'value' => $val ?? '-', 'validity' => $inv?->validity, 'inv_notes' => $inv?->notes];
             }
         }
         return $result;
     }
 
-    // v2.4 素行（conduct）セクション
     private function buildConductSection($works, $invMap): array
     {
         $conductFields = [
@@ -557,16 +789,15 @@ class AdminController extends Controller
 
         $result = [];
         foreach ($works as $i => $w) {
-            $companyName = $w->company_name ?? "Perusahaan " . ($i + 1);
             foreach ($conductFields as $fieldKey => $fieldLabel) {
                 $itemName = "conduct_{$i}_{$fieldKey}";
                 $inv      = $invMap->get($itemName);
                 $result[] = [
                     'item_name'    => $itemName,
                     'label'        => $fieldLabel,
-                    'company_name' => $companyName,
-                    'validity'     => $inv ? $inv->validity : null,
-                    'inv_notes'    => $inv ? $inv->notes    : null,
+                    'company_name' => $w->company_name ?? "Perusahaan " . ($i + 1),
+                    'validity'     => $inv?->validity,
+                    'inv_notes'    => $inv?->notes,
                 ];
             }
         }
