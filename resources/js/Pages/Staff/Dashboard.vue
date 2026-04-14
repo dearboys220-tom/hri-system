@@ -253,7 +253,7 @@ function logout() {
                 <div>
                   <p class="text-sm text-gray-700">{{ abs.absence_type }}</p>
                   <p class="text-xs text-gray-400">
-                    {{ abs.start_date }} 〜 {{ abs.end_date }}
+                    {{ abs.absence_date_from }} 〜 {{ abs.absence_date_to }}
                   </p>
                 </div>
                 <span :class="['text-xs px-2 py-0.5 rounded-full font-medium',

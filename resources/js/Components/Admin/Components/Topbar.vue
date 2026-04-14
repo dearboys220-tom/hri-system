@@ -69,7 +69,7 @@ const logout = () => {
             </Button>
           </Link>
           
-          !-- ★ マイタスク -->
+          <!-- ★ マイタスク -->
           <Link :href="route('staff.tasks.index')">
             <Button variant="secondary" size="sm" class="flex-1 md:flex-none">
               <ClipboardDocumentListIcon class="w-4 h-4" />
