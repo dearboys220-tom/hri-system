@@ -9,37 +9,43 @@ const menuItems = [
     {
         label: 'Manajemen Staf',
         href:  '/manager/staff',
-        icon:  '👥',
-        desc:  'Daftar & pendaftaran staf internal',
+        icon:  'STAF',
+        color: 'bg-blue-600',
+        desc:  'Daftar dan pendaftaran staf internal',
     },
     {
         label: 'Instruksi Tugas',
         href:  '/manager/task-orders',
-        icon:  '📋',
+        icon:  'TUGAS',
+        color: 'bg-indigo-600',
         desc:  'Buat dan kelola instruksi kerja untuk staf',
     },
     {
         label: 'Laporan Tugas',
         href:  '/manager/reports',
-        icon:  '📝',
+        icon:  'LAPORAN',
+        color: 'bg-purple-600',
         desc:  'Daftar laporan yang dikirim oleh staf',
     },
     {
         label: 'Pengajuan Izin',
         href:  '/manager/absence-requests',
-        icon:  '📅',
+        icon:  'IZIN',
+        color: 'bg-orange-500',
         desc:  'Setujui atau tolak pengajuan izin staf',
     },
     {
         label: 'Penilaian AI',
         href:  '/manager/evaluations',
-        icon:  '📊',
+        icon:  'NILAI',
+        color: 'bg-teal-600',
         desc:  'Buat dan konfirmasi penilaian kinerja staf',
     },
     {
         label: 'Manajemen Gaji',
         href:  '/manager/salary',
-        icon:  '💰',
+        icon:  'GAJI',
+        color: 'bg-green-600',
         desc:  'Perhitungan dan persetujuan gaji staf',
     },
 ]
@@ -65,12 +71,8 @@ function logout() {
                 </div>
                 <div class="flex items-center gap-4">
                     <span class="text-sm text-gray-600">{{ user?.name }}</span>
-                    <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-semibold">
-                        Local Manager
-                    </span>
-                    <button @click="logout" class="text-xs text-gray-500 hover:text-red-500 transition">
-                        Logout
-                    </button>
+                    <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-semibold">Local Manager</span>
+                    <button @click="logout" class="text-xs text-gray-500 hover:text-red-500 transition">Logout</button>
                 </div>
             </div>
         </div>
@@ -79,9 +81,7 @@ function logout() {
 
             <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-2xl px-6 py-5 text-white mb-6">
                 <p class="text-lg font-bold">Selamat datang, {{ user?.name }}</p>
-                <p class="text-indigo-200 text-sm mt-1">
-                    Panel Manager — Kelola staf dan operasional internal HRI
-                </p>
+                <p class="text-indigo-200 text-sm mt-1">Panel Manager — Kelola staf dan operasional internal HRI</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -91,10 +91,10 @@ function logout() {
                     :href="item.href"
                     class="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-md transition group"
                 >
-                    <div class="text-3xl mb-3">{{ item.icon }}</div>
-                    <p class="font-semibold text-gray-800 group-hover:text-indigo-600 transition">
-                        {{ item.label }}
-                    </p>
+                    <div :class="[item.color, 'inline-flex items-center justify-center w-12 h-12 rounded-lg text-white text-xs font-bold mb-3']">
+                        {{ item.icon }}
+                    </div>
+                    <p class="font-semibold text-gray-800 group-hover:text-indigo-600 transition">{{ item.label }}</p>
                     <p class="text-xs text-gray-500 mt-1">{{ item.desc }}</p>
                 </a>
             </div>
