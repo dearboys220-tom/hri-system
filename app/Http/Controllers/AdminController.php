@@ -12,6 +12,8 @@ use App\Models\CaseReturn;
 use App\Models\CaseDeliverable;
 use App\Services\CaseDeliverableService;
 use App\Services\AuditLogService;
+use App\Services\ClaudeSubpromptService;
+use App\Services\NumberingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -20,8 +22,10 @@ use Carbon\Carbon;
 class AdminController extends Controller
 {
     public function __construct(
-        private CaseDeliverableService $deliverableService,
-        private AuditLogService        $auditLogService,
+        private CaseDeliverableService  $deliverableService,
+        private AuditLogService         $auditLogService,
+        private ClaudeSubpromptService  $subprompt,
+        private NumberingService        $numbering,
     ) {}
 
     // ================================================================
@@ -30,7 +34,6 @@ class AdminController extends Controller
 
     public function index(Request $request)
     {
-        // ★ v2.6: current_status / survey_status 両対応
         $cases = CertificationRequest::with(['applicant:id,name'])
             ->where(function ($q) {
                 $q->whereIn('current_status', [
@@ -82,7 +85,9 @@ class AdminController extends Controller
                 $certs      = Certification::where('certification_request_id', $cr->id)->get();
                 $scoreData  = $this->buildScoreData($cr);
 
-                // ★ v2.6: case_reviews の3分離フィールドを整形
+                // 差し戻し回数（Section 26.4 準拠）
+                $returnCount = CaseReturn::where('certification_request_id', $cr->id)->count();
+
                 $caseReview = null;
                 if ($cr->latestCaseReview) {
                     $rev = $cr->latestCaseReview;
@@ -105,6 +110,7 @@ class AdminController extends Controller
                     'current_status'  => $cr->current_status ?? $cr->survey_status,
                     'external_status' => $cr->external_status,
                     'admin_notes'     => $cr->admin_notes,
+                    'return_count'    => $returnCount, // ★ 差し戻し回数
 
                     'base_score'              => $cr->base_score,
                     'truthfulness_percent'    => $cr->truthfulness_percent,
@@ -119,9 +125,8 @@ class AdminController extends Controller
                         ? Carbon::parse($cr->ai_review_completed_at)->format('d/m/Y H:i') : null,
 
                     'score_items'  => $scoreData,
-                    'case_review'  => $caseReview,  // ★ v2.6 3分離
+                    'case_review'  => $caseReview,
 
-                    // ★ v2.6: AI事前分析レポート
                     'priority_report' => $cr->priorityReport ? [
                         'priority_high'   => $cr->priorityReport->priority_high_json   ?? [],
                         'priority_medium' => $cr->priorityReport->priority_medium_json ?? [],
@@ -166,7 +171,92 @@ class AdminController extends Controller
     }
 
     // ================================================================
-    // ✅ 承認（★ v2.6: 3分離 + case_deliverables + audit_logs）
+    // ★ A-1: サブプロンプト審査実行（AdminMainからAjax呼び出し）
+    // ================================================================
+
+    public function runAiSubpromptReview(Request $request, int $id)
+    {
+        $cr = $this->findPendingCase($id);
+
+        $profile    = ApplicantProfile::where('user_id', $cr->user_id)->first();
+        $educations = EducationHistory::where('certification_request_id', $cr->id)->get();
+        $works      = WorkHistory::where('certification_request_id', $cr->id)->get();
+        $certs      = Certification::where('certification_request_id', $cr->id)->get();
+
+        // 差し戻し履歴（Section 26.4 差し戻し3回制限）
+        $returnHistory = CaseReturn::where('certification_request_id', $cr->id)
+            ->orderBy('created_at')
+            ->get(['id', 'return_reason_summary', 'returned_at'])
+            ->toArray();
+
+        // A-1 入力データを組み立て
+        $input = [
+            'case_id'                 => $cr->case_no,
+            'applicant_basic_info'    => [
+                'full_name'      => $profile?->full_name,
+                'nik'            => $profile?->nik,
+                'gender'         => $profile?->gender,
+                'nationality'    => $profile?->nationality,
+                'marital_status' => $profile?->marital_status,
+            ],
+            'consent_scope'           => 'hri_certification',
+            'education_records'       => $educations->map(fn($e) => [
+                'school_name'       => $e->school_name,
+                'education_level'   => $e->education_level,
+                'degree_name'       => $e->degree_name,
+                'graduation_status' => $e->graduation_status,
+            ])->toArray(),
+            'employment_records'      => $works->map(fn($w) => [
+                'company_name'         => $w->company_name,
+                'department_position'  => $w->department_position,
+                'employment_type'      => $w->employment_type,
+                'supervisor_full_name' => $w->supervisor_full_name,
+            ])->toArray(),
+            'qualification_records'   => $certs->map(fn($c) => [
+                'certificate_name'     => $c->certificate_name,
+                'issuing_organization' => $c->issuing_organization,
+            ])->toArray(),
+            'investigation_records'   => $cr->investigationItems->map(fn($i) => [
+                'item_name' => $i->item_name,
+                'category'  => $i->category,
+                'validity'  => $i->validity,
+                'notes'     => $i->notes,
+            ])->toArray(),
+            'current_scores'          => [
+                'base_score'            => $cr->base_score,
+                'truthfulness_percent'  => $cr->truthfulness_percent,
+                'consistency_percent'   => $cr->consistency_percent,
+                'hri_suitability_score' => $cr->hri_suitability_score,
+            ],
+            'prior_return_history'    => $returnHistory,
+            'language'                => 'id',
+        ];
+
+        // A-1 実行
+        $a1Result = $this->subprompt->runA1($input);
+
+        // audit_logs に記録
+        \App\Models\AuditLog::recordAi(
+            'AI_REVIEW_RUN',
+            $cr->case_no,
+            'A-1',
+            ['new' => ['subprompt' => 'A-1', 'result_status' => $a1Result['review_status'] ?? 'unknown']]
+        );
+
+        // human_takeover_required = true → 4回目以降強制人間処理
+        if (!empty($a1Result['human_takeover_required'])) {
+            $cr->update(['admin_notes' => '[A-1] Human takeover required: 差し戻し上限超過']);
+        }
+
+        return response()->json([
+            'success'   => true,
+            'a1_result' => $a1Result,
+            'case_no'   => $cr->case_no,
+        ]);
+    }
+
+    // ================================================================
+    // ✅ 承認（I-3 + NumberingService でVRシリアル発行）
     // ================================================================
 
     public function approve(Request $request, int $id)
@@ -181,7 +271,6 @@ class AdminController extends Controller
         $adminUser = Auth::user();
         $finalScore = (int) round($cr->base_score ?? 0);
 
-        // ★ v2.6: case_reviews の3分離を更新
         if ($cr->latestCaseReview) {
             $override  = $validated['human_override_decision'] ?? null;
             $effective = $override ?? $cr->latestCaseReview->ai_proposed_decision ?? 'APPROVE';
@@ -195,7 +284,6 @@ class AdminController extends Controller
             ]);
         }
 
-        // ★ v2.6: current_status / external_status の二重更新
         $cr->updateStatus(
             CertificationRequest::STATUS_VERIFIED,
             CertificationRequest::EXT_VERIFIED
@@ -216,14 +304,39 @@ class AdminController extends Controller
             'certification_expiry_date' => now()->addMonths(3),
         ]);
 
-        // ★ v2.6: VR / IR を ISSUED に発行
+        // ★ I-3: VRシリアル発行可否を確認してから NumberingService で採番
+        try {
+            $i3Input = [
+                'case_id'       => $cr->case_no,
+                'review_status' => 'approved',
+                'issuance_type' => 'initial',
+            ];
+            $i3Result = $this->subprompt->runI3($i3Input);
+
+            if (!empty($i3Result['issuable'])) {
+                // I-3 が発行可と判断 → NumberingService で正式採番
+                $vrSerial = $this->numbering->issueVrSerial(
+                    $i3Result['version_code'] ?? 'A'
+                );
+
+                // audit_logs に VR_ISSUED を記録
+                \App\Models\AuditLog::recordHuman(
+                    'VR_ISSUED',
+                    $cr->case_no,
+                    ['serial_no' => $vrSerial, 'new' => ['vr_serial' => $vrSerial]]
+                );
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('I-3 / VR serial error: ' . $e->getMessage());
+        }
+
+        // VR / IR を ISSUED に発行
         try {
             $this->deliverableService->issueAll($cr->id, $adminUser->id);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning("deliverableService::issueAll 失敗: " . $e->getMessage());
         }
 
-        // ★ v2.6: audit_logs に記録
         $this->auditLogService->log(
             actionType: 'APPROVED',
             caseNo: $cr->case_no,
@@ -237,7 +350,7 @@ class AdminController extends Controller
     }
 
     // ================================================================
-    // ✅ 条件付き承認（★ v2.6: 3分離）
+    // ✅ 条件付き承認
     // ================================================================
 
     public function conditionalApprove(Request $request, int $id)
@@ -251,7 +364,6 @@ class AdminController extends Controller
         $adminUser = Auth::user();
         $finalScore = (int) round($cr->base_score ?? 0);
 
-        // ★ v2.6: 人間が CONDITIONAL_APPROVE に上書き
         if ($cr->latestCaseReview) {
             $cr->latestCaseReview->update([
                 'human_override_decision' => 'CONDITIONAL_APPROVE',
@@ -295,7 +407,7 @@ class AdminController extends Controller
     }
 
     // ================================================================
-    // ❌ 却下（★ v2.6: 3分離 + deliverable VOID）
+    // ❌ 却下
     // ================================================================
 
     public function reject(Request $request, int $id)
@@ -307,7 +419,6 @@ class AdminController extends Controller
         $cr        = $this->findPendingCase($id);
         $adminUser = Auth::user();
 
-        // ★ v2.6: 人間が REJECT に上書き
         if ($cr->latestCaseReview) {
             $cr->latestCaseReview->update([
                 'human_override_decision' => 'REJECT',
@@ -328,7 +439,6 @@ class AdminController extends Controller
             'admin_notes'    => $validated['admin_notes'],
         ]);
 
-        // ★ v2.6: VR / IR を VOID に失効
         CaseDeliverable::where('certification_request_id', $cr->id)
             ->whereIn('deliverable_type', [CaseDeliverable::TYPE_VR, CaseDeliverable::TYPE_IR])
             ->update([
@@ -349,7 +459,7 @@ class AdminController extends Controller
     }
 
     // ================================================================
-    // ⚠️ 差し戻し（★ v2.6: case_returns + RN発行 + VR/IR保留）
+    // ⚠️ 差し戻し（★ A-2 で差し戻し文草案を自動生成）
     // ================================================================
 
     public function returnToReviewer(Request $request, int $id)
@@ -361,7 +471,60 @@ class AdminController extends Controller
         $cr        = $this->findPendingCase($id);
         $adminUser = Auth::user();
 
-        // ★ v2.6: case_reviews の3分離
+        // 差し戻し回数チェック（Section 26.4: 4回目以降は人間処理強制）
+        $returnCount = CaseReturn::where('certification_request_id', $cr->id)->count();
+        if ($returnCount >= 3) {
+            $cr->update([
+                'admin_notes' => '[強制人間処理] 差し戻し回数上限（3回）超過。人間判断へ切替。',
+            ]);
+            return redirect()->route('admin.admin.evaluate')
+                ->with('error', 'Batas pengembalian (3 kali) terlampaui. Kasus dialihkan ke pemrosesan manusia.');
+        }
+
+        // ★ A-2: 差し戻し判断 → 差し戻し文草案を自動生成
+        $a2DraftMessage = $validated['return_reason']; // フォールバック用
+        try {
+            $a2Input = [
+                'case_id'            => $cr->case_no,
+                'prior_return_count' => $returnCount,
+                'return_reason'      => $validated['return_reason'],
+                'current_scores'     => [
+                    'base_score'           => $cr->base_score,
+                    'truthfulness_percent' => $cr->truthfulness_percent,
+                    'consistency_percent'  => $cr->consistency_percent,
+                ],
+                'investigation_summary' => $cr->investigationItems->map(fn($i) => [
+                    'item_name' => $i->item_name,
+                    'validity'  => $i->validity,
+                    'notes'     => $i->notes,
+                ])->toArray(),
+            ];
+
+            $a2Result = $this->subprompt->runA2($a2Input);
+
+            // A-2 が差し戻し文を生成した場合は採用
+            if (!empty($a2Result['draft_return_message'])) {
+                $a2DraftMessage = $a2Result['draft_return_message'];
+            }
+
+            // LEE通知フラグ（3回目差し戻し時）
+            if (!empty($a2Result['notify_lee'])) {
+                \Illuminate\Support\Facades\Log::info(
+                    "[A-2] LEE通知: case_no={$cr->case_no}, return_count=" . ($returnCount + 1)
+                );
+            }
+
+            \App\Models\AuditLog::recordAi(
+                'RETURN_CREATED',
+                $cr->case_no,
+                'A-2',
+                ['new' => ['subprompt' => 'A-2', 'draft_generated' => !empty($a2Result['draft_return_message'])]]
+            );
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('A-2 error: ' . $e->getMessage());
+        }
+
         if ($cr->latestCaseReview) {
             $cr->latestCaseReview->update([
                 'human_override_decision' => 'RETURN_TO_INVESTIGATION',
@@ -372,17 +535,15 @@ class AdminController extends Controller
             ]);
         }
 
-        // ★ v2.6: case_returns レコードを作成
         $caseReturn = CaseReturn::create([
             'case_no'                  => $cr->case_no,
             'certification_request_id' => $cr->id,
             'case_review_id'           => $cr->latest_case_review_id,
             'return_reason_code'       => 'INCOMPLETE_INVESTIGATION',
-            'return_reason_summary'    => $validated['return_reason'],
+            'return_reason_summary'    => $a2DraftMessage, // ★ A-2 草案を使用
             'returned_at'              => now(),
         ]);
 
-        // ★ v2.6: VR/IR = PENDING 保留 / RN = ISSUED 発行
         try {
             $this->deliverableService->issueReturnNotice($cr->id, $caseReturn->id);
         } catch (\Exception $e) {
@@ -405,7 +566,6 @@ class AdminController extends Controller
             );
         }
 
-        // ★ v2.6: returned_internal / additional_check_in_progress
         $cr->updateStatus(
             CertificationRequest::STATUS_RETURNED_INTERNAL,
             CertificationRequest::EXT_ADDITIONAL_CHECK
@@ -425,6 +585,7 @@ class AdminController extends Controller
             newValues: [
                 'status'        => 'returned_internal',
                 'return_reason' => $validated['return_reason'],
+                'return_count'  => $returnCount + 1,
             ],
         );
 
@@ -433,7 +594,7 @@ class AdminController extends Controller
     }
 
     // ================================================================
-    // 👤 人間確認へエスカレート（★ v2.6: current_status対応）
+    // 👤 人間確認へエスカレート
     // ================================================================
 
     public function escalateToHuman(Request $request, int $id)
@@ -486,10 +647,8 @@ class AdminController extends Controller
         $perPage      = 20;
 
         $stats = [
-            // 支払い待ち
             'pending_payment' => CertificationRequest::where('survey_status', 'pending_payment')->count(),
 
-            // 調査中 + 差し戻し中（current_status / survey_status 両対応）
             'under_investigation' => CertificationRequest::where(function ($q) {
                 $q->whereIn('current_status', [
                     CertificationRequest::STATUS_UNDER_INVESTIGATION,
@@ -497,7 +656,6 @@ class AdminController extends Controller
                 ])->orWhere('survey_status', 'under_investigation');
             })->count(),
 
-            // ★ Menunggu Admin = AI審査中 + 人間確認中 + 旧pending_admin/escalated
             'pending_admin' => CertificationRequest::where(function ($q) {
                 $q->whereIn('current_status', [
                     CertificationRequest::STATUS_AI_REVIEW_PENDING,
@@ -505,7 +663,6 @@ class AdminController extends Controller
                 ])->orWhereIn('survey_status', ['pending_admin', 'escalated_to_human']);
             })->count(),
 
-            // 差し戻し中 = returned_internal + 旧Perlu Koreksi
             'perlu_koreksi' => CertificationRequest::where(function ($q) {
                 $q->where('current_status', CertificationRequest::STATUS_RETURNED_INTERNAL)
                   ->orWhere('survey_status', 'Perlu Koreksi');
@@ -514,7 +671,6 @@ class AdminController extends Controller
             'terverifikasi' => ApplicantProfile::where('certification_status', 'Terverifikasi')->count(),
             'conditional'   => ApplicantProfile::where('certification_status', 'conditional_approved')->count(),
 
-            // 却下
             'ditolak' => CertificationRequest::where(function ($q) {
                 $q->where('current_status', CertificationRequest::STATUS_REJECTED)
                   ->orWhere('survey_status', 'Ditolak');

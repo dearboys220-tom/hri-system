@@ -261,6 +261,8 @@ Route::prefix('admin')
                 Route::post('/{id}/return',              [App\Http\Controllers\AdminController::class, 'returnToReviewer'])->name('return');
                 Route::post('/{id}/escalate',            [App\Http\Controllers\AdminController::class, 'escalateToHuman'])->name('escalate');
 
+                Route::post('/{id}/ai-review',           [App\Http\Controllers\AdminController::class, 'runAiSubpromptReview'])->name('ai.review');
+
                 // 企業管理
                 Route::get('/companies',              [App\Http\Controllers\AdminController::class, 'companies'])->name('companies');
                 Route::post('/companies/{id}/status', [App\Http\Controllers\AdminController::class, 'updateCompanyStatus'])->name('companies.status');
