@@ -111,6 +111,31 @@ function logout() {
             <p class="text-xs text-gray-400">Halaman Saya</p>
           </div>
         </div>
+        <!-- 部署ページへ戻る -->
+        <a v-if="user.role_type === 'investigator_user'" href="/admin/investigator"
+          class="text-sm text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1">
+          ← Tim Investigasi
+        </a>
+        <a v-else-if="user.role_type === 'admin_user'" href="/admin/admin"
+          class="text-sm text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1">
+          ← Tim Admin
+        </a>
+        <a v-else-if="user.role_type === 'local_manager'" href="/manager/dashboard"
+          class="text-sm text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1">
+          ← Manager Panel
+        </a>
+        <a v-else-if="user.role_type === 'strategy_user'" href="/strategy/dashboard"
+          class="text-sm text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1">
+          ← Tim Strategi
+        </a>
+        <a v-else-if="user.role_type === 'ai_dev_user'" href="/ai-dev/dashboard"
+          class="text-sm text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1">
+          ← Tim AI Dev
+        </a>
+        <a v-else-if="user.role_type === 'marketing_user'" href="/marketing/dashboard"
+          class="text-sm text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1">
+          ← Tim Marketing
+        </a>
         <div class="flex items-center gap-4">
           <span class="text-sm text-gray-600">{{ user?.name }}</span>
           <!-- 稼働状況バッジ -->
