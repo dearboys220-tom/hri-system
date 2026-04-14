@@ -11,16 +11,12 @@ use Inertia\Inertia;
 
 class PayrollRecordController extends Controller
 {
-    // ─────────────────────────────────────────────
-    // 支払い記録一覧
-    // ─────────────────────────────────────────────
     public function index()
     {
         $payrolls = PayrollRecord::with(['staff', 'salaryCalculation', 'processedBy'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        // 承認済み給与計算のうち、まだ支払い記録がないもの
         $pendingCalculations = SalaryCalculation::with('staff')
             ->where('calculation_status', 'APPROVED')
             ->whereDoesntHave('payrollRecord')
@@ -33,9 +29,6 @@ class PayrollRecordController extends Controller
         ]);
     }
 
-    // ─────────────────────────────────────────────
-    // 支払い記録を作成（SCHEDULED）
-    // ─────────────────────────────────────────────
     public function store(Request $request)
     {
         $request->validate([
@@ -48,7 +41,6 @@ class PayrollRecordController extends Controller
 
         $calculation = SalaryCalculation::with('staff')->findOrFail($request->salary_calculation_id);
 
-        // 重複チェック
         $exists = PayrollRecord::where('salary_calculation_id', $calculation->id)->exists();
         if ($exists) {
             return back()->with('error', 'Catatan pembayaran untuk data gaji ini sudah ada.');
@@ -66,26 +58,19 @@ class PayrollRecordController extends Controller
             'payment_status'        => 'SCHEDULED',
         ]);
 
-        AuditLog::create([
-            'action_type'  => 'PAYROLL_PROCESSED',
-            'performed_by' => Auth::id(),
-            'target_type'  => 'payroll_records',
-            'target_id'    => $payroll->id,
-            'new_value'    => json_encode([
-                'staff_user_id'  => $calculation->staff_user_id,
+        AuditLog::recordHuman('PAYROLL_PROCESSED', null, [
+            'new' => [
+                'payroll_id'     => $payroll->id,
+                'staff_name'     => $calculation->staff->name,
                 'payment_month'  => $calculation->calculation_month,
                 'paid_amount'    => $calculation->net_salary,
                 'payment_status' => 'SCHEDULED',
-            ]),
-            'notes' => 'Catatan pembayaran dibuat untuk: ' . $calculation->staff->name . ' (' . $calculation->calculation_month . ')',
+            ],
         ]);
 
         return back()->with('success', 'Catatan pembayaran berhasil dibuat untuk ' . $calculation->staff->name . '.');
     }
 
-    // ─────────────────────────────────────────────
-    // 送金処理済みにマーク（PROCESSED）
-    // ─────────────────────────────────────────────
     public function markProcessed(Request $request, PayrollRecord $payroll)
     {
         $request->validate([
@@ -99,24 +84,19 @@ class PayrollRecordController extends Controller
             'processed_by_user_id' => Auth::id(),
         ]);
 
-        AuditLog::create([
-            'action_type'  => 'PAYROLL_PROCESSED',
-            'performed_by' => Auth::id(),
-            'target_type'  => 'payroll_records',
-            'target_id'    => $payroll->id,
-            'new_value'    => json_encode([
+        AuditLog::recordHuman('PAYROLL_PROCESSED', null, [
+            'new' => [
+                'payroll_id'           => $payroll->id,
+                'staff_name'           => $payroll->staff->name,
+                'payment_month'        => $payroll->payment_month,
                 'payment_status'       => 'PROCESSED',
                 'payment_reference_no' => $request->payment_reference_no,
-            ]),
-            'notes' => 'Pembayaran diproses untuk: ' . $payroll->staff->name . ' (' . $payroll->payment_month . ')',
+            ],
         ]);
 
         return back()->with('success', 'Status pembayaran diperbarui menjadi Diproses.');
     }
 
-    // ─────────────────────────────────────────────
-    // 受取確認済みにマーク（CONFIRMED）
-    // ─────────────────────────────────────────────
     public function markConfirmed(PayrollRecord $payroll)
     {
         $payroll->update([
@@ -124,34 +104,31 @@ class PayrollRecordController extends Controller
             'confirmed_at'   => now(),
         ]);
 
-        AuditLog::create([
-            'action_type'  => 'PAYROLL_PROCESSED',
-            'performed_by' => Auth::id(),
-            'target_type'  => 'payroll_records',
-            'target_id'    => $payroll->id,
-            'new_value'    => json_encode(['payment_status' => 'CONFIRMED']),
-            'notes' => 'Pembayaran dikonfirmasi diterima: ' . $payroll->staff->name . ' (' . $payroll->payment_month . ')',
+        AuditLog::recordHuman('PAYROLL_PROCESSED', null, [
+            'new' => [
+                'payroll_id'     => $payroll->id,
+                'staff_name'     => $payroll->staff->name,
+                'payment_month'  => $payroll->payment_month,
+                'payment_status' => 'CONFIRMED',
+            ],
         ]);
 
         return back()->with('success', 'Pembayaran dikonfirmasi sebagai diterima.');
     }
 
-    // ─────────────────────────────────────────────
-    // 失敗にマーク（FAILED）
-    // ─────────────────────────────────────────────
     public function markFailed(PayrollRecord $payroll)
     {
         $payroll->update([
             'payment_status' => 'FAILED',
         ]);
 
-        AuditLog::create([
-            'action_type'  => 'PAYROLL_PROCESSED',
-            'performed_by' => Auth::id(),
-            'target_type'  => 'payroll_records',
-            'target_id'    => $payroll->id,
-            'new_value'    => json_encode(['payment_status' => 'FAILED']),
-            'notes' => 'Pembayaran gagal: ' . $payroll->staff->name . ' (' . $payroll->payment_month . ')',
+        AuditLog::recordHuman('PAYROLL_PROCESSED', null, [
+            'new' => [
+                'payroll_id'     => $payroll->id,
+                'staff_name'     => $payroll->staff->name,
+                'payment_month'  => $payroll->payment_month,
+                'payment_status' => 'FAILED',
+            ],
         ]);
 
         return back()->with('success', 'Status pembayaran diperbarui menjadi Gagal.');

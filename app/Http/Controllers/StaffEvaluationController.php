@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\StaffEvaluation;
-use App\Models\StaffAvailability;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -16,7 +15,7 @@ class StaffEvaluationController extends Controller
 {
     public function index()
     {
-        $evaluations = StaffEvaluation::with(['staff', 'approvedByUser'])
+        $evaluations = StaffEvaluation::with(['staff', 'approvedBy'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -94,7 +93,7 @@ class StaffEvaluationController extends Controller
 
         $staffUser = User::find($staffUserId);
 
-        // Call Claude API
+        // Claude API呼び出し
         $prompt = $this->buildEvaluationPrompt([
             'staff_name'      => $staffUser->name,
             'role_type'       => $staffUser->role_type,
@@ -133,11 +132,10 @@ class StaffEvaluationController extends Controller
             $body       = $response->json();
             $rawContent = $body['content'][0]['text'] ?? '{}';
 
-            $jsonStr = $rawContent;
             if (preg_match('/\{.*\}/s', $rawContent, $matches)) {
-                $jsonStr = $matches[0];
+                $rawContent = $matches[0];
             }
-            $result = json_decode($jsonStr, true) ?? [];
+            $result = json_decode($rawContent, true) ?? [];
 
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal menghubungi API: ' . $e->getMessage());
@@ -150,29 +148,26 @@ class StaffEvaluationController extends Controller
         $recommended = $result['ai_recommended_action'] ?? 'MONITOR';
 
         $evaluation = StaffEvaluation::create([
-            'staff_user_id'          => $staffUserId,
-            'evaluation_period_from' => $fromDate,
-            'evaluation_period_to'   => $toDate,
-            'evaluation_type'        => $request->evaluation_type,
-            'ai_performance_band'    => $band,
-            'ai_score'               => $score,
-            'ai_evaluation_summary'  => $summary,
-            'ai_evaluation_detail'   => $detail,
-            'ai_recommended_action'  => $recommended,
+            'staff_user_id'           => $staffUserId,
+            'evaluation_period_from'  => $fromDate,
+            'evaluation_period_to'    => $toDate,
+            'evaluation_type'         => $request->evaluation_type,
+            'ai_performance_band'     => $band,
+            'ai_score'                => $score,
+            'ai_evaluation_summary'   => $summary,
+            'ai_evaluation_detail'    => $detail,
+            'ai_recommended_action'   => $recommended,
             'warning_draft_triggered' => false,
         ]);
 
-        AuditLog::create([
-            'action_type'  => 'STAFF_EVALUATED',
-            'performed_by' => Auth::id(),
-            'target_type'  => 'staff_evaluations',
-            'target_id'    => $evaluation->id,
-            'new_value'    => json_encode([
+        AuditLog::recordHuman('STAFF_EVALUATED', null, [
+            'new' => [
+                'evaluation_id'       => $evaluation->id,
                 'staff_user_id'       => $staffUserId,
                 'ai_performance_band' => $band,
                 'ai_score'            => $score,
-            ]),
-            'notes' => 'Draft penilaian AI dibuat untuk: ' . $staff->name,
+                'staff_name'          => $staffUser->name,
+            ],
         ]);
 
         return back()->with('success', 'Draft penilaian untuk ' . $staffUser->name . ' berhasil dibuat (' . $band . ')');
@@ -192,16 +187,13 @@ class StaffEvaluationController extends Controller
             'approved_at'           => now(),
         ]);
 
-        AuditLog::create([
-            'action_type'  => 'EVALUATION_APPROVED',
-            'performed_by' => Auth::id(),
-            'target_type'  => 'staff_evaluations',
-            'target_id'    => $evaluation->id,
-            'new_value'    => json_encode([
+        AuditLog::recordHuman('EVALUATION_APPROVED', null, [
+            'new' => [
+                'evaluation_id'         => $evaluation->id,
                 'human_final_band'      => $request->human_final_band,
                 'human_override_reason' => $request->human_override_reason,
-            ]),
-            'notes' => 'Penilaian dikonfirmasi untuk: ' . $evaluation->staffUser->name,
+                'staff_name'            => $evaluation->staff->name,
+            ],
         ]);
 
         return back()->with('success', 'Penilaian berhasil dikonfirmasi (' . $request->human_final_band . ')');

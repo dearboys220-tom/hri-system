@@ -14,12 +14,9 @@ use Inertia\Inertia;
 
 class SalaryCalculationController extends Controller
 {
-    // ─────────────────────────────────────────────
-    // 給与計算一覧（マネージャー側）
-    // ─────────────────────────────────────────────
     public function index()
     {
-        $calculations = SalaryCalculation::with(['staff', 'approvedByUser'])
+        $calculations = SalaryCalculation::with(['staff', 'approvedBy'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -36,20 +33,17 @@ class SalaryCalculationController extends Controller
         ]);
     }
 
-    // ─────────────────────────────────────────────
-    // AI給与計算ドラフト生成
-    // ─────────────────────────────────────────────
     public function generate(Request $request)
     {
         $request->validate([
-            'staff_user_id'      => 'required|exists:users,id',
-            'calculation_month'  => 'required|string|regex:/^\d{4}-\d{2}$/',
-            'base_salary'        => 'required|numeric|min:0',
+            'staff_user_id'     => 'required|exists:users,id',
+            'calculation_month' => 'required|string|regex:/^\d{4}-\d{2}$/',
+            'base_salary'       => 'required|numeric|min:0',
         ]);
 
-        $staffUserId       = $request->staff_user_id;
-        $calcMonth         = $request->calculation_month;
-        $baseSalary        = $request->base_salary;
+        $staffUserId = $request->staff_user_id;
+        $calcMonth   = $request->calculation_month;
+        $baseSalary  = $request->base_salary;
 
         // 重複チェック
         $exists = SalaryCalculation::where('staff_user_id', $staffUserId)
@@ -85,9 +79,9 @@ class SalaryCalculationController extends Controller
                 SUM(CASE WHEN task_status = "COMPLETED" THEN 1 ELSE 0 END) as completed
             ')
             ->first();
-        $taskTotal       = $taskStats->total ?? 0;
-        $taskCompleted   = $taskStats->completed ?? 0;
-        $completionRate  = $taskTotal > 0 ? round(($taskCompleted / $taskTotal) * 100, 1) : null;
+        $taskTotal      = $taskStats->total ?? 0;
+        $taskCompleted  = $taskStats->completed ?? 0;
+        $completionRate = $taskTotal > 0 ? round(($taskCompleted / $taskTotal) * 100, 1) : null;
 
         // 確定済み査定バンド取得
         $evaluation = StaffEvaluation::where('staff_user_id', $staffUserId)
@@ -98,19 +92,18 @@ class SalaryCalculationController extends Controller
             ->first();
         $performanceBand = $evaluation?->human_final_band;
 
-        // スタッフ情報
         $staffUser = User::find($staffUserId);
 
         // Claude API呼び出し
         $prompt = $this->buildSalaryPrompt([
-            'staff_name'      => $staffUser->name,
-            'role_type'       => $staffUser->role_type,
-            'calc_month'      => $calcMonth,
-            'base_salary'     => $baseSalary,
-            'attendance_days' => $attendanceDays,
-            'absent_days'     => $absentDays,
-            'completion_rate' => $completionRate,
-            'performance_band'=> $performanceBand,
+            'staff_name'       => $staffUser->name,
+            'role_type'        => $staffUser->role_type,
+            'calc_month'       => $calcMonth,
+            'base_salary'      => $baseSalary,
+            'attendance_days'  => $attendanceDays,
+            'absent_days'      => $absentDays,
+            'completion_rate'  => $completionRate,
+            'performance_band' => $performanceBand,
         ]);
 
         try {
@@ -141,7 +134,6 @@ class SalaryCalculationController extends Controller
             return back()->with('error', 'Gagal menghubungi API: ' . $e->getMessage());
         }
 
-        // 計算値取得
         $deductions  = $result['deductions']  ?? 0;
         $overtimePay = $result['overtime_pay'] ?? 0;
         $allowances  = $result['allowances']   ?? 0;
@@ -150,42 +142,36 @@ class SalaryCalculationController extends Controller
         $notes       = $result['ai_calculation_notes'] ?? '';
 
         $calculation = SalaryCalculation::create([
-            'staff_user_id'        => $staffUserId,
-            'calculation_month'    => $calcMonth,
-            'base_salary'          => $baseSalary,
-            'attendance_days'      => $attendanceDays,
-            'absent_days'          => $absentDays,
-            'task_completion_rate' => $completionRate,
-            'performance_band'     => $performanceBand,
+            'staff_user_id'         => $staffUserId,
+            'calculation_month'     => $calcMonth,
+            'base_salary'           => $baseSalary,
+            'attendance_days'       => $attendanceDays,
+            'absent_days'           => $absentDays,
+            'task_completion_rate'  => $completionRate,
+            'performance_band'      => $performanceBand,
             'performance_adjustment'=> 0,
-            'deductions'           => $deductions,
-            'overtime_pay'         => $overtimePay,
-            'allowances'           => $allowances,
-            'gross_salary'         => $grossSalary,
-            'net_salary'           => $netSalary,
-            'calculation_status'   => 'DRAFT',
-            'ai_calculation_notes' => $notes,
+            'deductions'            => $deductions,
+            'overtime_pay'          => $overtimePay,
+            'allowances'            => $allowances,
+            'gross_salary'          => $grossSalary,
+            'net_salary'            => $netSalary,
+            'calculation_status'    => 'DRAFT',
+            'ai_calculation_notes'  => $notes,
         ]);
 
-        AuditLog::create([
-            'action_type'  => 'SALARY_CALCULATED',
-            'performed_by' => Auth::id(),
-            'target_type'  => 'salary_calculations',
-            'target_id'    => $calculation->id,
-            'new_value'    => json_encode([
+        AuditLog::recordHuman('SALARY_CALCULATED', null, [
+            'new' => [
+                'calculation_id'    => $calculation->id,
                 'staff_user_id'     => $staffUserId,
+                'staff_name'        => $staffUser->name,
                 'calculation_month' => $calcMonth,
                 'net_salary'        => $netSalary,
-            ]),
-            'notes' => 'Draft gaji dibuat untuk: ' . $staffUser->name . ' (' . $calcMonth . ')',
+            ],
         ]);
 
         return back()->with('success', 'Draft perhitungan gaji untuk ' . $staffUser->name . ' (' . $calcMonth . ') berhasil dibuat.');
     }
 
-    // ─────────────────────────────────────────────
-    // 管理者が給与計算を承認
-    // ─────────────────────────────────────────────
     public function approve(Request $request, SalaryCalculation $calculation)
     {
         $request->validate([
@@ -195,11 +181,10 @@ class SalaryCalculationController extends Controller
             'allowances'             => 'nullable|numeric|min:0',
         ]);
 
-        // 管理者が調整した値で再計算
         $performanceAdj = $request->performance_adjustment ?? $calculation->performance_adjustment;
-        $deductions     = $request->deductions    ?? $calculation->deductions;
-        $overtimePay    = $request->overtime_pay  ?? $calculation->overtime_pay;
-        $allowances     = $request->allowances    ?? $calculation->allowances;
+        $deductions     = $request->deductions   ?? $calculation->deductions;
+        $overtimePay    = $request->overtime_pay ?? $calculation->overtime_pay;
+        $allowances     = $request->allowances   ?? $calculation->allowances;
         $grossSalary    = $calculation->base_salary + $performanceAdj + $overtimePay + $allowances;
         $netSalary      = $grossSalary - $deductions;
 
@@ -215,28 +200,23 @@ class SalaryCalculationController extends Controller
             'approved_at'            => now(),
         ]);
 
-        AuditLog::create([
-            'action_type'  => 'SALARY_APPROVED',
-            'performed_by' => Auth::id(),
-            'target_type'  => 'salary_calculations',
-            'target_id'    => $calculation->id,
-            'new_value'    => json_encode([
+        AuditLog::recordHuman('SALARY_APPROVED', null, [
+            'new' => [
+                'calculation_id'     => $calculation->id,
+                'staff_name'         => $calculation->staff->name,
+                'calculation_month'  => $calculation->calculation_month,
                 'net_salary'         => $netSalary,
                 'calculation_status' => 'APPROVED',
-            ]),
-            'notes' => 'Gaji disetujui untuk: ' . $calculation->staff->name . ' (' . $calculation->calculation_month . ')',
+            ],
         ]);
 
         return back()->with('success', 'Perhitungan gaji berhasil disetujui. Gaji bersih: Rp ' . number_format($netSalary, 0, ',', '.'));
     }
 
-    // ─────────────────────────────────────────────
-    // Claudeへのプロンプト構築
-    // ─────────────────────────────────────────────
     private function buildSalaryPrompt(array $data): string
     {
         $band = $data['performance_band'] ?? 'belum ada';
-        $rate = $data['completion_rate'] ?? 'belum ada data';
+        $rate = $data['completion_rate']  ?? 'belum ada data';
 
         return <<<PROMPT
 Anda adalah AI asisten perhitungan gaji untuk sistem HRI.
