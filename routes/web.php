@@ -23,7 +23,8 @@ use App\Http\Controllers\Manager\StaffManagementController;
 use App\Http\Controllers\AbsenceRequestController;
 use App\Http\Controllers\TaskOrderController;
 use App\Http\Controllers\EmployeeReportController;
-use App\Http\Controllers\StaffEvaluationController; // ★ v2.8追加
+use App\Http\Controllers\StaffEvaluationController;
+use App\Http\Controllers\SalaryCalculationController;
 
 // ================================================================
 // 公開ルート
@@ -298,6 +299,11 @@ Route::prefix('manager')
             [StaffEvaluationController::class, 'generate'])->name('evaluations.generate');
         Route::post('/evaluations/{evaluation}/approve',
             [StaffEvaluationController::class, 'approve'])->name('evaluations.approve');
+
+        // ★ 給与計算管理 v2.8追加
+        Route::get('/salary', [SalaryCalculationController::class, 'index'])->name('salary.index');
+        Route::post('/salary/generate', [SalaryCalculationController::class, 'generate'])->name('salary.generate');
+        Route::post('/salary/{calculation}/approve', [SalaryCalculationController::class, 'approve'])->name('salary.approve');
     });
 
 // ================================================================

@@ -30,6 +30,18 @@ const menuItems = [
         icon:  '📅',
         desc:  'Setujui atau tolak pengajuan izin staf',
     },
+    {
+        label: 'Penilaian AI',
+        href:  '/manager/evaluations',
+        icon:  '📊',
+        desc:  'Buat dan konfirmasi penilaian kinerja staf',
+    },
+    {
+        label: 'Manajemen Gaji',
+        href:  '/manager/salary',
+        icon:  '💰',
+        desc:  'Perhitungan dan persetujuan gaji staf',
+    },
 ]
 
 function logout() {
@@ -67,7 +79,7 @@ function logout() {
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <a
+                
                     v-for="item in menuItems"
                     :key="item.label"
                     :href="item.href"
