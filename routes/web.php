@@ -25,6 +25,7 @@ use App\Http\Controllers\TaskOrderController;
 use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\StaffEvaluationController;
 use App\Http\Controllers\SalaryCalculationController;
+use App\Http\Controllers\PayrollRecordController;
 
 // ================================================================
 // 公開ルート
@@ -304,6 +305,13 @@ Route::prefix('manager')
         Route::get('/salary', [SalaryCalculationController::class, 'index'])->name('salary.index');
         Route::post('/salary/generate', [SalaryCalculationController::class, 'generate'])->name('salary.generate');
         Route::post('/salary/{calculation}/approve', [SalaryCalculationController::class, 'approve'])->name('salary.approve');
+
+        // ★ 支払い記録管理 v2.8追加
+        Route::get('/payroll', [PayrollRecordController::class, 'index'])->name('payroll.index');
+        Route::post('/payroll', [PayrollRecordController::class, 'store'])->name('payroll.store');
+        Route::post('/payroll/{payroll}/processed', [PayrollRecordController::class, 'markProcessed'])->name('payroll.processed');
+        Route::post('/payroll/{payroll}/confirmed', [PayrollRecordController::class, 'markConfirmed'])->name('payroll.confirmed');
+        Route::post('/payroll/{payroll}/failed', [PayrollRecordController::class, 'markFailed'])->name('payroll.failed');
     });
 
 // ================================================================

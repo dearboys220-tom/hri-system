@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 
@@ -9,44 +9,44 @@ const menuItems = [
     {
         label: 'Manajemen Staf',
         href:  '/manager/staff',
-        icon:  'STAF',
-        color: 'bg-blue-600',
-        desc:  'Daftar dan pendaftaran staf internal',
+        icon:  '👥',
+        desc:  'Daftar & pendaftaran staf internal',
     },
     {
         label: 'Instruksi Tugas',
         href:  '/manager/task-orders',
-        icon:  'TUGAS',
-        color: 'bg-indigo-600',
+        icon:  '📋',
         desc:  'Buat dan kelola instruksi kerja untuk staf',
     },
     {
         label: 'Laporan Tugas',
         href:  '/manager/reports',
-        icon:  'LAPORAN',
-        color: 'bg-purple-600',
+        icon:  '📝',
         desc:  'Daftar laporan yang dikirim oleh staf',
     },
     {
         label: 'Pengajuan Izin',
         href:  '/manager/absence-requests',
-        icon:  'IZIN',
-        color: 'bg-orange-500',
+        icon:  '📅',
         desc:  'Setujui atau tolak pengajuan izin staf',
     },
-    {
+        {
         label: 'Penilaian AI',
         href:  '/manager/evaluations',
-        icon:  'NILAI',
-        color: 'bg-teal-600',
+        icon:  '📊',
         desc:  'Buat dan konfirmasi penilaian kinerja staf',
     },
-    {
+        {
         label: 'Manajemen Gaji',
         href:  '/manager/salary',
-        icon:  'GAJI',
-        color: 'bg-green-600',
+        icon:  '💰',
         desc:  'Perhitungan dan persetujuan gaji staf',
+    },
+            {
+        label: 'Catatan Pembayaran',
+        href:  '/manager/payroll',
+        icon:  '🏦',
+        desc:  'Proses dan konfirmasi pembayaran gaji staf',
     },
 ]
 
@@ -85,21 +85,18 @@ function logout() {
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                
+                <a
                     v-for="item in menuItems"
                     :key="item.label"
                     :href="item.href"
                     class="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-md transition group"
                 >
-                    <div :class="[item.color, 'inline-flex items-center justify-center w-12 h-12 rounded-lg text-white text-xs font-bold mb-3']">
-                        {{ item.icon }}
-                    </div>
+                    <div class="text-3xl mb-3">{{ item.icon }}</div>
                     <p class="font-semibold text-gray-800 group-hover:text-indigo-600 transition">{{ item.label }}</p>
                     <p class="text-xs text-gray-500 mt-1">{{ item.desc }}</p>
                 </a>
             </div>
 
         </div>
-
     </div>
 </template>
