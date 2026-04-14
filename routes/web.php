@@ -412,26 +412,53 @@ Route::prefix('em')
     });
 
 // ================================================================
-// 新3部署ルート（仮 — 画面作成後に正式実装）
+// 新3部署ルート
 // ★ v2.9: education:company_rules 適用
 // ================================================================
 
-Route::middleware(['auth', 'education:company_rules'])->group(function () { // ★ v2.9追加
+Route::middleware(['auth', 'education:company_rules'])->group(function () {
 
-    // 戦略マネジメント部
-    Route::get('/strategy/dashboard', function () {
-        return Inertia::render('Manager/Dashboard');
-    })->name('strategy.dashboard');
+    // ── 戦略マネジメント部 ──
+    Route::prefix('strategy')->name('strategy.')->group(function () {
+        Route::get('/dashboard',
+            [\App\Http\Controllers\Strategy\StrategyCaseController::class, 'index']
+        )->name('dashboard');
+        Route::post('/cases',
+            [\App\Http\Controllers\Strategy\StrategyCaseController::class, 'store']
+        )->name('cases.store');
+        Route::post('/cases/{id}/status',
+            [\App\Http\Controllers\Strategy\StrategyCaseController::class, 'updateStatus']
+        )->name('cases.status');
+        Route::post('/cases/{id}/ai-summary',
+            [\App\Http\Controllers\Strategy\StrategyCaseController::class, 'generateAiSummary']
+        )->name('cases.ai-summary');
+    });
 
-    // AI開発部
-    Route::get('/ai-dev/dashboard', function () {
-        return Inertia::render('Manager/Dashboard');
-    })->name('ai-dev.dashboard');
+    // ── AI開発部 ──
+    Route::prefix('ai-dev')->name('ai-dev.')->group(function () {
+        Route::get('/dashboard',
+            [\App\Http\Controllers\AiDev\AiDevProjectController::class, 'index']
+        )->name('dashboard');
+        Route::post('/projects',
+            [\App\Http\Controllers\AiDev\AiDevProjectController::class, 'store']
+        )->name('projects.store');
+        Route::post('/projects/{id}/status',
+            [\App\Http\Controllers\AiDev\AiDevProjectController::class, 'updateStatus']
+        )->name('projects.status');
+    });
 
-    // マーケティング部
-    Route::get('/marketing/dashboard', function () {
-        return Inertia::render('Manager/Dashboard');
-    })->name('marketing.dashboard');
+    // ── マーケティング部 ──
+    Route::prefix('marketing')->name('marketing.')->group(function () {
+        Route::get('/dashboard',
+            [\App\Http\Controllers\Marketing\MarketingCampaignController::class, 'index']
+        )->name('dashboard');
+        Route::post('/campaigns',
+            [\App\Http\Controllers\Marketing\MarketingCampaignController::class, 'store']
+        )->name('campaigns.store');
+        Route::post('/campaigns/{id}/status',
+            [\App\Http\Controllers\Marketing\MarketingCampaignController::class, 'updateStatus']
+        )->name('campaigns.status');
+    });
 });
 
 // ================================================================
