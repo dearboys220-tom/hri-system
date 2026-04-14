@@ -320,12 +320,17 @@ Route::prefix('manager')
 
 Route::prefix('president')
     ->name('president.')
-    ->middleware('auth')
+    ->middleware(['auth', App\Http\Middleware\EnsureIsPresident::class])
     ->group(function () {
 
-        Route::get('/dashboard', function () {
-            return Inertia::render('Manager/Dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard',
+            [App\Http\Controllers\President\PresidentDashboardController::class, 'index']
+        )->name('dashboard');
+
+        // 給与承認（DRAFT → APPROVED）
+        Route::post('/salary/{calculation}/approve',
+            [App\Http\Controllers\President\PresidentDashboardController::class, 'approveSalary']
+        )->name('salary.approve');
     });
 
 // ================================================================
