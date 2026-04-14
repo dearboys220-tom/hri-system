@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // スーパー管理者専用ミドルウェア
         $middleware->alias([
             'super.admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'education'   => \App\Http\Middleware\EnsureEducationCompleted::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

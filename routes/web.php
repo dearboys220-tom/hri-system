@@ -26,6 +26,7 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\StaffEvaluationController;
 use App\Http\Controllers\SalaryCalculationController;
 use App\Http\Controllers\PayrollRecordController;
+use App\Http\Controllers\StaffEducationController; // ★ v2.9追加
 
 // ================================================================
 // 公開ルート
@@ -187,19 +188,41 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // ================================================================
-    // スタッフ共通ルート（全社内ロール）
+    // ★ v2.9 教育ポータル（全スタッフ共通）
+    // ★ education middleware 適用前にアクセスできる必要があるため
+    // ★ 単独の auth グループに配置する
     // ================================================================
 
-    // 欠勤申請（スタッフ側）
-    Route::get('/staff/absence/create', [AbsenceRequestController::class, 'create'])->name('staff.absence.create');
-    Route::post('/staff/absence',       [AbsenceRequestController::class, 'store'])->name('staff.absence.store');
+    Route::get('/staff/education',
+        [StaffEducationController::class, 'index'])->name('staff.education.index');
 
-    // 業務指示（スタッフ側）
-    Route::get('/staff/tasks',             [TaskOrderController::class, 'staffIndex'])->name('staff.tasks.index');
-    Route::post('/staff/tasks/{id}/start', [TaskOrderController::class, 'startTask'])->name('staff.tasks.start');
+    Route::get('/staff/education/{moduleCode}',
+        [StaffEducationController::class, 'show'])->name('staff.education.show');
 
-    // 業務報告（スタッフ側）
-    Route::post('/staff/reports', [EmployeeReportController::class, 'store'])->name('staff.reports.store');
+    Route::post('/staff/education/{moduleCode}/complete',
+        [StaffEducationController::class, 'complete'])->name('staff.education.complete');
+
+    // ================================================================
+    // スタッフ共通ルート（全社内ロール）
+    // ★ company_rules 完了必須
+    // ================================================================
+
+    Route::middleware('education:company_rules')->group(function () {
+
+        // 欠勤申請（スタッフ側）
+        Route::get('/staff/absence/create', [AbsenceRequestController::class, 'create'])->name('staff.absence.create');
+        Route::post('/staff/absence',       [AbsenceRequestController::class, 'store'])->name('staff.absence.store');
+
+        // 業務指示（スタッフ側）
+        Route::get('/staff/tasks',             [TaskOrderController::class, 'staffIndex'])->name('staff.tasks.index');
+        Route::post('/staff/tasks/{id}/start', [TaskOrderController::class, 'startTask'])->name('staff.tasks.start');
+
+        // 業務報告（スタッフ側）
+        // ★ privacy_and_data_handling も必要（Section 31.5）
+        Route::middleware('education:privacy_and_data_handling')->group(function () {
+            Route::post('/staff/reports', [EmployeeReportController::class, 'store'])->name('staff.reports.store');
+        });
+    });
 });
 
 // ================================================================
@@ -252,11 +275,17 @@ Route::prefix('admin')
 
 // ================================================================
 // マネージャールート（local_manager / president）
+// ★ v2.9: education:company_rules Middleware を全体に適用
+// ★ 給与・支払いは education:payment_and_approval_rules も必要なため独立
 // ================================================================
 
 Route::prefix('manager')
     ->name('manager.')
-    ->middleware(['auth', App\Http\Middleware\EnsureIsManager::class])
+    ->middleware([
+        'auth',
+        App\Http\Middleware\EnsureIsManager::class,
+        'education:company_rules', // ★ v2.9追加
+    ])
     ->group(function () {
 
         // ダッシュボード
@@ -293,7 +322,7 @@ Route::prefix('manager')
         Route::post('/reports/{id}/flag',
             [EmployeeReportController::class, 'flagInconsistency'])->name('reports.flag');
 
-        // ★ 査定管理（マネージャー側）v2.8追加
+        // 査定管理（マネージャー側）v2.8
         Route::get('/evaluations',
             [StaffEvaluationController::class, 'index'])->name('evaluations.index');
         Route::post('/evaluations/generate',
@@ -301,26 +330,44 @@ Route::prefix('manager')
         Route::post('/evaluations/{evaluation}/approve',
             [StaffEvaluationController::class, 'approve'])->name('evaluations.approve');
 
-        // ★ 給与計算管理 v2.8追加
-        Route::get('/salary', [SalaryCalculationController::class, 'index'])->name('salary.index');
-        Route::post('/salary/generate', [SalaryCalculationController::class, 'generate'])->name('salary.generate');
-        Route::post('/salary/{calculation}/approve', [SalaryCalculationController::class, 'approve'])->name('salary.approve');
+        // ★ v2.9: 給与・支払いは payment_and_approval_rules も必要
+        Route::middleware('education:payment_and_approval_rules')->group(function () {
 
-        // ★ 支払い記録管理 v2.8追加
-        Route::get('/payroll', [PayrollRecordController::class, 'index'])->name('payroll.index');
-        Route::post('/payroll', [PayrollRecordController::class, 'store'])->name('payroll.store');
-        Route::post('/payroll/{payroll}/processed', [PayrollRecordController::class, 'markProcessed'])->name('payroll.processed');
-        Route::post('/payroll/{payroll}/confirmed', [PayrollRecordController::class, 'markConfirmed'])->name('payroll.confirmed');
-        Route::post('/payroll/{payroll}/failed', [PayrollRecordController::class, 'markFailed'])->name('payroll.failed');
+            // 給与計算管理 v2.8
+            Route::get('/salary',
+                [SalaryCalculationController::class, 'index'])->name('salary.index');
+            Route::post('/salary/generate',
+                [SalaryCalculationController::class, 'generate'])->name('salary.generate');
+            Route::post('/salary/{calculation}/approve',
+                [SalaryCalculationController::class, 'approve'])->name('salary.approve');
+
+            // 支払い記録管理 v2.8
+            Route::get('/payroll',
+                [PayrollRecordController::class, 'index'])->name('payroll.index');
+            Route::post('/payroll',
+                [PayrollRecordController::class, 'store'])->name('payroll.store');
+            Route::post('/payroll/{payroll}/processed',
+                [PayrollRecordController::class, 'markProcessed'])->name('payroll.processed');
+            Route::post('/payroll/{payroll}/confirmed',
+                [PayrollRecordController::class, 'markConfirmed'])->name('payroll.confirmed');
+            Route::post('/payroll/{payroll}/failed',
+                [PayrollRecordController::class, 'markFailed'])->name('payroll.failed');
+        });
     });
 
 // ================================================================
 // president ルート
+// ★ v2.9: education:company_rules + education:payment_and_approval_rules 適用
 // ================================================================
 
 Route::prefix('president')
     ->name('president.')
-    ->middleware(['auth', App\Http\Middleware\EnsureIsPresident::class])
+    ->middleware([
+        'auth',
+        App\Http\Middleware\EnsureIsPresident::class,
+        'education:company_rules',              // ★ v2.9追加
+        'education:payment_and_approval_rules', // ★ v2.9追加
+    ])
     ->group(function () {
 
         Route::get('/dashboard',
@@ -334,12 +381,13 @@ Route::prefix('president')
     });
 
 // ================================================================
-// em_staff ルート（仮）
+// em_staff ルート
+// ★ v2.9: education:company_rules 適用
 // ================================================================
 
 Route::prefix('em')
     ->name('em.')
-    ->middleware('auth')
+    ->middleware(['auth', 'education:company_rules']) // ★ v2.9追加
     ->group(function () {
 
         Route::get('/dashboard', function () {
@@ -349,9 +397,10 @@ Route::prefix('em')
 
 // ================================================================
 // 新3部署ルート（仮 — 画面作成後に正式実装）
+// ★ v2.9: education:company_rules 適用
 // ================================================================
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'education:company_rules'])->group(function () { // ★ v2.9追加
 
     // 戦略マネジメント部
     Route::get('/strategy/dashboard', function () {
