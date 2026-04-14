@@ -381,8 +381,8 @@ Route::prefix('president')
     ->middleware([
         'auth',
         App\Http\Middleware\EnsureIsPresident::class,
-        'education:company_rules',              // ★ v2.9追加
-        'education:payment_and_approval_rules', // ★ v2.9追加
+        'education:company_rules',
+        'education:payment_and_approval_rules',
     ])
     ->group(function () {
 
@@ -390,10 +390,18 @@ Route::prefix('president')
             [App\Http\Controllers\President\PresidentDashboardController::class, 'index']
         )->name('dashboard');
 
-        // 給与承認（DRAFT → APPROVED）
         Route::post('/salary/{calculation}/approve',
             [App\Http\Controllers\President\PresidentDashboardController::class, 'approveSalary']
         )->name('salary.approve');
+
+        // ★ v2.9追加: AIチャット
+        Route::post('/chat/send',
+            [App\Http\Controllers\President\PresidentChatController::class, 'send']
+        )->name('chat.send');
+
+        Route::get('/chat/history',
+            [App\Http\Controllers\President\PresidentChatController::class, 'history']
+        )->name('chat.history');
     });
 
 // ================================================================
