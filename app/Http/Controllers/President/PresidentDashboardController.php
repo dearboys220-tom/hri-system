@@ -69,6 +69,15 @@ class PresidentDashboardController extends Controller
             ->orderByDesc('created_at')
             ->limit(10)
             ->get(['id', 'action_type', 'user_id', 'actor_type', 'created_at']);
+        
+        // チャット用スタッフ一覧（全社内スタッフ）
+        $allStaff = User::whereIn('role_type', [
+                'investigator_user', 'admin_user', 'em_staff',
+                'strategy_user', 'ai_dev_user', 'marketing_user',
+                'local_manager',
+            ])
+            ->where('status', 'active')
+            ->get(['id', 'name', 'role_type']);
 
         return Inertia::render('President/Dashboard', [
             'totalStaff'        => $totalStaff,
@@ -79,6 +88,7 @@ class PresidentDashboardController extends Controller
             'activePayrolls'    => $activePayrolls,
             'staffByDept'       => $staffByDept,
             'recentLogs'        => $recentLogs,
+            'allStaff'          => $allStaff,
         ]);
     }
 

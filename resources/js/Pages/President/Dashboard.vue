@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, reactive, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
 
@@ -12,6 +12,7 @@ const props = defineProps({
   activePayrolls:    Array,
   staffByDept:       Object,
   recentLogs:        Array,
+  allStaff:          Array,
 })
 
 const page  = usePage()
@@ -19,16 +20,62 @@ const user  = computed(() => page.props.auth?.user)
 const flash = computed(() => page.props.flash ?? {})
 
 // ================================================================
+// タブ管理
+// ================================================================
+const activeTab = ref('dashboard')
+
+// ================================================================
 // AIチャット
 // ================================================================
-const chatMessages  = ref([])
-const chatInput     = ref('')
-const chatLoading   = ref(false)
-const sessionId     = ref('president-' + Date.now())
-const activeTab     = ref('dashboard') // 'dashboard' | 'chat' | 'tasks'
+const chatMessages = ref([])
+const chatInput    = ref('')
+const chatLoading  = ref(false)
+const sessionId    = ref('president-' + Date.now())
+const displayLang  = ref('ja')
 
-// 表示言語（Presidentは日本語固定）
-const displayLang = ref('ja')
+// 送信先スタッフ選択
+const selectedStaffIds = ref([])
+const staffFilter      = ref('ALL')
+
+const roleLabel = {
+  investigator_user: 'Investigasi', admin_user: 'Admin',
+  em_staff: 'Staf Umum', strategy_user: 'Strategi',
+  ai_dev_user: 'AI Dev', marketing_user: 'Marketing',
+  local_manager: 'Manajer Lokal',
+}
+const roleToDivision = {
+  investigator_user: 'INVESTIGATION', admin_user: 'ADMIN',
+  strategy_user: 'STRATEGY', ai_dev_user: 'AI_DEV',
+  marketing_user: 'MARKETING', local_manager: 'ADMIN', em_staff: 'ADMIN',
+}
+const divisionOptions = [
+  { value: 'ALL',           label: 'Semua Staf' },
+  { value: 'INVESTIGATION', label: 'Investigasi' },
+  { value: 'ADMIN',         label: 'Admin' },
+  { value: 'STRATEGY',      label: 'Strategi' },
+  { value: 'AI_DEV',        label: 'AI Dev' },
+  { value: 'MARKETING',     label: 'Marketing' },
+]
+
+const filteredStaff = computed(() => {
+  if (!props.allStaff) return []
+  if (staffFilter.value === 'ALL') return props.allStaff
+  return props.allStaff.filter(s => roleToDivision[s.role_type] === staffFilter.value)
+})
+
+function toggleStaff(id) {
+  if (selectedStaffIds.value.includes(id)) {
+    selectedStaffIds.value = selectedStaffIds.value.filter(i => i !== id)
+  } else {
+    selectedStaffIds.value.push(id)
+  }
+}
+function selectAll() {
+  selectedStaffIds.value = filteredStaff.value.map(s => s.id)
+}
+function clearSelection() {
+  selectedStaffIds.value = []
+}
 
 function getChatContent(msg) {
   if (msg.role === 'user') return msg.content_ja ?? msg.content
@@ -43,40 +90,47 @@ async function sendChat() {
   if (!chatInput.value.trim() || chatLoading.value) return
 
   const userMessage = chatInput.value.trim()
+  const targets     = [...selectedStaffIds.value]
+
+  const targetNames = targets.length > 0
+    ? (props.allStaff ?? []).filter(s => targets.includes(s.id)).map(s => s.name).join('、')
+    : '（送信先未指定）'
+
   chatMessages.value.push({
-    role: 'user', content: userMessage, content_ja: userMessage,
+    role: 'user', content: userMessage, content_ja: userMessage, targets: targetNames,
   })
-  chatInput.value = ''
-  chatLoading.value = true
+  chatInput.value    = ''
+  chatLoading.value  = true
 
   try {
     const history = chatMessages.value.slice(-6).map(m => ({
-      role: m.role === 'user' ? 'user' : 'assistant',
+      role:    m.role === 'user' ? 'user' : 'assistant',
       content: m.content_ja ?? m.content,
     }))
 
     const res = await axios.post(route('president.chat.send'), {
-      message:    userMessage,
-      session_id: sessionId.value,
-      history:    history,
+      message:      userMessage,
+      session_id:   sessionId.value,
+      history:      history,
+      assignee_ids: targets,
     })
 
     const data = res.data
     chatMessages.value.push({
-      role:       'assistant',
-      content:    data.message_ja,
-      content_ja: data.message_ja,
-      content_ko: data.message_ko,
-      content_id: data.message_id,
+      role:                'assistant',
+      content:             data.message_ja,
+      content_ja:          data.message_ja,
+      content_ko:          data.message_ko,
+      content_id:          data.message_id,
       is_task_instruction: data.is_task_instruction,
       task_order_id:       data.task_order_id,
       task_order_created:  data.task_order_created,
+      task_assigned:       data.task_assigned,
+      assignee_count:      data.assignee_count,
     })
 
-    // 業務指示が生成された場合は通知
-    if (data.task_order_created) {
-      setTimeout(() => router.reload(), 2000)
-    }
+    // 送信後に選択をリセット
+    selectedStaffIds.value = []
 
   } catch (e) {
     chatMessages.value.push({
@@ -87,8 +141,7 @@ async function sendChat() {
   } finally {
     chatLoading.value = false
     setTimeout(() => {
-      const el = document.getElementById('chat-bottom')
-      el?.scrollIntoView({ behavior: 'smooth' })
+      document.getElementById('chat-bottom')?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
   }
 }
@@ -121,10 +174,14 @@ const deptLabel = {
   ai_dev_user: 'AI Dev', marketing_user: 'Marketing',
   local_manager: 'Manajer Lokal',
 }
-const availLabel = { AVAILABLE: 'Tersedia', BUSY: 'Sibuk', ON_LEAVE: 'Cuti', SUSPENDED: 'Ditangguhkan' }
+const availLabel = {
+  AVAILABLE: 'Tersedia', BUSY: 'Sibuk', ON_LEAVE: 'Cuti', SUSPENDED: 'Ditangguhkan',
+}
 const availColor = {
-  AVAILABLE: 'bg-green-100 text-green-700', BUSY: 'bg-blue-100 text-blue-700',
-  ON_LEAVE: 'bg-yellow-100 text-yellow-700', SUSPENDED: 'bg-red-100 text-red-700',
+  AVAILABLE:  'bg-green-100 text-green-700',
+  BUSY:       'bg-blue-100 text-blue-700',
+  ON_LEAVE:   'bg-yellow-100 text-yellow-700',
+  SUSPENDED:  'bg-red-100 text-red-700',
 }
 const bandColor = { GOOD: 'text-green-600', FAIR: 'text-yellow-600', WARNING: 'text-red-600' }
 const bandLabel = { GOOD: 'Baik', FAIR: 'Cukup', WARNING: 'Peringatan' }
@@ -148,9 +205,10 @@ function formatDate(val) {
 <template>
   <div class="min-h-screen bg-gray-50">
 
-    <!-- Navbar -->
+    <!-- ── Navbar ── -->
     <div class="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
       <div class="max-w-6xl mx-auto flex items-center justify-between">
+
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 bg-purple-700 rounded-lg flex items-center justify-center text-white font-bold text-sm">
             HRI
@@ -204,11 +262,11 @@ function formatDate(val) {
         {{ flash.error }}
       </div>
 
-      <!-- ウェルカム -->
+      <!-- ウェルカムバナー -->
       <div class="bg-gradient-to-r from-purple-700 to-purple-800 rounded-2xl px-6 py-5 text-white mb-6">
         <p class="text-lg font-bold">{{ user?.name }} 様</p>
         <p class="text-purple-200 text-sm mt-1">
-          AIチャットで業務指示を送信できます。日本語で入力すると、担当者に自動翻訳して伝達します。
+          AIチャットでスタッフを選択して業務指示を直接送信できます。日本語で入力すると自動翻訳して即時割当します。
         </p>
       </div>
 
@@ -219,22 +277,22 @@ function formatDate(val) {
           <p class="text-xs text-gray-500 mt-1">総スタッフ数</p>
         </div>
         <div class="bg-white rounded-xl border p-4 text-center">
-          <p class="text-3xl font-bold text-green-600">{{ availabilityStats['AVAILABLE'] ?? 0 }}</p>
+          <p class="text-3xl font-bold text-green-600">{{ availabilityStats?.['AVAILABLE'] ?? 0 }}</p>
           <p class="text-xs text-gray-500 mt-1">稼働中スタッフ</p>
         </div>
         <div class="bg-white rounded-xl border p-4 text-center cursor-pointer" @click="activeTab = 'salary'">
-          <p class="text-3xl font-bold text-yellow-500">{{ draftSalaries.length }}</p>
+          <p class="text-3xl font-bold text-yellow-500">{{ draftSalaries?.length ?? 0 }}</p>
           <p class="text-xs text-gray-500 mt-1">給与承認待ち</p>
         </div>
         <div class="bg-white rounded-xl border p-4 text-center">
-          <p class="text-3xl font-bold text-blue-600">{{ activePayrolls.length }}</p>
+          <p class="text-3xl font-bold text-blue-600">{{ activePayrolls?.length ?? 0 }}</p>
           <p class="text-xs text-gray-500 mt-1">支払い進行中</p>
         </div>
       </div>
 
-      <!-- ══════════════════════════════════════════ -->
-      <!-- タブ: ダッシュボード -->
-      <!-- ══════════════════════════════════════════ -->
+      <!-- ════════════════════════════════════ -->
+      <!-- タブ: ダッシュボード                 -->
+      <!-- ════════════════════════════════════ -->
       <div v-if="activeTab === 'dashboard'">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
@@ -249,7 +307,7 @@ function formatDate(val) {
                   {{ count }} 名
                 </span>
               </div>
-              <p v-if="Object.keys(staffByDept).length === 0"
+              <p v-if="!staffByDept || Object.keys(staffByDept).length === 0"
                 class="text-sm text-gray-400 text-center py-2">データなし</p>
             </div>
           </div>
@@ -265,7 +323,7 @@ function formatDate(val) {
                 </span>
                 <span class="text-sm font-semibold text-gray-800">{{ count }} 名</span>
               </div>
-              <p v-if="Object.keys(availabilityStats).length === 0"
+              <p v-if="!availabilityStats || Object.keys(availabilityStats).length === 0"
                 class="text-sm text-gray-400 text-center py-2">データなし</p>
             </div>
           </div>
@@ -277,7 +335,7 @@ function formatDate(val) {
             <h2 class="font-semibold text-gray-700">🔍 直近の操作履歴</h2>
           </div>
           <div class="divide-y divide-gray-100">
-            <div v-if="recentLogs.length === 0"
+            <div v-if="!recentLogs || recentLogs.length === 0"
               class="px-5 py-6 text-center text-gray-400 text-sm">履歴なし</div>
             <div v-for="log in recentLogs" :key="log.id"
               class="px-5 py-3 flex items-start justify-between gap-4">
@@ -295,158 +353,229 @@ function formatDate(val) {
         </div>
       </div>
 
-      <!-- ══════════════════════════════════════════ -->
-      <!-- タブ: AI指示チャット -->
-      <!-- ══════════════════════════════════════════ -->
-      <div v-if="activeTab === 'chat'" class="bg-white rounded-xl border overflow-hidden">
+      <!-- ════════════════════════════════════ -->
+      <!-- タブ: AI指示チャット                 -->
+      <!-- ════════════════════════════════════ -->
+      <div v-if="activeTab === 'chat'" class="space-y-4">
 
-        <!-- チャットヘッダー -->
-        <div class="px-5 py-4 border-b bg-purple-50 flex items-center justify-between">
-          <div>
-            <h2 class="font-semibold text-purple-800">💬 AI業務指示チャット</h2>
-            <p class="text-xs text-purple-600 mt-0.5">
-              日本語で入力 → 担当者には自動翻訳（韓国語・インドネシア語）で伝達
-            </p>
-          </div>
-          <!-- 表示言語切替（確認用） -->
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">表示言語：</span>
-            <select v-model="displayLang" class="border rounded px-2 py-1 text-xs">
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
-              <option value="id">Bahasa Indonesia</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- チャット本文 -->
-        <div class="h-96 overflow-y-auto p-5 space-y-4 bg-gray-50">
-          <!-- 初期メッセージ -->
-          <div v-if="chatMessages.length === 0"
-            class="flex justify-center items-center h-full">
-            <div class="text-center text-gray-400">
-              <p class="text-4xl mb-3">🤖</p>
-              <p class="text-sm font-medium">AIアシスタントへようこそ</p>
-              <p class="text-xs mt-1">業務指示や質問を日本語で入力してください</p>
-              <div class="mt-4 space-y-2">
-                <button @click="chatInput = 'インドネシア市場の最新調査をしてください'"
-                  class="block w-full text-left text-xs bg-white border rounded-lg px-3 py-2 hover:bg-purple-50 text-gray-600">
-                  💡 「インドネシア市場の最新調査をしてください」
-                </button>
-                <button @click="chatInput = '調査部に新規申請者Aの学歴調査を依頼してください'"
-                  class="block w-full text-left text-xs bg-white border rounded-lg px-3 py-2 hover:bg-purple-50 text-gray-600">
-                  💡 「調査部に新規申請者Aの学歴調査を依頼してください」
-                </button>
-                <button @click="chatInput = '現在の稼働状況を教えてください'"
-                  class="block w-full text-left text-xs bg-white border rounded-lg px-3 py-2 hover:bg-purple-50 text-gray-600">
-                  💡 「現在の稼働状況を教えてください」
-                </button>
-              </div>
+        <!-- 送信先スタッフ選択パネル -->
+        <div class="bg-white rounded-xl border overflow-hidden">
+          <div class="px-5 py-3 bg-indigo-50 border-b flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-3">
+              <h3 class="font-semibold text-indigo-800 text-sm">👥 送信先を選択</h3>
+              <span class="text-xs text-indigo-500">
+                {{ selectedStaffIds.length > 0 ? selectedStaffIds.length + '名選択中' : '未選択（指示のみ生成）' }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <select v-model="staffFilter"
+                class="border border-indigo-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-300">
+                <option v-for="d in divisionOptions" :key="d.value" :value="d.value">
+                  {{ d.label }}
+                </option>
+              </select>
+              <button @click="selectAll"
+                class="text-xs text-indigo-600 hover:text-indigo-800 border border-indigo-200 px-2 py-1 rounded">
+                全選択
+              </button>
+              <button @click="clearSelection"
+                class="text-xs text-gray-500 hover:text-gray-700 border px-2 py-1 rounded">
+                解除
+              </button>
             </div>
           </div>
-
-          <!-- メッセージ一覧 -->
-          <div v-for="(msg, idx) in chatMessages" :key="idx"
-            :class="['flex', msg.role === 'user' ? 'justify-end' : 'justify-start']">
-            <div :class="['max-w-lg rounded-xl px-4 py-3 text-sm',
-              msg.role === 'user'
-                ? 'bg-purple-600 text-white'
-                : 'bg-white border text-gray-800 shadow-sm']">
-
-              <!-- AI返答の場合：翻訳表示 -->
-              <div v-if="msg.role === 'assistant'">
-                <p class="whitespace-pre-wrap">{{ getChatContent(msg) }}</p>
-
-                <!-- 言語切替バッジ -->
-                <div class="flex gap-1 mt-2">
-                  <button @click="displayLang = 'ja'"
-                    :class="['text-xs px-2 py-0.5 rounded', displayLang === 'ja' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500']">
-                    日本語
-                  </button>
-                  <button @click="displayLang = 'ko'"
-                    :class="['text-xs px-2 py-0.5 rounded', displayLang === 'ko' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500']">
-                    한국어
-                  </button>
-                  <button @click="displayLang = 'id'"
-                    :class="['text-xs px-2 py-0.5 rounded', displayLang === 'id' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']">
-                    Bahasa
-                  </button>
-                </div>
-
-                <!-- 業務指示生成通知 -->
-                <div v-if="msg.task_order_created"
-                  class="mt-2 bg-yellow-50 border border-yellow-200 rounded px-3 py-2">
-                  <p class="text-xs text-yellow-700 font-medium">
-                    ✅ 業務指示を生成しました（DRAFT状態）
-                  </p>
-                  <p class="text-xs text-yellow-600 mt-0.5">
-                    マネージャーの承認後に担当者へ割り当てられます
-                  </p>
-                </div>
-              </div>
-
-              <!-- ユーザーメッセージ -->
-              <p v-else class="whitespace-pre-wrap">{{ msg.content_ja ?? msg.content }}</p>
-            </div>
-          </div>
-
-          <!-- ローディング -->
-          <div v-if="chatLoading" class="flex justify-start">
-            <div class="bg-white border rounded-xl px-4 py-3 shadow-sm">
-              <div class="flex items-center gap-2">
-                <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-                <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-                <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="chat-bottom"></div>
-        </div>
-
-        <!-- 入力エリア -->
-        <div class="px-5 py-4 border-t bg-white">
-          <div class="flex gap-3">
-            <textarea
-              v-model="chatInput"
-              @keydown="handleEnter"
-              placeholder="業務指示や質問を日本語で入力してください... (Enterで送信、Shift+Enterで改行)"
-              rows="2"
-              class="flex-1 border rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
-            ></textarea>
+          <div class="px-4 py-3 flex flex-wrap gap-2 min-h-12">
+            <p v-if="filteredStaff.length === 0"
+              class="text-xs text-gray-400 py-1">対象スタッフなし</p>
             <button
-              @click="sendChat"
-              :disabled="chatLoading || !chatInput.trim()"
-              :class="['px-5 py-3 rounded-xl text-sm font-medium transition',
-                chatLoading || !chatInput.trim()
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-purple-600 text-white hover:bg-purple-700']">
-              {{ chatLoading ? '送信中...' : '送信' }}
+              v-for="s in filteredStaff" :key="s.id"
+              @click="toggleStaff(s.id)"
+              :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition',
+                selectedStaffIds.includes(s.id)
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300']">
+              <span>{{ s.name }}</span>
+              <span :class="selectedStaffIds.includes(s.id) ? 'text-indigo-200' : 'text-gray-400'">
+                {{ roleLabel[s.role_type] ?? s.role_type }}
+              </span>
             </button>
           </div>
-          <p class="text-xs text-gray-400 mt-2">
-            💡 業務指示は自動で韓国語・インドネシア語に翻訳され、担当者に伝達されます
-          </p>
+        </div>
+
+        <!-- チャット本体 -->
+        <div class="bg-white rounded-xl border overflow-hidden">
+          <div class="px-5 py-4 border-b bg-purple-50 flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h2 class="font-semibold text-purple-800">💬 AI業務指示チャット</h2>
+              <p class="text-xs text-purple-600 mt-0.5">
+                日本語で入力 → 自動翻訳（韓国語・インドネシア語）して担当者に即時割当
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500">表示言語：</span>
+              <select v-model="displayLang" class="border rounded px-2 py-1 text-xs">
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="id">Bahasa Indonesia</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- チャット本文 -->
+          <div class="h-96 overflow-y-auto p-5 space-y-4 bg-gray-50">
+
+            <!-- 初期メッセージ -->
+            <div v-if="chatMessages.length === 0"
+              class="flex justify-center items-center h-full">
+              <div class="text-center text-gray-400">
+                <p class="text-4xl mb-3">🤖</p>
+                <p class="text-sm font-medium">上のパネルで送信先を選択してから指示を入力してください</p>
+                <p class="text-xs mt-1 text-gray-400">送信先未指定でも指示を生成できます（Managerが後で割当）</p>
+                <div class="mt-4 space-y-2">
+                  <button @click="chatInput = '調査部に新規申請者の学歴調査を依頼してください'"
+                    class="block w-full text-left text-xs bg-white border rounded-lg px-3 py-2 hover:bg-purple-50 text-gray-600">
+                    💡 「調査部に新規申請者の学歴調査を依頼してください」
+                  </button>
+                  <button @click="chatInput = 'マーケティング部にインドネシア市場調査レポートを作成してください'"
+                    class="block w-full text-left text-xs bg-white border rounded-lg px-3 py-2 hover:bg-purple-50 text-gray-600">
+                    💡 「マーケティング部にインドネシア市場調査レポートを作成してください」
+                  </button>
+                  <button @click="chatInput = '全スタッフの今週の業務報告を提出してください'"
+                    class="block w-full text-left text-xs bg-white border rounded-lg px-3 py-2 hover:bg-purple-50 text-gray-600">
+                    💡 「全スタッフの今週の業務報告を提出してください」
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- メッセージ一覧 -->
+            <div v-for="(msg, idx) in chatMessages" :key="idx"
+              :class="['flex', msg.role === 'user' ? 'justify-end' : 'justify-start']">
+              <div :class="['max-w-lg rounded-xl px-4 py-3 text-sm',
+                msg.role === 'user'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white border text-gray-800 shadow-sm']">
+
+                <!-- AI返答 -->
+                <div v-if="msg.role === 'assistant'">
+                  <p class="whitespace-pre-wrap">{{ getChatContent(msg) }}</p>
+
+                  <!-- 言語切替バッジ -->
+                  <div class="flex gap-1 mt-2">
+                    <button @click="displayLang = 'ja'"
+                      :class="['text-xs px-2 py-0.5 rounded',
+                        displayLang === 'ja' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500']">
+                      日本語
+                    </button>
+                    <button @click="displayLang = 'ko'"
+                      :class="['text-xs px-2 py-0.5 rounded',
+                        displayLang === 'ko' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500']">
+                      한국어
+                    </button>
+                    <button @click="displayLang = 'id'"
+                      :class="['text-xs px-2 py-0.5 rounded',
+                        displayLang === 'id' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']">
+                      Bahasa
+                    </button>
+                  </div>
+
+                  <!-- 業務指示生成・割当通知 -->
+                  <div v-if="msg.task_order_created"
+                    :class="['mt-2 rounded px-3 py-2 border',
+                      msg.task_assigned
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-yellow-50 border-yellow-200']">
+                    <p :class="['text-xs font-medium',
+                      msg.task_assigned ? 'text-green-700' : 'text-yellow-700']">
+                      ✅ 業務指示を即時発令しました
+                    </p>
+                    <p v-if="msg.task_assigned"
+                      class="text-xs text-green-600 mt-0.5">
+                      {{ msg.assignee_count }}名に割当済み（Manager承認不要）
+                    </p>
+                    <p v-else class="text-xs text-yellow-600 mt-0.5">
+                      送信先未指定のため割当なし。Managerが割当できます。
+                    </p>
+                  </div>
+                </div>
+
+                <!-- ユーザーメッセージ -->
+                <div v-else>
+                  <p class="whitespace-pre-wrap">{{ msg.content_ja ?? msg.content }}</p>
+                  <p v-if="msg.targets"
+                    class="text-xs text-purple-200 mt-1">
+                    📤 送信先: {{ msg.targets }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- ローディング -->
+            <div v-if="chatLoading" class="flex justify-start">
+              <div class="bg-white border rounded-xl px-4 py-3 shadow-sm">
+                <div class="flex items-center gap-2">
+                  <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay:0ms"></div>
+                  <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay:150ms"></div>
+                  <div class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay:300ms"></div>
+                </div>
+              </div>
+            </div>
+
+            <div id="chat-bottom"></div>
+          </div>
+
+          <!-- 入力エリア -->
+          <div class="px-5 py-4 border-t bg-white">
+            <!-- 選択中スタッフ表示 -->
+            <div v-if="selectedStaffIds.length > 0" class="mb-2 flex flex-wrap gap-1 items-center">
+              <span class="text-xs text-gray-500">送信先:</span>
+              <span v-for="id in selectedStaffIds" :key="id"
+                class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                {{ (allStaff ?? []).find(s => s.id === id)?.name ?? id }}
+              </span>
+            </div>
+            <div class="flex gap-3">
+              <textarea
+                v-model="chatInput"
+                @keydown="handleEnter"
+                placeholder="業務指示や質問を日本語で入力... (Enterで送信、Shift+Enterで改行)"
+                rows="2"
+                class="flex-1 border rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
+              ></textarea>
+              <button
+                @click="sendChat"
+                :disabled="chatLoading || !chatInput.trim()"
+                :class="['px-5 py-3 rounded-xl text-sm font-medium transition',
+                  chatLoading || !chatInput.trim()
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-purple-600 text-white hover:bg-purple-700']">
+                {{ chatLoading ? '送信中...' : '送信' }}
+              </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">
+              💡 送信先を選択すると即時割当 / 未選択の場合はManagerが割当できます
+            </p>
+          </div>
         </div>
       </div>
 
-      <!-- ══════════════════════════════════════════ -->
-      <!-- タブ: 給与承認 -->
-      <!-- ══════════════════════════════════════════ -->
+      <!-- ════════════════════════════════════ -->
+      <!-- タブ: 給与承認                       -->
+      <!-- ════════════════════════════════════ -->
       <div v-if="activeTab === 'salary'">
 
         <!-- 給与承認待ち -->
         <div class="bg-white rounded-xl border mb-6 overflow-hidden">
-          <div class="px-5 py-4 border-b bg-yellow-50 flex items-center justify-between">
+          <div class="px-5 py-4 border-b bg-yellow-50">
             <h2 class="font-semibold text-gray-700">
               ⏳ 給与承認待ち
-              <span v-if="draftSalaries.length > 0"
+              <span v-if="draftSalaries?.length > 0"
                 class="ml-2 bg-yellow-400 text-white text-xs px-2 py-0.5 rounded-full">
                 {{ draftSalaries.length }}
               </span>
             </h2>
           </div>
-          <div v-if="draftSalaries.length === 0"
+          <div v-if="!draftSalaries || draftSalaries.length === 0"
             class="px-5 py-6 text-center text-gray-400 text-sm">承認待ちの給与計算はありません</div>
           <table v-else class="w-full text-sm">
             <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
@@ -495,7 +624,7 @@ function formatDate(val) {
           <div class="px-5 py-4 border-b bg-gray-50">
             <h2 class="font-semibold text-gray-700">🏦 支払い進行中</h2>
           </div>
-          <div v-if="activePayrolls.length === 0"
+          <div v-if="!activePayrolls || activePayrolls.length === 0"
             class="px-5 py-6 text-center text-gray-400 text-sm">進行中の支払いはありません</div>
           <table v-else class="w-full text-sm">
             <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
