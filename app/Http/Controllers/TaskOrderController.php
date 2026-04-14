@@ -192,6 +192,72 @@ class TaskOrderController extends Controller
     }
 
     // ─────────────────────────────────────────────
+    // マネージャー側：Presidentからの DRAFT 指示を承認
+    // ─────────────────────────────────────────────
+    public function approve($id)
+    {
+        $manager = Auth::user();
+        $order   = AiTaskOrder::findOrFail($id);
+
+        if ($order->approval_status !== AiTaskOrder::APPROVAL_DRAFT) {
+            return back()->withErrors(['error' => 'Instruksi ini tidak dalam status DRAFT.']);
+        }
+
+        $request = request();
+        $request->validate([
+            'assignee_ids'   => 'required|array|min:1',
+            'assignee_ids.*' => 'integer|exists:users,id',
+        ]);
+
+        DB::transaction(function () use ($order, $manager, $request) {
+
+            // APPROVED に昇格
+            $order->update([
+                'approval_status'      => AiTaskOrder::APPROVAL_APPROVED,
+                'approver_user_id'     => $manager->id,
+                'ai_processing_status' => AiTaskOrder::AI_ASSIGNED,
+            ]);
+
+            // 担当者割当
+            foreach ($request->assignee_ids as $userId) {
+
+                $assignmentData = [
+                    'task_order_id'    => $order->id,
+                    'employee_user_id' => $userId,
+                    'task_status'      => AiTaskAssignment::STATUS_ASSIGNED,
+                    'assigned_by_ai_at'=> now(),
+                    'due_at'           => $order->due_at,
+                ];
+
+                if (in_array('order_no', (new AiTaskAssignment())->getFillable())) {
+                    $assignmentData['order_no'] = $order->order_no;
+                }
+
+                AiTaskAssignment::create($assignmentData);
+
+                $avail = StaffAvailability::where('staff_user_id', $userId)->first();
+                if ($avail) {
+                    $avail->incrementTaskCount();
+                }
+            }
+
+            AuditLog::recordHuman(
+                'TASK_ORDER_APPROVED',
+                null,
+                [
+                    'new' => [
+                        'order_no'       => $order->order_no,
+                        'approver_id'    => $manager->id,
+                        'assignee_count' => count($request->assignee_ids),
+                    ],
+                ]
+            );
+        });
+
+        return back()->with('success', 'Instruksi dari President telah disetujui dan ditugaskan.');
+    }
+
+    // ─────────────────────────────────────────────
     // スタッフ側：自分宛て指示一覧
     // ─────────────────────────────────────────────
     public function staffIndex()

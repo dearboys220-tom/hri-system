@@ -16,7 +16,7 @@ const menuItems = [
         label: 'Instruksi Tugas',
         href:  '/manager/task-orders',
         icon:  '📋',
-        desc:  'Buat dan kelola instruksi kerja untuk staf',
+        desc:  'Buat dan kelola instruksi kerja — termasuk persetujuan instruksi dari President',
     },
     {
         label: 'Laporan Tugas',

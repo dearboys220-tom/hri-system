@@ -1,308 +1,431 @@
-<template>
-    <div class="min-h-screen bg-gray-50 py-8 px-4">
-        <div class="max-w-5xl mx-auto space-y-6">
-
-            <!-- ヘッダー -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-bold text-gray-800">📋 Manajemen Instruksi Tugas</h1>
-                    <p class="text-sm text-gray-500 mt-1">Buat dan kelola instruksi kerja untuk staf.</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <a :href="route('manager.dashboard')"
-                       class="text-sm text-blue-500 hover:underline flex items-center gap-1">
-                        ← Dashboard
-                    </a>
-                    <button @click="showForm = !showForm"
-                            class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
-                        {{ showForm ? '✕ Tutup' : '＋ Buat Instruksi' }}
-                    </button>
-                </div>
-            </div>
-
-            <!-- フラッシュ -->
-            <div v-if="$page.props.flash?.success"
-                 class="bg-green-50 border border-green-200 text-green-700 rounded-xl px-5 py-3 text-sm">
-                ✅ {{ $page.props.flash.success }}
-            </div>
-
-            <!-- 作成フォーム -->
-            <div v-if="showForm" class="bg-white rounded-2xl shadow-sm border border-blue-100 p-6">
-                <h2 class="font-semibold text-gray-700 mb-4">Formulir Instruksi Baru</h2>
-
-                <div class="space-y-4">
-
-                    <!-- タイトル -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Judul Instruksi *</label>
-                        <input type="text" v-model="form.title"
-                               placeholder="Contoh: Riset pasar tenaga kerja Q2 2026"
-                               class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-                        <p v-if="errors.title" class="text-red-500 text-xs mt-1">{{ errors.title }}</p>
-                    </div>
-
-                    <!-- 詳細 -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Detail Instruksi *</label>
-                        <textarea v-model="form.description" rows="4"
-                                  placeholder="Jelaskan secara detail apa yang harus dilakukan, metode pelaksanaan, dan hasil yang diharapkan..."
-                                  class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"></textarea>
-                        <p v-if="errors.description" class="text-red-500 text-xs mt-1">{{ errors.description }}</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                        <!-- 対象部署 -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Divisi Target *</label>
-                            <select v-model="form.target_division"
-                                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                <option value="">-- Pilih Divisi --</option>
-                                <option value="INVESTIGATION">Investigasi</option>
-                                <option value="ADMIN">Manajemen Audit</option>
-                                <option value="STRATEGY">Manajemen Strategi</option>
-                                <option value="AI_DEV">Pengembangan AI</option>
-                                <option value="MARKETING">Marketing</option>
-                            </select>
-                            <p v-if="errors.target_division" class="text-red-500 text-xs mt-1">{{ errors.target_division }}</p>
-                        </div>
-
-                        <!-- 優先度 -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Prioritas *</label>
-                            <select v-model="form.priority"
-                                    class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                <option value="LOW">🟢 Rendah</option>
-                                <option value="NORMAL">🔵 Normal</option>
-                                <option value="HIGH">🟠 Tinggi</option>
-                                <option value="URGENT">🔴 Mendesak</option>
-                            </select>
-                        </div>
-
-                        <!-- 期限 -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Batas Waktu</label>
-                            <input type="date" v-model="form.due_date"
-                                   class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
-                        </div>
-                    </div>
-
-                    <!-- 担当者選択 -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Pilih Staf yang Ditugaskan *
-                            <span class="text-xs text-gray-400 ml-1">（空きスタッフのみ表示）</span>
-                        </label>
-
-                        <div v-if="availableStaff.length === 0"
-                             class="text-sm text-gray-400 bg-gray-50 rounded-xl p-4 text-center">
-                            Tidak ada staf yang tersedia saat ini.
-                        </div>
-
-                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <label v-for="staff in availableStaff" :key="staff.user_id"
-                                   :class="form.assignee_ids.includes(staff.user_id)
-                                       ? 'border-blue-400 bg-blue-50'
-                                       : 'border-gray-200 bg-white hover:bg-gray-50'"
-                                   class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition">
-                                <input type="checkbox" :value="staff.user_id" v-model="form.assignee_ids"
-                                       class="rounded" />
-                                <div>
-                                    <p class="text-sm font-medium text-gray-800">{{ staff.name }}</p>
-                                    <p class="text-xs text-gray-400">
-                                        {{ roleLabel(staff.role_type) }} ·
-                                        {{ deptLabel(staff.department_code) }} ·
-                                        {{ staff.active_task_count }}件対応中
-                                    </p>
-                                </div>
-                            </label>
-                        </div>
-                        <p v-if="errors.assignee_ids" class="text-red-500 text-xs mt-1">{{ errors.assignee_ids }}</p>
-                    </div>
-
-                    <button @click="submitOrder" :disabled="loading"
-                            class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition text-sm">
-                        {{ loading ? 'Mengirim...' : '📤 Buat & Tugaskan' }}
-                    </button>
-                </div>
-            </div>
-
-            <!-- 指示一覧 -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h2 class="font-semibold text-gray-700 mb-4">Daftar Instruksi</h2>
-
-                <div v-if="orders.length === 0" class="text-sm text-gray-400 text-center py-6">
-                    Belum ada instruksi.
-                </div>
-
-                <div class="space-y-4">
-                    <div v-for="order in orders" :key="order.id"
-                         class="border border-gray-100 rounded-xl p-4">
-
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span :class="priorityClass(order.priority)"
-                                          class="text-xs font-bold px-2 py-0.5 rounded-full">
-                                        {{ priorityLabel(order.priority) }}
-                                    </span>
-                                    <p class="font-semibold text-gray-800 text-sm">{{ order.title }}</p>
-                                    <span :class="statusClass(order.approval_status)"
-                                          class="text-xs font-medium px-2 py-0.5 rounded-full">
-                                        {{ statusLabel(order.approval_status) }}
-                                    </span>
-                                </div>
-
-                                <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ order.description }}</p>
-
-                                <div class="flex gap-3 mt-2 text-xs text-gray-400 flex-wrap">
-                                    <span>📅 Dibuat: {{ order.created_at }}</span>
-                                    <span v-if="order.due_date">⏰ Batas: {{ order.due_date }}</span>
-                                </div>
-
-                                <!-- 担当者タグ -->
-                                <div class="flex flex-wrap gap-2 mt-2">
-                                    <span v-for="a in order.assignments" :key="a.id"
-                                          :class="assignStatusClass(a.task_status)"
-                                          class="text-xs px-2 py-1 rounded-full border">
-                                        {{ a.staff_name }} — {{ assignStatusLabel(a.task_status) }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- キャンセルボタン -->
-                            <button v-if="['DRAFT','APPROVED'].includes(order.approval_status)"
-                                    @click="confirmCancel(order)"
-                                    class="text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-xl transition whitespace-nowrap">
-                                キャンセル
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- キャンセル確認モーダル -->
-    <div v-if="cancelTarget"
-         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h3 class="font-bold text-gray-800 mb-2">⚠️ Batalkan Instruksi?</h3>
-            <p class="text-sm text-gray-600 mb-4">
-                「{{ cancelTarget.title }}」を本当にキャンセルしますか？割当済みの担当者の指示も取り消されます。
-            </p>
-            <div class="flex gap-3">
-                <button @click="cancelTarget = null"
-                        class="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition">
-                    戻る
-                </button>
-                <button @click="submitCancel"
-                        class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl text-sm transition">
-                    キャンセルする
-                </button>
-            </div>
-        </div>
-    </div>
-</template>
-
 <script setup>
-import { ref } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 
 const props = defineProps({
-    orders:         Array,
-    availableStaff: Array,
+  orders:         Array,
+  availableStaff: Array,
 })
 
-const showForm    = ref(false)
-const loading     = ref(false)
-const errors      = ref({})
-const cancelTarget = ref(null)
+const page  = usePage()
+const flash = computed(() => page.props.flash ?? {})
 
+// ── タブ ──
+const activeTab = ref('draft') // 'draft' | 'active' | 'done'
+
+const draftOrders  = computed(() => props.orders.filter(o => o.approval_status === 'DRAFT'))
+const activeOrders = computed(() => props.orders.filter(o =>
+  ['APPROVED', 'IN_PROGRESS'].includes(o.approval_status)))
+const doneOrders   = computed(() => props.orders.filter(o =>
+  ['COMPLETED', 'CANCELLED', 'CLOSED'].includes(o.approval_status)))
+
+// ── 承認モーダル ──
+const approveModal   = ref(false)
+const approveTarget  = ref(null)
+const selectedStaff  = ref([])
+
+function openApproveModal(order) {
+  approveTarget.value = order
+  selectedStaff.value = []
+  approveModal.value  = true
+}
+function closeApproveModal() {
+  approveModal.value = false
+  approveTarget.value = null
+  selectedStaff.value = []
+}
+function toggleStaff(userId) {
+  if (selectedStaff.value.includes(userId)) {
+    selectedStaff.value = selectedStaff.value.filter(id => id !== userId)
+  } else {
+    selectedStaff.value.push(userId)
+  }
+}
+function submitApprove() {
+  if (selectedStaff.value.length === 0) {
+    alert('担当者を1名以上選択してください。')
+    return
+  }
+  router.post(route('manager.task-orders.approve', approveTarget.value.id), {
+    assignee_ids: selectedStaff.value,
+  }, {
+    onSuccess: closeApproveModal,
+  })
+}
+
+// ── 新規作成モーダル ──
+const createModal = ref(false)
 const form = ref({
-    title:           '',
-    description:     '',
-    target_division: '',
-    priority:        'NORMAL',
-    due_date:        '',
-    assignee_ids:    [],
+  title: '', description: '', target_division: 'ADMIN',
+  priority: 'NORMAL', due_date: '', assignee_ids: [],
 })
-
-const submitOrder = () => {
-    loading.value = true
-    errors.value  = {}
-    router.post(route('manager.task-orders.store'), form.value, {
-        onSuccess: () => {
-            showForm.value = false
-            form.value = {
-                title: '', description: '', target_division: '',
-                priority: 'NORMAL', due_date: '', assignee_ids: [],
-            }
-        },
-        onError:  (e) => { errors.value = e },
-        onFinish: ()  => { loading.value = false },
-    })
+function openCreateModal() {
+  form.value = {
+    title: '', description: '', target_division: 'ADMIN',
+    priority: 'NORMAL', due_date: '', assignee_ids: [],
+  }
+  createModal.value = true
+}
+function toggleFormStaff(userId) {
+  if (form.value.assignee_ids.includes(userId)) {
+    form.value.assignee_ids = form.value.assignee_ids.filter(id => id !== userId)
+  } else {
+    form.value.assignee_ids.push(userId)
+  }
+}
+function submitCreate() {
+  if (!form.value.title || !form.value.description) {
+    alert('Judul dan deskripsi wajib diisi.')
+    return
+  }
+  if (form.value.assignee_ids.length === 0) {
+    alert('Pilih minimal 1 staf.')
+    return
+  }
+  router.post(route('manager.task-orders.store'), form.value, {
+    onSuccess: () => { createModal.value = false },
+  })
 }
 
-const confirmCancel = (order) => { cancelTarget.value = order }
-const submitCancel  = () => {
-    router.post(route('manager.task-orders.cancel', cancelTarget.value.id), {}, {
-        onSuccess: () => { cancelTarget.value = null },
-    })
+// ── キャンセル ──
+function cancelOrder(order) {
+  if (!confirm('Batalkan instruksi ini?')) return
+  router.post(route('manager.task-orders.cancel', order.id))
 }
 
-const priorityLabel = (p) => ({
-    LOW: '🟢 Rendah', NORMAL: '🔵 Normal',
-    HIGH: '🟠 Tinggi', URGENT: '🔴 Mendesak',
-}[p] ?? p)
-
-const priorityClass = (p) => ({
-    LOW:    'bg-green-100 text-green-700',
-    NORMAL: 'bg-blue-100 text-blue-700',
-    HIGH:   'bg-orange-100 text-orange-700',
-    URGENT: 'bg-red-100 text-red-700',
-}[p] ?? 'bg-gray-100 text-gray-600')
-
-const statusLabel = (s) => ({
-    DRAFT: 'Draft', PENDING_APPROVAL: 'Menunggu', APPROVED: 'Disetujui',
-    IN_PROGRESS: 'Berjalan', COMPLETED: 'Selesai',
-    CANCELLED: 'Dibatalkan', CLOSED: 'Ditutup',
-}[s] ?? s)
-
-const statusClass = (s) => ({
-    APPROVED:    'bg-green-100 text-green-700',
-    IN_PROGRESS: 'bg-blue-100 text-blue-700',
-    COMPLETED:   'bg-gray-100 text-gray-600',
-    CANCELLED:   'bg-red-100 text-red-500',
-}[s] ?? 'bg-yellow-100 text-yellow-700')
-
-const assignStatusLabel = (s) => ({
-    ASSIGNED:    'Ditugaskan',
-    ACKNOWLEDGED:'Diterima',
-    IN_PROGRESS: 'Berjalan',
-    COMPLETED:   'Selesai',
-    ESCALATED:   'Eskalasi',
-    FAILED:      'Gagal',
-}[s] ?? s)
-
-const assignStatusClass = (s) => ({
-    ASSIGNED:    'bg-yellow-50 text-yellow-700 border-yellow-200',
-    ACKNOWLEDGED:'bg-purple-50 text-purple-700 border-purple-200',
-    IN_PROGRESS: 'bg-blue-50 text-blue-700 border-blue-200',
-    COMPLETED:   'bg-green-50 text-green-700 border-green-200',
-    ESCALATED:   'bg-red-50 text-red-700 border-red-200',
-    FAILED:      'bg-gray-50 text-gray-500 border-gray-200',
-}[s] ?? 'bg-gray-50 text-gray-500 border-gray-200')
-
-const roleLabel = (r) => ({
-    investigator_user: 'Investigator', admin_user: 'Admin',
-    em_staff: 'Staff', strategy_user: 'Strategy',
-    ai_dev_user: 'AI Dev', marketing_user: 'Marketing',
-}[r] ?? r)
-
-const deptLabel = (d) => ({
-    INVESTIGATION: 'Investigasi', ADMIN: 'Admin',
-    STRATEGY: 'Strategi', AI_DEV: 'AI Dev', MARKETING: 'Marketing',
-}[d] ?? d)
+// ── ラベル ──
+const divisionLabel = {
+  INVESTIGATION: 'Investigasi', ADMIN: 'Admin',
+  STRATEGY: 'Strategi', AI_DEV: 'AI Dev', MARKETING: 'Marketing',
+}
+const priorityColor = {
+  URGENT: 'bg-red-100 text-red-700', HIGH: 'bg-orange-100 text-orange-700',
+  NORMAL: 'bg-blue-100 text-blue-700', LOW: 'bg-gray-100 text-gray-600',
+}
+const statusLabel = {
+  DRAFT: 'Menunggu Persetujuan', APPROVED: 'Disetujui',
+  IN_PROGRESS: 'Berlangsung', COMPLETED: 'Selesai',
+  CANCELLED: 'Dibatalkan', CLOSED: 'Ditutup',
+}
+const statusColor = {
+  DRAFT: 'bg-yellow-100 text-yellow-700',
+  APPROVED: 'bg-blue-100 text-blue-700',
+  IN_PROGRESS: 'bg-indigo-100 text-indigo-700',
+  COMPLETED: 'bg-green-100 text-green-700',
+  CANCELLED: 'bg-red-100 text-red-700',
+  CLOSED: 'bg-gray-100 text-gray-600',
+}
+const taskStatusLabel = {
+  ASSIGNED: 'Ditugaskan', ACKNOWLEDGED: 'Diterima',
+  IN_PROGRESS: 'Berlangsung', COMPLETED: 'Selesai',
+  DELAYED: 'Terlambat', ESCALATED: 'Dieskalasi', FAILED: 'Gagal',
+}
 </script>
+
+<template>
+  <div class="min-h-screen bg-gray-50">
+
+    <!-- Navbar -->
+    <div class="bg-white border-b px-6 py-4">
+      <div class="max-w-5xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="/manager/dashboard" class="text-gray-400 hover:text-indigo-600 text-sm">← Dashboard</a>
+          <span class="text-gray-300">|</span>
+          <h1 class="font-bold text-gray-800">Instruksi Tugas</h1>
+        </div>
+        <button @click="openCreateModal"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">
+          + Buat Instruksi
+        </button>
+      </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-6 py-6">
+
+      <!-- Flash -->
+      <div v-if="flash.success"
+        class="mb-4 bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded text-sm">
+        {{ flash.success }}
+      </div>
+      <div v-if="flash.error"
+        class="mb-4 bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded text-sm">
+        {{ flash.error }}
+      </div>
+
+      <!-- タブ -->
+      <div class="flex gap-1 bg-gray-100 rounded-lg p-1 mb-6 w-fit">
+        <button @click="activeTab = 'draft'"
+          :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+            activeTab === 'draft' ? 'bg-white shadow text-yellow-700' : 'text-gray-500']">
+          ⏳ Menunggu Persetujuan
+          <span v-if="draftOrders.length > 0"
+            class="ml-1 bg-yellow-400 text-white text-xs px-1.5 py-0.5 rounded-full">
+            {{ draftOrders.length }}
+          </span>
+        </button>
+        <button @click="activeTab = 'active'"
+          :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+            activeTab === 'active' ? 'bg-white shadow text-indigo-700' : 'text-gray-500']">
+          🔄 Aktif
+          <span v-if="activeOrders.length > 0"
+            class="ml-1 bg-indigo-400 text-white text-xs px-1.5 py-0.5 rounded-full">
+            {{ activeOrders.length }}
+          </span>
+        </button>
+        <button @click="activeTab = 'done'"
+          :class="['px-4 py-2 rounded-md text-sm font-medium transition',
+            activeTab === 'done' ? 'bg-white shadow text-green-700' : 'text-gray-500']">
+          ✅ Selesai / Dibatalkan
+        </button>
+      </div>
+
+      <!-- ── DRAFT タブ ── -->
+      <div v-if="activeTab === 'draft'">
+        <div v-if="draftOrders.length === 0"
+          class="bg-white rounded-xl border px-6 py-10 text-center text-gray-400 text-sm">
+          Tidak ada instruksi yang menunggu persetujuan
+        </div>
+        <div v-for="order in draftOrders" :key="order.id"
+          class="bg-white rounded-xl border mb-4 overflow-hidden">
+          <div class="px-5 py-4 bg-yellow-50 border-b flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-mono text-gray-400">{{ order.order_no }}</span>
+                <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded font-medium">
+                  Dari President
+                </span>
+                <span :class="['text-xs px-2 py-0.5 rounded font-medium', priorityColor[order.priority]]">
+                  {{ order.priority }}
+                </span>
+              </div>
+              <p class="font-semibold text-gray-800">{{ order.title }}</p>
+              <p class="text-sm text-gray-500 mt-1">{{ order.description }}</p>
+              <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                <span>🏢 {{ divisionLabel[order.target_division] ?? order.target_division }}</span>
+                <span v-if="order.due_date">📅 {{ order.due_date }}</span>
+              </div>
+            </div>
+            <button @click="openApproveModal(order)"
+              class="shrink-0 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 font-medium">
+              ✅ Setujui & Tugaskan
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ACTIVE タブ ── -->
+      <div v-if="activeTab === 'active'">
+        <div v-if="activeOrders.length === 0"
+          class="bg-white rounded-xl border px-6 py-10 text-center text-gray-400 text-sm">
+          Tidak ada instruksi aktif
+        </div>
+        <div v-for="order in activeOrders" :key="order.id"
+          class="bg-white rounded-xl border mb-4 overflow-hidden">
+          <div class="px-5 py-4 border-b">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-xs font-mono text-gray-400">{{ order.order_no }}</span>
+                  <span :class="['text-xs px-2 py-0.5 rounded font-medium', statusColor[order.approval_status]]">
+                    {{ statusLabel[order.approval_status] ?? order.approval_status }}
+                  </span>
+                  <span :class="['text-xs px-2 py-0.5 rounded font-medium', priorityColor[order.priority]]">
+                    {{ order.priority }}
+                  </span>
+                </div>
+                <p class="font-semibold text-gray-800">{{ order.title }}</p>
+                <p class="text-sm text-gray-500 mt-1">{{ order.description }}</p>
+                <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                  <span>🏢 {{ divisionLabel[order.target_division] ?? order.target_division }}</span>
+                  <span v-if="order.due_date">📅 {{ order.due_date }}</span>
+                  <span>🕐 {{ order.created_at }}</span>
+                </div>
+              </div>
+              <button @click="cancelOrder(order)"
+                class="shrink-0 text-xs text-red-400 hover:text-red-600 border border-red-200 px-3 py-1.5 rounded">
+                Batalkan
+              </button>
+            </div>
+          </div>
+          <!-- 担当者一覧 -->
+          <div v-if="order.assignments?.length > 0" class="px-5 py-3 bg-gray-50">
+            <p class="text-xs text-gray-400 mb-2">Staf yang ditugaskan:</p>
+            <div class="flex flex-wrap gap-2">
+              <div v-for="a in order.assignments" :key="a.id"
+                class="flex items-center gap-1.5 bg-white border rounded-lg px-2 py-1">
+                <span class="text-xs font-medium text-gray-700">{{ a.staff_name }}</span>
+                <span class="text-xs text-gray-400">{{ a.role_type }}</span>
+                <span class="text-xs bg-blue-50 text-blue-600 px-1.5 rounded">
+                  {{ taskStatusLabel[a.task_status] ?? a.task_status }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DONE タブ ── -->
+      <div v-if="activeTab === 'done'">
+        <div v-if="doneOrders.length === 0"
+          class="bg-white rounded-xl border px-6 py-10 text-center text-gray-400 text-sm">
+          Belum ada instruksi yang selesai
+        </div>
+        <div v-for="order in doneOrders" :key="order.id"
+          class="bg-white rounded-xl border mb-3 px-5 py-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-mono text-gray-400">{{ order.order_no }}</span>
+                <span :class="['text-xs px-2 py-0.5 rounded font-medium', statusColor[order.approval_status]]">
+                  {{ statusLabel[order.approval_status] ?? order.approval_status }}
+                </span>
+              </div>
+              <p class="font-semibold text-gray-800 text-sm">{{ order.title }}</p>
+              <p class="text-xs text-gray-400 mt-1">{{ order.created_at }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── 承認モーダル ── -->
+    <div v-if="approveModal"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+        <div class="px-6 py-5 border-b">
+          <h3 class="font-bold text-gray-800 text-lg">✅ Setujui & Tugaskan Instruksi</h3>
+          <p class="text-sm text-gray-500 mt-1">{{ approveTarget?.title }}</p>
+          <p class="text-xs text-gray-400 mt-0.5 font-mono">{{ approveTarget?.order_no }}</p>
+        </div>
+        <div class="px-6 py-5">
+          <p class="text-sm font-medium text-gray-700 mb-3">
+            Pilih staf yang akan ditugaskan:
+          </p>
+          <div v-if="availableStaff.length === 0"
+            class="text-sm text-gray-400 text-center py-4">
+            Tidak ada staf yang tersedia saat ini
+          </div>
+          <div v-else class="space-y-2 max-h-60 overflow-y-auto">
+            <label v-for="s in availableStaff" :key="s.user_id"
+              class="flex items-center gap-3 border rounded-lg px-3 py-2 cursor-pointer hover:bg-indigo-50"
+              :class="selectedStaff.includes(s.user_id) ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200'">
+              <input type="checkbox"
+                :value="s.user_id"
+                :checked="selectedStaff.includes(s.user_id)"
+                @change="toggleStaff(s.user_id)"
+                class="accent-indigo-600">
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-800">{{ s.name }}</p>
+                <p class="text-xs text-gray-400">
+                  {{ s.department_code }} · タスク数: {{ s.active_task_count }}
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-end gap-3">
+          <button @click="closeApproveModal"
+            class="px-4 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50">
+            Batal
+          </button>
+          <button @click="submitApprove"
+            :disabled="selectedStaff.length === 0"
+            :class="['px-5 py-2 text-sm font-medium rounded-lg transition',
+              selectedStaff.length === 0
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700']">
+            ✅ Setujui & Tugaskan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 新規作成モーダル ── -->
+    <div v-if="createModal"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-y-auto max-h-screen">
+        <div class="px-6 py-5 border-b">
+          <h3 class="font-bold text-gray-800 text-lg">+ Buat Instruksi Baru</h3>
+        </div>
+        <div class="px-6 py-5 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Judul Instruksi *</label>
+            <input v-model="form.title" type="text" placeholder="Judul singkat instruksi"
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi *</label>
+            <textarea v-model="form.description" rows="4" placeholder="Detail instruksi yang harus dilaksanakan..."
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none">
+            </textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Divisi Target</label>
+              <select v-model="form.target_division"
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none">
+                <option value="INVESTIGATION">Investigasi</option>
+                <option value="ADMIN">Admin</option>
+                <option value="STRATEGY">Strategi</option>
+                <option value="AI_DEV">AI Dev</option>
+                <option value="MARKETING">Marketing</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Prioritas</label>
+              <select v-model="form.priority"
+                class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none">
+                <option value="LOW">Rendah</option>
+                <option value="NORMAL">Normal</option>
+                <option value="HIGH">Tinggi</option>
+                <option value="URGENT">Mendesak</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Batas Waktu</label>
+            <input v-model="form.due_date" type="date"
+              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Pilih Staf *
+              <span class="text-xs text-gray-400 font-normal ml-1">（Hanya staf yang tersedia ditampilkan）</span>
+            </label>
+            <div v-if="availableStaff.length === 0"
+              class="text-sm text-gray-400 text-center py-4 border rounded-lg">
+              Tidak ada staf yang tersedia
+            </div>
+            <div v-else class="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-2">
+              <label v-for="s in availableStaff" :key="s.user_id"
+                class="flex items-center gap-3 rounded-lg px-3 py-2 cursor-pointer hover:bg-indigo-50"
+                :class="form.assignee_ids.includes(s.user_id) ? 'bg-indigo-50' : ''">
+                <input type="checkbox"
+                  :value="s.user_id"
+                  :checked="form.assignee_ids.includes(s.user_id)"
+                  @change="toggleFormStaff(s.user_id)"
+                  class="accent-indigo-600">
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-800">{{ s.name }}</p>
+                  <p class="text-xs text-gray-400">{{ s.department_code }} · タスク数: {{ s.active_task_count }}</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-end gap-3">
+          <button @click="createModal = false"
+            class="px-4 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50">
+            Batal
+          </button>
+          <button @click="submitCreate"
+            class="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
+            Buat Instruksi
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</template>

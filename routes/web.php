@@ -317,6 +317,8 @@ Route::prefix('manager')
             [TaskOrderController::class, 'store'])->name('task-orders.store');
         Route::post('/task-orders/{id}/cancel',
             [TaskOrderController::class, 'cancel'])->name('task-orders.cancel');
+        Route::post('/task-orders/{id}/approve',
+            [TaskOrderController::class, 'approve'])->name('task-orders.approve');
 
         // 報告管理（マネージャー側）
         Route::get('/reports',
