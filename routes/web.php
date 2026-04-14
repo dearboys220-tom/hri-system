@@ -353,6 +353,20 @@ Route::prefix('manager')
             Route::post('/payroll/{payroll}/failed',
                 [PayrollRecordController::class, 'markFailed'])->name('payroll.failed');
         });
+
+        Route::prefix('subprompt')
+            ->name('subprompt.')
+            ->middleware(['auth'])
+            ->group(function () {
+                Route::post('/a1', [\App\Http\Controllers\SubpromptController::class, 'runA1'])->name('a1');
+                Route::post('/a2', [\App\Http\Controllers\SubpromptController::class, 'runA2'])->name('a2');
+                Route::post('/d1', [\App\Http\Controllers\SubpromptController::class, 'runD1'])->name('d1');
+                Route::post('/d3', [\App\Http\Controllers\SubpromptController::class, 'runD3'])->name('d3');
+                Route::post('/g1', [\App\Http\Controllers\SubpromptController::class, 'runG1'])->name('g1');
+                Route::post('/i3', [\App\Http\Controllers\SubpromptController::class, 'runI3'])->name('i3');
+                Route::post('/k2', [\App\Http\Controllers\SubpromptController::class, 'runK2'])->name('k2');
+                Route::post('/k3', [\App\Http\Controllers\SubpromptController::class, 'runK3'])->name('k3');
+            });
     });
 
 // ================================================================
