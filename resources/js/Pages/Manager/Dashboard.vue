@@ -65,8 +65,12 @@ function logout() {
                 </div>
                 <div class="flex items-center gap-4">
                     <span class="text-sm text-gray-600">{{ user?.name }}</span>
-                    <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-semibold">Local Manager</span>
-                    <button @click="logout" class="text-xs text-gray-500 hover:text-red-500 transition">Logout</button>
+                    <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-semibold">
+                        Local Manager
+                    </span>
+                    <button @click="logout" class="text-xs text-gray-500 hover:text-red-500 transition">
+                        Logout
+                    </button>
                 </div>
             </div>
         </div>
@@ -75,7 +79,9 @@ function logout() {
 
             <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-2xl px-6 py-5 text-white mb-6">
                 <p class="text-lg font-bold">Selamat datang, {{ user?.name }}</p>
-                <p class="text-indigo-200 text-sm mt-1">Panel Manager — Kelola staf dan operasional internal HRI</p>
+                <p class="text-indigo-200 text-sm mt-1">
+                    Panel Manager — Kelola staf dan operasional internal HRI
+                </p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -86,11 +92,14 @@ function logout() {
                     class="bg-white rounded-xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-md transition group"
                 >
                     <div class="text-3xl mb-3">{{ item.icon }}</div>
-                    <p class="font-semibold text-gray-800 group-hover:text-indigo-600 transition">{{ item.label }}</p>
+                    <p class="font-semibold text-gray-800 group-hover:text-indigo-600 transition">
+                        {{ item.label }}
+                    </p>
                     <p class="text-xs text-gray-500 mt-1">{{ item.desc }}</p>
                 </a>
             </div>
 
         </div>
+
     </div>
 </template>
