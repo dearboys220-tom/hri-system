@@ -18,6 +18,7 @@ const navItems = [
     { label: 'Dashboard',         icon: '🏠', href: '/admin/admin'           },
     { label: 'Persetujuan Akhir', icon: '✅', href: '/admin/admin/evaluate'  },
     { label: 'Perusahaan',        icon: '🏢', href: '/admin/admin/companies' },
+    { label: 'Halaman Saya',      icon: '👤', href: '/staff/mypage'          },
 ]
 
 const currentPath = computed(() => usePage().url)

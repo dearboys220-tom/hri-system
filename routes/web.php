@@ -203,6 +203,14 @@ Route::middleware('auth')->group(function () {
         [StaffEducationController::class, 'complete'])->name('staff.education.complete');
 
     // ================================================================
+    // 社内スタッフ共通マイページ（全ロール共通・本人データのみ表示）
+    // ================================================================
+
+    Route::get('/staff/mypage',
+        [App\Http\Controllers\StaffDashboardController::class, 'index']
+    )->name('staff.mypage')->middleware(['auth', 'education:company_rules']);
+
+    // ================================================================
     // スタッフ共通ルート（全社内ロール）
     // ★ company_rules 完了必須
     // ================================================================

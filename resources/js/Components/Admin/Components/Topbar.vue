@@ -5,6 +5,7 @@ import {
   BookOpenIcon,
   ClipboardDocumentListIcon,
   CalendarDaysIcon,
+  UserCircleIcon,
 } from '@heroicons/vue/24/outline'
 import Button from './Button.vue'
 import { useForm, usePage, Link } from '@inertiajs/vue3'
@@ -60,7 +61,15 @@ const logout = () => {
         <!-- Buttons -->
         <div class="flex w-full md:w-auto gap-2 flex-wrap order-1 md:order-2 justify-end">
 
-          <!-- ★ マイタスク -->
+          <!-- ★ マイページ -->
+          <Link :href="route('staff.mypage')">
+            <Button variant="secondary" size="sm" class="flex-1 md:flex-none">
+              <UserCircleIcon class="w-4 h-4" />
+              Halaman Saya
+            </Button>
+          </Link>
+          
+          !-- ★ マイタスク -->
           <Link :href="route('staff.tasks.index')">
             <Button variant="secondary" size="sm" class="flex-1 md:flex-none">
               <ClipboardDocumentListIcon class="w-4 h-4" />
