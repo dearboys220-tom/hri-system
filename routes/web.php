@@ -413,12 +413,12 @@ Route::prefix('president')
 
 Route::prefix('em')
     ->name('em.')
-    ->middleware(['auth', 'education:company_rules']) // ★ v2.9追加
+    ->middleware(['auth', 'education:company_rules'])
     ->group(function () {
 
-        Route::get('/dashboard', function () {
-            return Inertia::render('Manager/Dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard',
+            [App\Http\Controllers\StaffDashboardController::class, 'index']
+        )->name('dashboard');
     });
 
 // ================================================================
