@@ -9,14 +9,63 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
-use App\Data\JobCategories;
 
 class JobController extends Controller
 {
-    // 求人投稿フォーム表示
+    // ===== カテゴリ階層を job_categories テーブルから取得 =====
+    private function getCategoriesGrouped(): \Illuminate\Support\Collection
+    {
+        $parents = DB::table('job_categories')
+            ->whereNull('parent_id')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'name']);
+
+        return $parents->map(function ($parent) {
+            $children = DB::table('job_categories')
+                ->where('parent_id', $parent->id)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get(['id', 'name']);
+            return [
+                'id'       => $parent->id,
+                'name'     => $parent->name,
+                'children' => $children,
+            ];
+        });
+    }
+
+    // ===== カテゴリ名を取得（親名・子名） =====
+    private function resolveCategoryNames(JobPost $job): array
+    {
+        $categoryName    = '-';
+        $subcategoryName = '-';
+
+        if ($job->job_category_id) {
+            $cat = DB::table('job_categories')->find($job->job_category_id);
+            if ($cat) {
+                if ($cat->parent_id) {
+                    $parent          = DB::table('job_categories')->find($cat->parent_id);
+                    $categoryName    = $parent?->name ?? $cat->name;
+                    $subcategoryName = $cat->name;
+                } else {
+                    $categoryName = $cat->name;
+                }
+            }
+        } elseif ($job->category) {
+            // 旧データ互換
+            $categoryName    = $job->category;
+            $subcategoryName = $job->subcategory ?? '-';
+        }
+
+        return compact('categoryName', 'subcategoryName');
+    }
+
+    // ===== 求人投稿フォーム =====
     public function create(): Response
     {
         $user    = Auth::user();
@@ -36,11 +85,11 @@ class JobController extends Controller
             'isFreePostAvailable' => $isFreePostAvailable,
             'freePostDaysLeft'    => $freePostDaysLeft,
             'isVerified'          => $profile?->company_verification_status === 'verified',
-            'categories'          => JobCategories::all(),
+            'categoriesGrouped'   => $this->getCategoriesGrouped(),
         ]);
     }
 
-    // 求人投稿保存
+    // ===== 求人投稿保存 =====
     public function store(Request $request): RedirectResponse
     {
         $user    = Auth::user();
@@ -52,8 +101,7 @@ class JobController extends Controller
 
         $request->validate([
             'title'                 => 'required|string|max:255',
-            'category'              => 'nullable|string|max:100',
-            'subcategory'           => 'nullable|string|max:100',
+            'job_category_id'       => 'nullable|exists:job_categories,id',
             'employment_type'       => 'required|string|max:50',
             'education_requirement' => 'nullable|string|max:100',
             'experience_level'      => 'nullable|string|max:100',
@@ -95,8 +143,7 @@ class JobController extends Controller
             'company_id'            => $user->id,
             'title'                 => $request->title,
             'workplace_photo'       => $workplacePhotoPath,
-            'category'              => $request->category,
-            'subcategory'           => $request->subcategory,
+            'job_category_id'       => $request->job_category_id,
             'employment_type'       => $request->employment_type,
             'education_requirement' => $request->education_requirement,
             'experience_level'      => $request->experience_level,
@@ -121,7 +168,6 @@ class JobController extends Controller
         ]);
 
         if ($isFreePost) {
-            // 無料投稿：即座にactive
             Payment::create([
                 'user_id'             => $user->id,
                 'payment_type'        => 'job_post',
@@ -136,12 +182,11 @@ class JobController extends Controller
                 ->with('success', 'Lowongan berhasil diposting!');
         }
 
-        // 有料投稿：draft状態で保存して詳細ページへ（支払い促す）
         return redirect()->route('company.jobs.show', $jobPost->id)
             ->with('needsPayment', true);
     }
 
-    // 求人一覧
+    // ===== 求人一覧 =====
     public function index(): Response
     {
         $user = Auth::user();
@@ -154,7 +199,7 @@ class JobController extends Controller
         ]);
     }
 
-    // 求人詳細
+    // ===== 求人詳細 =====
     public function show(int $id): Response
     {
         $user = Auth::user();
@@ -162,15 +207,9 @@ class JobController extends Controller
             ->where('company_id', $user->id)
             ->firstOrFail();
 
-        $categories      = JobCategories::all();
-        $categoryName    = $job->category
-            ? ($categories[$job->category]['name'] ?? $job->category)
-            : '-';
-        $subcategoryName = ($job->category && $job->subcategory)
-            ? ($categories[$job->category]['subcategories'][$job->subcategory] ?? $job->subcategory)
-            : '-';
+        ['categoryName' => $categoryName, 'subcategoryName' => $subcategoryName]
+            = $this->resolveCategoryNames($job);
 
-        // 支払い待ちか確認
         $needsPayment = session('needsPayment', false);
 
         return Inertia::render('Company/Jobs/Show', [
@@ -181,7 +220,7 @@ class JobController extends Controller
         ]);
     }
 
-    // 求人編集フォーム
+    // ===== 求人編集フォーム =====
     public function edit(int $id): Response
     {
         $user = Auth::user();
@@ -190,12 +229,12 @@ class JobController extends Controller
             ->firstOrFail();
 
         return Inertia::render('Company/Jobs/Edit', [
-            'job'        => $job,
-            'categories' => JobCategories::all(),
+            'job'               => $job,
+            'categoriesGrouped' => $this->getCategoriesGrouped(),
         ]);
     }
 
-    // 求人更新
+    // ===== 求人更新 =====
     public function update(Request $request, int $id): RedirectResponse
     {
         $user = Auth::user();
@@ -205,8 +244,7 @@ class JobController extends Controller
 
         $request->validate([
             'title'                 => 'required|string|max:255',
-            'category'              => 'nullable|string|max:100',
-            'subcategory'           => 'nullable|string|max:100',
+            'job_category_id'       => 'nullable|exists:job_categories,id',
             'employment_type'       => 'required|string|max:50',
             'education_requirement' => 'nullable|string|max:100',
             'experience_level'      => 'nullable|string|max:100',
@@ -242,8 +280,7 @@ class JobController extends Controller
         $job->update([
             'title'                 => $request->title,
             'workplace_photo'       => $workplacePhotoPath,
-            'category'              => $request->category,
-            'subcategory'           => $request->subcategory,
+            'job_category_id'       => $request->job_category_id,
             'employment_type'       => $request->employment_type,
             'education_requirement' => $request->education_requirement,
             'experience_level'      => $request->experience_level,
@@ -270,7 +307,7 @@ class JobController extends Controller
             ->with('success', 'Lowongan berhasil diperbarui!');
     }
 
-    // 求人削除（soft delete → status = deleted）
+    // ===== 求人削除（soft: status = deleted） =====
     public function destroy(int $id): RedirectResponse
     {
         $user = Auth::user();
