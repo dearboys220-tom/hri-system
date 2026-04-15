@@ -31,14 +31,13 @@ use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\Sales\EstimateController;
 use App\Http\Controllers\Sales\OrderController;
 use App\Http\Controllers\Sales\InvoiceController;
+use App\Http\Controllers\Accounting\AccountingController;
 
 // ================================================================
 // 公開ルート
 // ================================================================
 
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
+Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('home');
 
 Route::get('/login', function () {
     return Inertia::render('Auth/Login');
@@ -572,6 +571,22 @@ Route::middleware(['auth'])->prefix('sales')->group(function () {
     Route::post('/invoices/{invoice}/approve',          [InvoiceController::class, 'approve'])->name('sales.invoices.approve');
     Route::post('/invoices/{invoice}/mark-sent',        [InvoiceController::class, 'markSent'])->name('sales.invoices.mark-sent');
     Route::post('/invoices/{invoice}/mark-paid',        [InvoiceController::class, 'markPaid'])->name('sales.invoices.mark-paid');
+});
+
+// ================================================================
+// 会計月次送付管理（Section 30.5）
+// ================================================================
+Route::middleware(['auth'])->prefix('accounting')->group(function () {
+    Route::get('/',                                    [AccountingController::class, 'index'])->name('accounting.index');
+    Route::get('/create',                              [AccountingController::class, 'create'])->name('accounting.create');
+    Route::post('/fetch-month-data',                   [AccountingController::class, 'fetchMonthData'])->name('accounting.fetch-month-data');
+    Route::post('/',                                   [AccountingController::class, 'store'])->name('accounting.store');
+    Route::get('/{report}',                            [AccountingController::class, 'show'])->name('accounting.show');
+    Route::post('/{report}/organize-ai',               [AccountingController::class, 'organizeWithAi'])->name('accounting.organize-ai');
+    Route::post('/{report}/submit',                    [AccountingController::class, 'submitForApproval'])->name('accounting.submit');
+    Route::post('/{report}/approve',                   [AccountingController::class, 'approve'])->name('accounting.approve');
+    Route::post('/{report}/mark-sent',                 [AccountingController::class, 'markSent'])->name('accounting.mark-sent');
+    Route::post('/{report}/acknowledge',               [AccountingController::class, 'acknowledge'])->name('accounting.acknowledge');
 });
 
 // ================================================================
