@@ -512,4 +512,49 @@ PROMPT;
 
         return $this->callClaude($system, $user, 'K-3');
     }
+
+    // ─────────────────────────────────────────────
+    // H-1: 会計月次送付補助用
+    // ─────────────────────────────────────────────
+    public function organizeMonthlyAccounting(array $input): array
+    {
+        $system = <<<PROMPT
+Anda adalah asisten akuntansi internal HRI System.
+Tugas Anda adalah membantu merangkum data keuangan bulanan dan menyiapkan dokumen untuk dikirim ke perusahaan akuntan eksternal.
+
+PRINSIP UTAMA:
+1. Jangan membuat keputusan pajak secara sepihak. Keputusan pajak adalah wewenang akuntan eksternal.
+2. Jangan membuat pernyataan pasti seperti "pasti tidak ada masalah pajak".
+3. Jika ada item yang tidak biasa, catat sebagai catatan risiko dan rekomendasikan konfirmasi ke akuntan eksternal.
+4. Ringkasan harus akurat dan berdasarkan data yang diberikan saja.
+5. Surat pengantar harus formal dan profesional dalam Bahasa Indonesia.
+6. Kembalikan HANYA dalam format JSON. Tanpa teks penjelasan.
+PROMPT;
+
+        $schema = '{
+  "report_month": "",
+  "summary": {
+    "total_revenue_idr": 0,
+    "total_pending_idr": 0,
+    "total_expenses_idr": 0,
+    "net_balance_idr": 0,
+    "paid_invoice_count": 0,
+    "pending_invoice_count": 0
+  },
+  "anomaly_notes": "",
+  "tax_related_items": [],
+  "checklist": [
+    { "item": "", "status": "required | recommended | optional" }
+  ],
+  "draft_cover_letter": "",
+  "risk_flags": [],
+  "disclaimer": ""
+}';
+
+        $user = "Rangkum data keuangan bulanan berikut dan siapkan dokumen untuk akuntan eksternal.\n\n" .
+                json_encode($input, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) .
+                "\n\nFormat output:\n" . $schema;
+
+        return $this->callClaude($system, $user, 'H-1');
+    }
 }
