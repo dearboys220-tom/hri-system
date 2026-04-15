@@ -28,6 +28,9 @@ use App\Http\Controllers\SalaryCalculationController;
 use App\Http\Controllers\PayrollRecordController;
 use App\Http\Controllers\StaffEducationController;
 use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\Sales\EstimateController;
+use App\Http\Controllers\Sales\OrderController;
+use App\Http\Controllers\Sales\InvoiceController;
 
 // ================================================================
 // 公開ルート
@@ -538,6 +541,37 @@ Route::middleware(['auth'])->prefix('admin/inquiries')->group(function () {
     Route::post('/{inquiry}/reply',        [InquiryController::class, 'reply'])->name('admin.inquiry.reply');
     Route::post('/{inquiry}/escalate',     [InquiryController::class, 'escalate'])->name('admin.inquiry.escalate');
     Route::post('/{inquiry}/close',        [InquiryController::class, 'close'])->name('admin.inquiry.close');
+});
+
+// ================================================================
+// 見積・受注・請求管理（Section 30.4）
+// ================================================================
+Route::middleware(['auth'])->prefix('sales')->group(function () {
+
+    // 見積
+    Route::get('/estimates',                        [EstimateController::class, 'index'])->name('sales.estimates.index');
+    Route::get('/estimates/create',                 [EstimateController::class, 'create'])->name('sales.estimates.create');
+    Route::post('/estimates/generate-ai',           [EstimateController::class, 'generateAi'])->name('sales.estimates.generate-ai');
+    Route::post('/estimates',                       [EstimateController::class, 'store'])->name('sales.estimates.store');
+    Route::get('/estimates/{estimate}',             [EstimateController::class, 'show'])->name('sales.estimates.show');
+    Route::post('/estimates/{estimate}/submit',     [EstimateController::class, 'submitForApproval'])->name('sales.estimates.submit');
+    Route::post('/estimates/{estimate}/approve',    [EstimateController::class, 'approve'])->name('sales.estimates.approve');
+    Route::post('/estimates/{estimate}/mark-sent',  [EstimateController::class, 'markSent'])->name('sales.estimates.mark-sent');
+    Route::post('/estimates/{estimate}/accept',     [EstimateController::class, 'accept'])->name('sales.estimates.accept');
+
+    // 受注
+    Route::get('/orders',                               [OrderController::class, 'index'])->name('sales.orders.index');
+    Route::get('/orders/{order}',                       [OrderController::class, 'show'])->name('sales.orders.show');
+    Route::post('/orders/{order}/create-invoice',       [OrderController::class, 'createInvoice'])->name('sales.orders.create-invoice');
+    Route::post('/orders/{order}/complete',             [OrderController::class, 'complete'])->name('sales.orders.complete');
+
+    // 請求書
+    Route::get('/invoices',                             [InvoiceController::class, 'index'])->name('sales.invoices.index');
+    Route::get('/invoices/{invoice}',                   [InvoiceController::class, 'show'])->name('sales.invoices.show');
+    Route::post('/invoices/{invoice}/submit',           [InvoiceController::class, 'submitForApproval'])->name('sales.invoices.submit');
+    Route::post('/invoices/{invoice}/approve',          [InvoiceController::class, 'approve'])->name('sales.invoices.approve');
+    Route::post('/invoices/{invoice}/mark-sent',        [InvoiceController::class, 'markSent'])->name('sales.invoices.mark-sent');
+    Route::post('/invoices/{invoice}/mark-paid',        [InvoiceController::class, 'markPaid'])->name('sales.invoices.mark-paid');
 });
 
 // ================================================================
