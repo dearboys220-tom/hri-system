@@ -26,7 +26,8 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\StaffEvaluationController;
 use App\Http\Controllers\SalaryCalculationController;
 use App\Http\Controllers\PayrollRecordController;
-use App\Http\Controllers\StaffEducationController; // ★ v2.9追加
+use App\Http\Controllers\StaffEducationController;
+use App\Http\Controllers\InquiryController;
 
 // ================================================================
 // 公開ルート
@@ -518,6 +519,26 @@ Route::prefix('super-admin')
         Route::get('/export',           [SuperAdminExportController::class, 'index'])->name('export');
         Route::post('/export/download', [SuperAdminExportController::class, 'download'])->name('export.download');
     });
+
+// ================================================================
+// 問い合わせ管理（Section 30.3）
+// ================================================================
+
+// 【一般会員・企業会員】問い合わせ送信
+Route::middleware(['auth'])->group(function () {
+    Route::get('/inquiry/create',  [InquiryController::class, 'create'])->name('inquiry.create');
+    Route::post('/inquiry',        [InquiryController::class, 'store'])->name('inquiry.store');
+    Route::get('/inquiry/my-list', [InquiryController::class, 'myList'])->name('inquiry.my-list');
+});
+
+// 【管理者】問い合わせ管理
+Route::middleware(['auth'])->prefix('admin/inquiries')->group(function () {
+    Route::get('/',                        [InquiryController::class, 'adminIndex'])->name('admin.inquiry.index');
+    Route::get('/{inquiry}',               [InquiryController::class, 'adminShow'])->name('admin.inquiry.show');
+    Route::post('/{inquiry}/reply',        [InquiryController::class, 'reply'])->name('admin.inquiry.reply');
+    Route::post('/{inquiry}/escalate',     [InquiryController::class, 'escalate'])->name('admin.inquiry.escalate');
+    Route::post('/{inquiry}/close',        [InquiryController::class, 'close'])->name('admin.inquiry.close');
+});
 
 // ================================================================
 // 認証（スタッフ・Google OAuth）
