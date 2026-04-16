@@ -79,7 +79,9 @@ const hasFilter = computed(() =>
                     {{ t('nav.for_company') }}
                 </Link>
 
-                <LanguageSwitcher />
+                <div :class="scrolled ? '[&_button]:!text-gray-700 [&_button]:!border-gray-300 [&_button:hover]:!bg-gray-50' : ''">
+                    <LanguageSwitcher />
+                </div>
 
                 <template v-if="isLoggedIn">
                     <Link :href="getDashboardUrl()"
@@ -247,8 +249,8 @@ const hasFilter = computed(() =>
     <section class="py-20 bg-gray-50">
         <div class="max-w-6xl mx-auto px-4">
             <div class="text-center mb-14">
-                <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">Kenapa HRI Job?</span>
-                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2">Platform Lowongan yang Berbeda</h2>
+                <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">{{ t('job_why.label') }}</span>
+                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2">{{ t('job_why.title') }}</h2>
             </div>
             <div class="grid md:grid-cols-3 gap-6">
                 <div v-for="f in [
@@ -270,8 +272,8 @@ const hasFilter = computed(() =>
     <section class="py-20 bg-white">
         <div class="max-w-6xl mx-auto px-4">
             <div class="text-center mb-12">
-                <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">Kategori</span>
-                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2">Jelajahi Berdasarkan Bidang</h2>
+                <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">{{ t('job_category.label') }}</span>
+                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2">{{ t('job_category.title') }}</h2>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 <button v-for="parent in categoriesGrouped" :key="parent.id"
@@ -282,7 +284,7 @@ const hasFilter = computed(() =>
                         {{ parent.name }}
                     </div>
                     <div class="text-xs text-gray-400 group-hover:text-blue-100 mt-1 transition-colors">
-                        {{ parent.children?.length ?? 0 }} bidang
+                        {{ parent.children?.length ?? 0 }} {{ t('job_category.unit') }}
                     </div>
                 </button>
             </div>

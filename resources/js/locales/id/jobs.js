@@ -15,6 +15,15 @@ export default {
         btn_reset: 'Reset',
         note: 'Pencarian akan diarahkan ke halaman daftar lowongan lengkap',
     },
+    job_why: {
+        label: 'Kenapa HRI Job?',
+        title: 'Platform Lowongan yang Berbeda',
+    },
+    job_category: {
+        label: 'Kategori',
+        title: 'Jelajahi Berdasarkan Bidang',
+        unit: 'bidang',
+    },
     job_list: {
         title_recent: 'Lowongan Terbaru',
         title_result: 'Hasil Pencarian',

@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link, usePage } from '@inertiajs/vue3'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from '@/Components/LanguageSwitcher.vue'
 
@@ -27,38 +27,52 @@ const handleScroll = () => { scrolled.value = window.scrollY > 50 }
 onMounted(()  => window.addEventListener('scroll', handleScroll))
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 
-const investigationItems = [
-    { icon: '🎓', title: 'Pendidikan',     desc: 'Verifikasi keaslian ijazah dan riwayat pendidikan dari institusi.' },
-    { icon: '💼', title: 'Riwayat Kerja',  desc: 'Konfirmasi kehadiran di perusahaan lokal maupun luar negeri.' },
-    { icon: '🏆', title: 'Sertifikasi',    desc: 'Verifikasi lembaga penerbit dan tanggal kedaluwarsa sertifikat.' },
-    { icon: '📱', title: 'Latar Belakang', desc: 'Analisis risiko kredibilitas dari informasi publik yang tersedia.' },
-]
+// ===== i18n対応コンテンツ =====
+const investigationItems = computed(() => [
+    { icon: '🎓', title: t('investigation.i1_title'), desc: t('investigation.i1_desc') },
+    { icon: '💼', title: t('investigation.i2_title'), desc: t('investigation.i2_desc') },
+    { icon: '🏆', title: t('investigation.i3_title'), desc: t('investigation.i3_desc') },
+    { icon: '📱', title: t('investigation.i4_title'), desc: t('investigation.i4_desc') },
+])
 
-const benefits = [
-    { value: '80%', label: 'Reduksi risiko lamaran palsu' },
-    { value: '3x',  label: 'Lebih cepat proses screening' },
-    { value: '100', label: 'Poin sistem penilaian objektif' },
-]
+const benefits = computed(() => [
+    { value: '80%', label: t('benefits.b1') },
+    { value: '3x',  label: t('benefits.b2') },
+    { value: '100', label: t('benefits.b3') },
+])
 
-const testimonials = [
-    { icon: '📊', name: 'PT Maju Bersama',     role: 'Manajer HR',
-      text: 'Waktu screening dokumen berkurang dari 40 jam menjadi 10 jam per minggu berkat HRI.' },
-    { icon: '📈', name: 'CV Karya Nusantara',  role: 'Direktur HRD',
-      text: 'Dengan fokus pada kandidat skor 80+, tingkat kelulusan wawancara naik dari 30% ke 65%.' },
-    { icon: '🏪', name: 'PT Retail Indonesia', role: 'Manager Rekrutmen',
-      text: 'Tingkat resign dalam 3 bulan turun dari 20% ke 5% berkat investigasi latar belakang HRI.' },
-]
+const testimonials = computed(() => [
+    { icon: '📊', name: 'PT Maju Bersama',     role: t('company_testimonials.role1'), text: t('company_testimonials.text1') },
+    { icon: '📈', name: 'CV Karya Nusantara',  role: t('company_testimonials.role2'), text: t('company_testimonials.text2') },
+    { icon: '🏪', name: 'PT Retail Indonesia', role: t('company_testimonials.role3'), text: t('company_testimonials.text3') },
+])
 
-const pricingItems = [
-    { label: 'Registrasi Perusahaan',  price: 'Gratis',           note: 'Tanpa batas waktu' },
-    { label: 'Posting Lowongan',       price: 'Gratis (pertama)', note: 'Berlaku 30 hari setelah daftar' },
-    { label: 'Posting Lowongan',       price: 'Rp 250.000',       note: 'Per posting berikutnya' },
-    { label: 'Lihat Detail Skor HRI',  price: 'Rp 50.000',        note: 'Per akses kandidat' },
-]
+const pricingItems = computed(() => [
+    { label: t('company_pricing.p1_label'), price: t('company_pricing.p1_price'), note: t('company_pricing.p1_note') },
+    { label: t('company_pricing.p2_label'), price: t('company_pricing.p2_price'), note: t('company_pricing.p2_note') },
+    { label: t('company_pricing.p3_label'), price: t('company_pricing.p3_price'), note: t('company_pricing.p3_note') },
+    { label: t('company_pricing.p4_label'), price: t('company_pricing.p4_price'), note: t('company_pricing.p4_note') },
+])
+
+const featureItems = computed(() => [
+    { icon: '🔍', title: t('features.f1_title'), desc: t('features.f1_desc') },
+    { icon: '⭐', title: t('features.f2_title'), desc: t('features.f2_desc') },
+    { icon: '🏆', title: t('features.f3_title'), desc: t('features.f3_desc') },
+    { icon: '📋', title: t('features.f4_title'), desc: t('features.f4_desc') },
+    { icon: '⚡', title: t('features.f5_title'), desc: t('features.f5_desc') },
+    { icon: '🔒', title: t('features.f6_title'), desc: t('features.f6_desc') },
+])
+
+const stepItems = computed(() => [
+    { num: '01', title: t('company_steps.s1_title'), desc: t('company_steps.s1_desc') },
+    { num: '02', title: t('company_steps.s2_title'), desc: t('company_steps.s2_desc') },
+    { num: '03', title: t('company_steps.s3_title'), desc: t('company_steps.s3_desc') },
+    { num: '04', title: t('company_steps.s4_title'), desc: t('company_steps.s4_desc') },
+])
 </script>
 
 <template>
-    <Head title="HRI untuk Perusahaan — Rekrutmen Kandidat Terverifikasi" />
+    <Head :title="t('company_seo.title')" />
 
     <!-- ===== NAVBAR ===== -->
     <nav :class="['fixed top-0 inset-x-0 z-50 transition-all duration-300',
@@ -88,7 +102,10 @@ const pricingItems = [
                     {{ t('nav.for_individual') }}
                 </Link>
 
-                <LanguageSwitcher />
+                <!-- ↓ スクロール時の言語切替ボタン色修正 -->
+                <div :class="scrolled ? '[&_button]:!text-gray-700 [&_button]:!border-gray-300 [&_button:hover]:!bg-gray-50' : ''">
+                    <LanguageSwitcher />
+                </div>
 
                 <template v-if="isLoggedIn">
                     <Link :href="getDashboardUrl()"
@@ -215,14 +232,7 @@ const pricingItems = [
                 <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2">{{ t('features.title') }}</h2>
             </div>
             <div class="grid md:grid-cols-3 gap-6">
-                <div v-for="f in [
-                    { icon: '🔍', title: t('features.f1_title'), desc: t('features.f1_desc') },
-                    { icon: '⭐', title: t('features.f2_title'), desc: t('features.f2_desc') },
-                    { icon: '🏆', title: t('features.f3_title'), desc: t('features.f3_desc') },
-                    { icon: '📋', title: 'Posting Lowongan Terintegrasi', desc: 'Pasang lowongan langsung di platform HRI dan kelola seluruh lamaran dalam satu dashboard.' },
-                    { icon: '⚡', title: 'Percepat Proses Screening', desc: 'Hemat waktu hingga 80%. Fokus pada wawancara kandidat berkualitas.' },
-                    { icon: '🔒', title: 'Data Aman & Sesuai UU PDP', desc: 'Seluruh data kandidat dikelola sesuai Undang-Undang Perlindungan Data Pribadi Indonesia.' },
-                ]" :key="f.title"
+                <div v-for="f in featureItems" :key="f.title"
                      class="group bg-gray-50 hover:bg-blue-600 rounded-2xl p-8 transition-all duration-300
                             hover:shadow-xl hover:-translate-y-1 cursor-default">
                     <div class="text-4xl mb-4">{{ f.icon }}</div>
@@ -238,12 +248,12 @@ const pricingItems = [
         <div class="max-w-6xl mx-auto px-4">
             <div class="grid md:grid-cols-2 gap-16 items-center">
                 <div>
-                    <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">Investigasi Profesional</span>
+                    <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">{{ t('investigation.label') }}</span>
                     <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2 mb-6">
-                        Item yang Diinvestigasi Tim HRI
+                        {{ t('investigation.title') }}
                     </h2>
                     <p class="text-gray-600 leading-relaxed mb-8">
-                        Tim HRI melakukan investigasi mendalam melalui 3 tahap: Tim Investigasi, Tim Penilai, dan Tim Administrasi.
+                        {{ t('investigation.desc') }}
                     </p>
                     <Link href="/register/company"
                           class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-full transition">
@@ -276,12 +286,7 @@ const pricingItems = [
                 <h2 class="text-3xl md:text-4xl font-black text-white mt-2">{{ t('steps.title') }}</h2>
             </div>
             <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
-                <div v-for="(step, i) in [
-                    { num: '01', title: t('nav.register_company'),         desc: 'Daftar akun perusahaan dengan email & password.' },
-                    { num: '02', title: 'Posting Lowongan',                desc: 'Buat lowongan dengan detail posisi, lokasi, dan kualifikasi.' },
-                    { num: '03', title: 'Terima Lamaran',                  desc: 'Kandidat melamar dengan CV terverifikasi HRI secara otomatis.' },
-                    { num: '04', title: 'Pilih Kandidat Terbaik',          desc: 'Filter berdasarkan HRI Score dan akses detail verifikasi.' },
-                ]" :key="i"
+                <div v-for="step in stepItems" :key="step.num"
                      class="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/10 hover:bg-white/20 transition-all">
                     <div class="text-orange-300 text-4xl font-black mb-3">{{ step.num }}</div>
                     <h3 class="text-white font-bold mb-2">{{ step.title }}</h3>
@@ -295,8 +300,8 @@ const pricingItems = [
     <section class="py-20 bg-white">
         <div class="max-w-6xl mx-auto px-4">
             <div class="text-center mb-14">
-                <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">{{ t('testimonials.label') }}</span>
-                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2">Kepercayaan Perusahaan pada HRI</h2>
+                <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">{{ t('company_testimonials.label') }}</span>
+                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2">{{ t('company_testimonials.title') }}</h2>
             </div>
             <div class="grid md:grid-cols-3 gap-6">
                 <div v-for="t2 in testimonials" :key="t2.name"
@@ -335,7 +340,7 @@ const pricingItems = [
                         <div class="text-gray-400 text-xs mt-0.5">{{ item.note }}</div>
                     </div>
                     <div :class="['font-black text-lg',
-                                  item.price.includes('Gratis') ? 'text-green-600' : 'text-blue-700']">
+                                  item.price.includes('Gratis') || item.price.includes('無料') || item.price.includes('무료') || item.price.includes('Free') ? 'text-green-600' : 'text-blue-700']">
                         {{ item.price }}
                     </div>
                 </div>
@@ -347,10 +352,10 @@ const pricingItems = [
     <section class="py-24" style="background: linear-gradient(to right, #1e293b, #1e3a8a);">
         <div class="max-w-3xl mx-auto px-4 text-center">
             <h2 class="text-3xl md:text-4xl font-black text-white mb-6">
-                Siap Merekrut Kandidat yang Sudah Terverifikasi?
+                {{ t('company_cta.title') }}
             </h2>
             <p class="text-blue-100 mb-10 leading-relaxed">
-                Registrasi perusahaan gratis sekarang dan mulai posting lowongan.
+                {{ t('company_cta.desc') }}
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <template v-if="isLoggedIn && roleType === 'company'">
