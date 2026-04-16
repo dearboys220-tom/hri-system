@@ -6,6 +6,7 @@ import id_welcome from './locales/id/welcome.js'
 import id_company from './locales/id/company.js'
 import id_jobs    from './locales/id/jobs.js'
 import id_about from './locales/id/about.js'
+import idLogin from '@/locales/id/login.js'
 
 // ===== ja =====
 import ja_common  from './locales/ja/common.js'
@@ -13,6 +14,7 @@ import ja_welcome from './locales/ja/welcome.js'
 import ja_company from './locales/ja/company.js'
 import ja_jobs    from './locales/ja/jobs.js'
 import ja_about from './locales/ja/about.js'
+import jaLogin from '@/locales/ja/login.js'
 
 // ===== ko =====
 import ko_common  from './locales/ko/common.js'
@@ -20,6 +22,7 @@ import ko_welcome from './locales/ko/welcome.js'
 import ko_company from './locales/ko/company.js'
 import ko_jobs    from './locales/ko/jobs.js'
 import ko_about from './locales/ko/about.js'
+import koLogin from '@/locales/ko/login.js'
 
 // ===== en =====
 import en_common  from './locales/en/common.js'
@@ -27,6 +30,7 @@ import en_welcome from './locales/en/welcome.js'
 import en_company from './locales/en/company.js'
 import en_jobs    from './locales/en/jobs.js'
 import en_about from './locales/en/about.js'
+import enLogin from '@/locales/en/login.js'
 
 // 利用可能な言語一覧（LanguageSwitcher.vue で使用）
 export const availableLocales = [
@@ -41,10 +45,10 @@ export const i18n = createI18n({
     locale: localStorage.getItem('hri_locale') || 'id',
     fallbackLocale: 'id',
     messages: {
-        id: { ...id_common, ...id_welcome, ...id_company, ...id_jobs, ...id_about },
-        ja: { ...ja_common, ...ja_welcome, ...ja_company, ...ja_jobs, ...ja_about },
-        ko: { ...ko_common, ...ko_welcome, ...ko_company, ...ko_jobs, ...ko_about },
-        en: { ...en_common, ...en_welcome, ...en_company, ...en_jobs, ...en_about },
+        id: { ...id_common, ...id_welcome, ...id_company, ...id_jobs, ...id_about, login: idLogin },
+        ja: { ...ja_common, ...ja_welcome, ...ja_company, ...ja_jobs, ...ja_about, login: jaLogin },
+        ko: { ...ko_common, ...ko_welcome, ...ko_company, ...ko_jobs, ...ko_about, login: koLogin },
+        en: { ...en_common, ...en_welcome, ...en_company, ...en_jobs, ...en_about, login: enLogin },
     },
 })
 

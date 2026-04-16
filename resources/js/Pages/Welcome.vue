@@ -161,7 +161,7 @@ onMounted(() => {
     handleScroll()
     if (!isLoggedIn) {
         popupTimer = window.setTimeout(() => { openPopup() }, 9000)
-    }
+    } 
 
     // ===== JSON-LD 構造化データを <head> に挿入 =====
     const schemas = [

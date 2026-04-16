@@ -14,8 +14,11 @@ import {
   ScaleIcon
 } from '@heroicons/vue/24/outline'
 import AuthLayout from '@/Components/User/Layout/AuthLayout.vue'
+import { useI18n } from 'vue-i18n'
+import LanguageSwitcher from '@/Components/LanguageSwitcher.vue'
 
-// ✅ デフォルトを individual（個人）に変更
+const { t } = useI18n()
+
 const mode = ref('individual')
 const showPassword = ref(false)
 
@@ -35,17 +38,15 @@ const loginGoogle = () => {
 const leftContent = computed(() => {
   if (mode.value === 'company') {
     return {
-      title: 'Layanan Khusus Perusahaan',
-      description:
-        'Daftarkan perusahaan Anda pada layanan HRI dan wujudkan proses rekrutmen yang aman dan terpercaya.',
+      title: t('login.left.companyTitle'),
+      description: t('login.left.companyDesc'),
       image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f',
       gradient: 'from-black/80 via-black/60 to-black/40'
     }
   } else {
     return {
-      title: 'Layanan Khusus Pelamar',
-      description:
-        'Ciptakan proses rekrutmen yang lebih aman. Dengan akun HRI, Anda dapat mengajukan/verifikasi data dan membagikan HRI-ID secara terkendali kepada perusahaan.',
+      title: t('login.left.individualTitle'),
+      description: t('login.left.individualDesc'),
       image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4',
       gradient: 'from-indigo-900/80 via-black/60 to-black/40'
     }
@@ -121,7 +122,7 @@ const page = usePage()
 </script>
 
 <template>
-  <!-- ✅ ヘッダー（全画面共通） -->
+  <!-- ヘッダー -->
   <div class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
       <!-- ロゴ＋ブランド名 -->
@@ -132,16 +133,19 @@ const page = usePage()
         </span>
       </Link>
 
-      <!-- トップへ戻るリンク -->
-      <Link
-        href="/"
-        class="text-sm text-gray-500 hover:text-gray-800 transition flex items-center gap-1"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Kembali ke Beranda
-      </Link>
+      <!-- 右側：言語切替＋戻るリンク -->
+      <div class="flex items-center gap-3">
+        <LanguageSwitcher :dark="false" />
+        <Link
+          href="/"
+          class="text-sm text-gray-500 hover:text-gray-800 transition flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span class="hidden sm:inline">{{ $t('login.backToHome') }}</span>
+        </Link>
+      </div>
     </div>
   </div>
 
@@ -152,7 +156,7 @@ const page = usePage()
     :image="leftContent.image"
     :gradient="leftContent.gradient"
   >
-    <!-- ✅ スマホ用：上部中央にロゴ表示（PCでは非表示） -->
+    <!-- スマホ用：上部中央にロゴ表示 -->
     <div class="flex flex-col items-center mb-6 md:hidden pt-2">
       <img src="/images/logo.png" alt="HRI" class="h-14 w-auto mb-2" />
       <span class="text-xs font-semibold tracking-widest uppercase text-slate-600">
@@ -160,36 +164,34 @@ const page = usePage()
       </span>
     </div>
 
+    <!-- タイトル -->
     <h2 class="text-2xl font-semibold mb-8 text-gray-800">
-      Masuk Akun
+      {{ $t('login.title') }}
     </h2>
 
-    <!-- ✅ タブ：Individu（個人）を左（先頭）に変更 -->
+    <!-- タブ：Individu（個人）が左 -->
     <div class="relative flex bg-gray-200 rounded-full p-1 mb-10 overflow-hidden">
-      <!-- インジケーター：individual=左、company=右 -->
       <div
         class="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-white rounded-full shadow transition-all duration-300"
         :class="mode === 'individual' ? 'left-1' : 'left-1/2'"
       ></div>
 
-      <!-- ✅ 個人（Individu）を先頭に -->
       <button
         @click="mode = 'individual'"
         class="relative z-10 flex-1 py-2 text-sm font-medium transition"
         :class="mode === 'individual' ? 'text-black' : 'text-gray-500'"
       >
         <UserIcon class="w-4 h-4 inline mr-1" />
-        Individu
+        {{ $t('login.tabIndividual') }}
       </button>
 
-      <!-- 企業（Perusahaan）を後ろに -->
       <button
         @click="mode = 'company'"
         class="relative z-10 flex-1 py-2 text-sm font-medium transition"
         :class="mode === 'company' ? 'text-black' : 'text-gray-500'"
       >
         <BuildingOffice2Icon class="w-4 h-4 inline mr-1" />
-        Perusahaan
+        {{ $t('login.tabCompany') }}
       </button>
     </div>
 
@@ -211,11 +213,8 @@ const page = usePage()
             @click="loginGoogle"
             class="w-full flex items-center justify-center gap-3 border border-gray-300 py-3 rounded-xl hover:bg-gray-50 transition mb-8"
           >
-            <img
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              class="w-5 h-5"
-            />
-            Login dengan Google
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" />
+            {{ $t('login.loginGoogle') }}
           </button>
 
           <div class="relative group inline-block z-30">
@@ -228,9 +227,10 @@ const page = usePage()
               class="text-sm font-medium text-gray-700 hover:text-black transition flex items-center gap-2"
             >
               <ShieldCheckIcon class="w-4 h-4" />
-              Kenapa Buat Akun HRI?
+              {{ $t('login.whyHri') }}
             </button>
 
+            <!-- PCホバーポップアップ -->
             <Teleport to="body">
               <Transition name="popup">
                 <div
@@ -244,44 +244,46 @@ const page = usePage()
                     <div class="space-y-4 text-sm text-gray-700">
                       <div class="flex items-center gap-2 font-semibold text-gray-900">
                         <ShieldCheckIcon class="w-6 h-6 text-black" />
-                        <span class="text-md font-bolder">Terverifikasi & Aman</span>
+                        <span class="text-md">{{ $t('login.popup.heading') }}</span>
                       </div>
                       <div class="space-y-5">
                         <div class="flex gap-3">
-                          <CheckCircleIcon class="w-5 h-5 text-black mt-0.5" />
+                          <CheckCircleIcon class="w-5 h-5 text-black mt-0.5 shrink-0" />
                           <div>
-                            <p class="font-medium text-gray-900">Lebih dipercaya</p>
-                            <p class="text-gray-600">Verifikasi pihak ketiga untuk pendidikan, pekerjaan, lisensi.</p>
+                            <p class="font-medium text-gray-900">{{ $t('login.popup.trust') }}</p>
+                            <p class="text-gray-600">{{ $t('login.popup.trustDesc') }}</p>
                           </div>
                         </div>
                         <div class="flex gap-3">
-                          <IdentificationIcon class="w-5 h-5 text-black mt-0.5" />
+                          <IdentificationIcon class="w-5 h-5 text-black mt-0.5 shrink-0" />
                           <div>
-                            <p class="font-medium text-gray-900">Bagikan terkendali</p>
-                            <p class="text-gray-600">Perusahaan hanya bisa cek via HRI-ID dengan izin Anda.</p>
+                            <p class="font-medium text-gray-900">{{ $t('login.popup.controlled') }}</p>
+                            <p class="text-gray-600">{{ $t('login.popup.controlledDesc') }}</p>
                           </div>
                         </div>
                         <div class="flex gap-3">
-                          <CheckCircleIcon class="w-5 h-5 text-black mt-0.5" />
+                          <CheckCircleIcon class="w-5 h-5 text-black mt-0.5 shrink-0" />
                           <div>
-                            <p class="font-medium text-gray-900">Riwayat jelas</p>
-                            <p class="text-gray-600">Status cocok/tidak & tanggal verifikasi terakhir.</p>
+                            <p class="font-medium text-gray-900">{{ $t('login.popup.history') }}</p>
+                            <p class="text-gray-600">{{ $t('login.popup.historyDesc') }}</p>
                           </div>
                         </div>
                       </div>
                       <div class="border-t pt-3 space-y-2">
                         <p class="font-medium text-gray-900 flex items-center gap-2">
                           <ScaleIcon class="w-4 h-4 text-black" />
-                          Kepatuhan & Perlindungan
+                          {{ $t('login.popup.compliance') }}
                         </p>
                         <ul class="space-y-1 text-gray-600 text-xs">
-                          <li>✦ Enkripsi & kontrol akses berbasis peran</li>
-                          <li>✦ Patuh PDP Law (ID)</li>
-                          <li>✦ Retensi maksimal 3 tahun</li>
+                          <li>{{ $t('login.popup.item1') }}</li>
+                          <li>{{ $t('login.popup.item2') }}</li>
+                          <li>{{ $t('login.popup.item3') }}</li>
                         </ul>
                       </div>
                       <div class="pt-2">
-                        <a href="#" class="text-black font-medium hover:underline text-sm">Konsultasi gratis →</a>
+                        <a href="#" class="text-black font-medium hover:underline text-sm">
+                          {{ $t('login.popup.consult') }}
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -295,45 +297,45 @@ const page = usePage()
               class="fixed inset-0 flex items-center justify-center z-50 md:hidden"
             >
               <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="closeMobileInfo"></div>
-              <div class="relative w-[90%] max-w-sm rounded-2xl bg-white shadow-2xl p-6 animate-fadeIn">
-                <button class="absolute top-3 right-3 text-gray-400 hover:text-black" @click="closeMobileInfo">✕</button>
+              <div class="relative w-[90%] max-w-sm rounded-2xl bg-white shadow-2xl p-6">
+                <button class="absolute top-3 right-3 text-gray-400 hover:text-black text-lg" @click="closeMobileInfo">✕</button>
                 <div class="space-y-4 text-sm text-gray-700">
                   <div class="flex items-center gap-2 font-semibold text-gray-900">
                     <ShieldCheckIcon class="w-5 h-5 text-black" />
-                    Terverifikasi & Aman
+                    {{ $t('login.popup.heading') }}
                   </div>
                   <div class="space-y-3">
                     <div class="flex gap-3">
-                      <CheckCircleIcon class="w-5 h-5 text-black mt-0.5" />
+                      <CheckCircleIcon class="w-5 h-5 text-black mt-0.5 shrink-0" />
                       <div>
-                        <p class="font-medium text-gray-900">Lebih dipercaya</p>
-                        <p class="text-gray-600">Verifikasi pihak ketiga untuk pendidikan, pekerjaan, lisensi.</p>
+                        <p class="font-medium text-gray-900">{{ $t('login.popup.trust') }}</p>
+                        <p class="text-gray-600">{{ $t('login.popup.trustDesc') }}</p>
                       </div>
                     </div>
                     <div class="flex gap-3">
-                      <IdentificationIcon class="w-5 h-5 text-black mt-0.5" />
+                      <IdentificationIcon class="w-5 h-5 text-black mt-0.5 shrink-0" />
                       <div>
-                        <p class="font-medium text-gray-900">Bagikan terkendali</p>
-                        <p class="text-gray-600">Perusahaan hanya bisa cek via HRI-ID dengan izin Anda.</p>
+                        <p class="font-medium text-gray-900">{{ $t('login.popup.controlled') }}</p>
+                        <p class="text-gray-600">{{ $t('login.popup.controlledDesc') }}</p>
                       </div>
                     </div>
                     <div class="flex gap-3">
-                      <CheckCircleIcon class="w-5 h-5 text-black mt-0.5" />
+                      <CheckCircleIcon class="w-5 h-5 text-black mt-0.5 shrink-0" />
                       <div>
-                        <p class="font-medium text-gray-900">Riwayat jelas</p>
-                        <p class="text-gray-600">Status cocok/tidak & tanggal verifikasi terakhir.</p>
+                        <p class="font-medium text-gray-900">{{ $t('login.popup.history') }}</p>
+                        <p class="text-gray-600">{{ $t('login.popup.historyDesc') }}</p>
                       </div>
                     </div>
                   </div>
                   <div class="border-t pt-3 space-y-2">
                     <p class="font-medium text-gray-900 flex items-center gap-2">
                       <ScaleIcon class="w-4 h-4 text-black" />
-                      Kepatuhan & Perlindungan
+                      {{ $t('login.popup.compliance') }}
                     </p>
                     <ul class="space-y-1 text-gray-600 text-xs">
-                      <li>✦ Enkripsi & kontrol akses berbasis peran</li>
-                      <li>✦ Patuh PDP Law (ID)</li>
-                      <li>✦ Retensi maksimal 3 tahun</li>
+                      <li>{{ $t('login.popup.item1') }}</li>
+                      <li>{{ $t('login.popup.item2') }}</li>
+                      <li>{{ $t('login.popup.item3') }}</li>
                     </ul>
                   </div>
                 </div>
@@ -355,7 +357,7 @@ const page = usePage()
             <input
               v-model="form.email"
               type="email"
-              placeholder="Email perusahaan"
+              :placeholder="$t('login.emailPlaceholder')"
               class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-black focus:outline-none bg-white"
             />
           </div>
@@ -365,7 +367,7 @@ const page = usePage()
             <input
               v-model="form.password"
               :type="showPassword ? 'text' : 'password'"
-              placeholder="Password"
+              :placeholder="$t('login.passwordPlaceholder')"
               class="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-black focus:outline-none bg-white"
             />
             <button
@@ -382,11 +384,11 @@ const page = usePage()
             type="submit"
             class="w-full bg-red-700 text-white py-3 rounded-xl transition hover:bg-red-800"
           >
-            Login
+            {{ $t('login.loginBtn') }}
           </button>
 
           <p class="text-center text-sm text-gray-500">
-            Belum punya akun?
+            {{ $t('login.noAccount') }}
             <Link
               :href="route('register.company')"
               class="text-black font-medium hover:underline"
@@ -394,7 +396,7 @@ const page = usePage()
               :preserve-scroll="false"
               replace
             >
-              Daftar
+              {{ $t('login.register') }}
             </Link>
           </p>
         </form>
@@ -405,11 +407,6 @@ const page = usePage()
 </template>
 
 <style>
-/* ✅ ヘッダー分のpaddingをAuthLayoutのコンテンツに追加 */
-.auth-content-wrapper {
-  padding-top: 56px;
-}
-
 .zoom-bg {
   animation: slowZoom 20s ease-in-out infinite alternate;
   will-change: transform;
@@ -418,7 +415,6 @@ const page = usePage()
   from { transform: scale(1); }
   to { transform: scale(1.08); }
 }
-
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -427,7 +423,6 @@ const page = usePage()
 .fade-leave-to {
   opacity: 0;
 }
-
 .popup-enter-active,
 .popup-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
