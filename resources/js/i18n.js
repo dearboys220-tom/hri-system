@@ -24,7 +24,7 @@ import en_welcome from './locales/en/welcome.js'
 import en_company from './locales/en/company.js'
 import en_jobs    from './locales/en/jobs.js'
 
-export default createI18n({
+export const i18n = createI18n({
     legacy: false,
     locale: localStorage.getItem('hri_locale') || 'id',
     fallbackLocale: 'id',
@@ -35,3 +35,5 @@ export default createI18n({
         en: { ...en_common, ...en_welcome, ...en_company, ...en_jobs },
     },
 })
+
+export default i18n
