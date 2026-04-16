@@ -1,0 +1,27 @@
+export default {
+    jobs_seo: {
+        title: '求人一覧 | HRI — 理想の仕事を見つけよう',
+        description: 'HRI認証企業からの最新求人情報を見つけましょう。',
+    },
+    job_hero: {
+        badge: 'CV認証付き求人プラットフォーム',
+        title1: '仕事探しが', title2: 'より明確・より速く',
+        desc: 'HRI認証企業からの求人を探しましょう。',
+        search_keyword: '職種・キーワード...',
+        search_category: 'すべてのカテゴリ',
+        search_location: 'すべての地域',
+        btn_search: '求人を探す', btn_reset: 'リセット',
+        note: '検索すると求人一覧ページに移動します',
+    },
+    job_list: {
+        title_recent: '最新求人', title_result: '検索結果',
+        found: '{n}件の求人が見つかりました',
+        empty_title: '求人が見つかりません',
+        empty_desc: 'キーワードを変えるかフィルターを削除してみてください',
+        btn_all: 'すべての求人を見る',
+        deadline: '締切',
+        btn_apply: '応募する →', btn_login_apply: 'ログインして応募',
+        negotiable: '応相談', closed: '締め切り',
+        today: '本日締切！', days_left: 'あと{n}日',
+    },
+}

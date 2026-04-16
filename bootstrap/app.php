@@ -11,12 +11,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+
+        // ===== プロキシ信頼設定（ngrok対応） =====
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // 未ログイン時のリダイレクト先を URL によって切り替え
+        // 未ログイン時のリダイレクトURLによって切り替え
         $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
             if ($request->is('admin/*')) {
                 return route('staff.login');
@@ -24,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return route('login');
         });
 
-        // スーパー管理者専用ミドルウェア
+        // スーパー管理者用ミドルウェア
         $middleware->alias([
             'super.admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'education'   => \App\Http\Middleware\EnsureEducationCompleted::class,

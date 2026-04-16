@@ -1,0 +1,33 @@
+export default {
+    jobs_seo: {
+        title: 'Lowongan Kerja | HRI — Temukan Pekerjaan Impian Anda',
+        description: 'Temukan lowongan kerja terbaru dari perusahaan terverifikasi HRI.',
+    },
+    job_hero: {
+        badge: 'Platform Lowongan Kerja dengan CV Terverifikasi',
+        title1: 'Cari Kerja Jadi',
+        title2: 'Lebih Jelas & Cepat',
+        desc: 'Temukan lowongan dari perusahaan terverifikasi HRI.',
+        search_keyword: 'Posisi, kata kunci...',
+        search_category: 'Semua Kategori',
+        search_location: 'Semua Lokasi',
+        btn_search: 'Cari Lowongan',
+        btn_reset: 'Reset',
+        note: 'Pencarian akan diarahkan ke halaman daftar lowongan lengkap',
+    },
+    job_list: {
+        title_recent: 'Lowongan Terbaru',
+        title_result: 'Hasil Pencarian',
+        found: '{n} lowongan ditemukan',
+        empty_title: 'Lowongan tidak ditemukan',
+        empty_desc: 'Coba ubah kata kunci atau hapus filter',
+        btn_all: 'Lihat Semua Lowongan',
+        deadline: 'Deadline',
+        btn_apply: 'Lamar →',
+        btn_login_apply: 'Login & Lamar',
+        negotiable: 'Negotiable',
+        closed: 'Ditutup',
+        today: 'Hari ini!',
+        days_left: '{n} hari lagi',
+    },
+}

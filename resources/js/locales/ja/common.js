@@ -1,0 +1,22 @@
+export default {
+    a11y: { skip: 'メインコンテンツへスキップ' },
+    nav: {
+        search_job: '求人を探す',
+        service: 'サービス',
+        price: '料金',
+        for_company: '企業の方へ',
+        for_individual: '個人の方へ',
+        login: '登録 / ログイン',
+        my_page: 'マイページ',
+        register_company: '企業登録',
+        mobile_menu: 'モバイルメニューを開く',
+    },
+    footer: {
+        desc: 'HRIは個人ユーザーが日本・外資系・海外就職に向けてより信頼されるCVを準備する手助けをします。',
+        nav_title: 'ナビゲーション',
+        legal_title: '法的情報',
+        privacy: 'プライバシーポリシー',
+        policy: '重要ポリシー',
+        copyright: 'All rights reserved.',
+    },
+}

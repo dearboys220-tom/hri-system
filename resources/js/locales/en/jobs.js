@@ -1,0 +1,27 @@
+export default {
+    jobs_seo: {
+        title: 'Job Listings | HRI — Find Your Ideal Job',
+        description: 'Find the latest job listings from HRI-verified companies.',
+    },
+    job_hero: {
+        badge: 'Job Platform with CV Verification',
+        title1: 'Job Search Made', title2: 'Clearer & Faster',
+        desc: 'Find job listings from HRI-verified companies.',
+        search_keyword: 'Position, keyword...',
+        search_category: 'All Categories',
+        search_location: 'All Locations',
+        btn_search: 'Search Jobs', btn_reset: 'Reset',
+        note: 'Search will redirect to the full job listing page',
+    },
+    job_list: {
+        title_recent: 'Latest Jobs', title_result: 'Search Results',
+        found: '{n} jobs found',
+        empty_title: 'No jobs found',
+        empty_desc: 'Try changing keywords or removing filters',
+        btn_all: 'View All Jobs',
+        deadline: 'Deadline',
+        btn_apply: 'Apply →', btn_login_apply: 'Login & Apply',
+        negotiable: 'Negotiable', closed: 'Closed',
+        today: 'Closing today!', days_left: '{n} days left',
+    },
+}

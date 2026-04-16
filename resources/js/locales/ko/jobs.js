@@ -1,0 +1,27 @@
+export default {
+    jobs_seo: {
+        title: '채용 공고 | HRI — 이상적인 직업을 찾아보세요',
+        description: 'HRI 인증 기업의 최신 채용 공고를 찾아보세요.',
+    },
+    job_hero: {
+        badge: 'CV 인증 채용 플랫폼',
+        title1: '구직이', title2: '더 명확하고 빠르게',
+        desc: 'HRI 인증 기업의 채용 공고를 찾아보세요.',
+        search_keyword: '직종, 키워드...',
+        search_category: '모든 카테고리',
+        search_location: '모든 지역',
+        btn_search: '채용 검색', btn_reset: '초기화',
+        note: '검색하면 채용 공고 목록 페이지로 이동합니다',
+    },
+    job_list: {
+        title_recent: '최신 채용 공고', title_result: '검색 결과',
+        found: '{n}개의 채용 공고를 찾았습니다',
+        empty_title: '채용 공고를 찾을 수 없습니다',
+        empty_desc: '키워드를 바꾸거나 필터를 제거해 보세요',
+        btn_all: '모든 채용 공고 보기',
+        deadline: '마감일',
+        btn_apply: '지원하기 →', btn_login_apply: '로그인 후 지원',
+        negotiable: '협의 가능', closed: '마감',
+        today: '오늘 마감!', days_left: '{n}일 남음',
+    },
+}
