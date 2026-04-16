@@ -8,6 +8,7 @@ export default {
     },
     footer: {
         desc: 'HRI helps individual users prepare more trusted CVs for Japan, foreign companies, and overseas job opportunities.',
+        about: 'About Us',
         nav_title: 'Navigation', legal_title: 'Legal',
         privacy: 'Privacy Policy', policy: 'Important Policy', copyright: 'All rights reserved.',
     },

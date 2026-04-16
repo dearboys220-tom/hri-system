@@ -71,7 +71,7 @@ export default {
         text2: 'By focusing on candidates with scores of 80+, our interview pass rate increased from 30% to 65%.',
         text3: 'The 3-month resignation rate dropped from 20% to 5% thanks to HRI\'s background investigation.',
     },
-    pricing: {
+    company_pricing_meta: {
         label: 'Pricing',
         title: 'Transparent & Affordable',
         desc: 'Start for free. No hidden fees.',

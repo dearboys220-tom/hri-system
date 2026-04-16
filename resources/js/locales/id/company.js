@@ -71,7 +71,7 @@ export default {
         text2: 'Dengan fokus pada kandidat skor 80+, tingkat kelulusan wawancara naik dari 30% ke 65%.',
         text3: 'Tingkat resign dalam 3 bulan turun dari 20% ke 5% berkat investigasi latar belakang HRI.',
     },
-    pricing: {
+    company_pricing_meta: {
         label: 'Harga',
         title: 'Transparan & Terjangkau',
         desc: 'Mulai gratis. Tidak ada biaya tersembunyi.',

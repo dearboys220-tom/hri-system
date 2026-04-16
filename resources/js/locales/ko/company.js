@@ -71,7 +71,7 @@ export default {
         text2: '80점 이상 후보자에 집중함으로써 면접 합격률이 30%에서 65%로 향상되었습니다.',
         text3: 'HRI의 배경 조사로 3개월 이내 퇴직률이 20%에서 5%로 감소했습니다.',
     },
-    pricing: {
+    company_pricing_meta: {
         label: '요금',
         title: '투명하고 합리적',
         desc: '무료로 시작하세요. 숨겨진 비용이 없습니다.',

@@ -78,7 +78,12 @@ const stepItems = computed(() => [
     <nav :class="['fixed top-0 inset-x-0 z-50 transition-all duration-300',
                   scrolled ? 'bg-white shadow-md' : 'bg-transparent']">
         <div class="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
-            <Link href="/"><img src="/images/logo.png" alt="HRI" class="h-10 w-auto" /></Link>
+            <Link href="/" class="flex items-center gap-3" aria-label="HRI Home">
+                <img src="/images/logo.png" alt="HRI" :class="['h-10 w-auto rounded-lg transition-all', scrolled ? '' : 'bg-white/90 p-1' ]"/>
+                <span class="hidden sm:block text-xs font-semibold tracking-[0.18em] uppercase transition" :class="scrolled ? 'text-slate-700' : 'text-white/90'" >
+                    Human Reliability Intelligence
+                </span>
+            </Link>
 
             <div class="hidden md:flex items-center gap-5">
                 <Link href="/job"
@@ -326,9 +331,9 @@ const stepItems = computed(() => [
     <section id="pricing" class="py-20 bg-gray-50">
         <div class="max-w-4xl mx-auto px-4">
             <div class="text-center mb-14">
-                <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">{{ t('pricing.label') }}</span>
-                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2">{{ t('pricing.title') }}</h2>
-                <p class="text-gray-500 mt-4">{{ t('pricing.desc') }}</p>
+                <span class="text-blue-600 font-semibold text-sm uppercase tracking-widest">{{ t('priccompany_pricing_meta.label') }}</span>
+                <h2 class="text-3xl md:text-4xl font-black text-gray-900 mt-2">{{ t('company_pricing_meta.title') }}</h2>
+                <p class="text-gray-500 mt-4">{{ t('company_pricing_meta.desc') }}</p>
             </div>
             <div class="bg-white rounded-3xl shadow-xl overflow-hidden">
                 <div v-for="(item, i) in pricingItems" :key="i"
@@ -392,6 +397,7 @@ const stepItems = computed(() => [
                 <div class="flex gap-12">
                     <div>
                         <div class="text-white font-semibold mb-3 text-sm">{{ t('footer.nav_title') }}</div>
+                        <Link href="/about" class="block hover:text-white transition">{{ t('footer.about') }}</Link>
                         <div class="space-y-2 text-sm">
                             <Link href="/"                 class="block hover:text-white transition">{{ t('nav.for_individual') }}</Link>
                             <Link href="/job"              class="block hover:text-white transition">{{ t('nav.search_job') }}</Link>
@@ -411,7 +417,7 @@ const stepItems = computed(() => [
                 </div>
             </div>
             <div class="mt-10 pt-6 border-t border-gray-800 text-xs text-center">
-                © {{ new Date().getFullYear() }} HRI Indonesia. {{ t('footer.copyright') }}
+                © 2026 PT. NIKI KINDAICHI THERR INDONESIA. HRI (Human Reliability Intelligence). Privacy, consent, and audit-log controls applied. All rights reserved.
             </div>
         </div>
     </footer>

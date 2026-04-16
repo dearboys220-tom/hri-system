@@ -15,6 +15,7 @@ export default {
         desc: 'HRI membantu pengguna individual menyiapkan CV yang lebih dipercaya untuk Jepang, perusahaan asing, dan peluang kerja luar negeri.',
         nav_title: 'Navigasi',
         legal_title: 'Legal',
+        about: 'Tentang Perusahaan',
         privacy: 'Kebijakan Privasi',
         policy: 'Kebijakan Penting',
         copyright: 'Hak cipta dilindungi. Data diproses sesuai UU PDP Indonesia.',

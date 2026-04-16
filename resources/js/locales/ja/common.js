@@ -15,6 +15,7 @@ export default {
         desc: 'HRIは個人ユーザーが日本・外資系・海外就職に向けてより信頼されるCVを準備する手助けをします。',
         nav_title: 'ナビゲーション',
         legal_title: '法的情報',
+        about: '会社概要',
         privacy: 'プライバシーポリシー',
         policy: '重要ポリシー',
         copyright: 'All rights reserved.',

@@ -39,15 +39,14 @@ use App\Http\Controllers\Accounting\AccountingController;
 
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('home');
 
-Route::get('/login', function () {
-    return Inertia::render('Auth/Login');
-})->name('login');
+Route::get('/login', function () {return Inertia::render('Auth/Login');})->name('login');
 
 Route::get('/register/company', [CompanyController::class, 'create'])->name('register.company');
 Route::post('/register/company', [CompanyController::class, 'store'])->name('register.company.store');
 Route::get('/company', [App\Http\Controllers\CompanyLandingController::class, 'index'])->name('company.landing');
 
 Route::get('/job', [App\Http\Controllers\JobLandingController::class, 'index'])->name('job.landing');
+Route::get('/about', function () {return Inertia::render('About');})->name('about');
 
 // ================================================================
 // 認証済みルート（共通）

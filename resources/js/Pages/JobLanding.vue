@@ -60,7 +60,12 @@ const hasFilter = computed(() =>
     <nav :class="['fixed top-0 inset-x-0 z-50 transition-all duration-300',
                   scrolled ? 'bg-white shadow-md' : 'bg-transparent']">
         <div class="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
-            <Link href="/"><img src="/images/logo.png" alt="HRI" class="h-10 w-auto" /></Link>
+            <Link href="/" class="flex items-center gap-3" aria-label="HRI Home">
+                <img src="/images/logo.png" alt="HRI" :class="['h-10 w-auto rounded-lg transition-all', scrolled ? '' : 'bg-white/90 p-1' ]"/>
+                <span class="hidden sm:block text-xs font-semibold tracking-[0.18em] uppercase transition" :class="scrolled ? 'text-slate-700' : 'text-white/90'" >
+                    Human Reliability Intelligence
+                </span>
+            </Link>
 
             <div class="hidden md:flex items-center gap-5">
                 <Link href="/job"
@@ -142,7 +147,7 @@ const hasFilter = computed(() =>
 
     <!-- ===== HERO + 検索 ===== -->
     <section class="relative pt-32 pb-20 px-4 overflow-hidden"
-             style="background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #0ea5e9 100%);">
+             style="background: linear-gradient(135deg, #065f52 0%, #0f766e 60%, #14b8a6 100%);">
         <div class="absolute inset-0 opacity-10"
              style="background-image: radial-gradient(circle at 30% 50%, white 1px, transparent 1px);
                     background-size: 50px 50px;"></div>
@@ -229,8 +234,10 @@ const hasFilter = computed(() =>
 
                 <div class="flex gap-3">
                     <button @click="doSearch"
-                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold
-                                   py-3 rounded-xl transition-all text-sm">
+                            class="flex-1 text-white font-bold py-3 rounded-xl transition-all text-sm"
+                            style="background-color: #0F766E;"
+                            @mouseover="$event.target.style.backgroundColor='#0d6b63'"
+                            @mouseleave="$event.target.style.backgroundColor='#0F766E'">
                         🔍 {{ t('job_hero.btn_search') }}
                     </button>
                     <button v-if="hasFilter"
@@ -258,7 +265,7 @@ const hasFilter = computed(() =>
                     { icon: '🏅', title: t('features.f2_title'), desc: t('features.f2_desc') },
                     { icon: '⚡', title: t('features.f3_title'), desc: t('features.f3_desc') },
                 ]" :key="f.title"
-                     class="group bg-white hover:bg-blue-600 rounded-2xl p-8 transition-all duration-300
+                     class="hri-feature-card group bg-white rounded-2xl p-8 transition-all duration-300
                             hover:shadow-xl hover:-translate-y-1 cursor-default border border-gray-100">
                     <div class="text-4xl mb-4">{{ f.icon }}</div>
                     <h3 class="text-lg font-bold text-gray-900 group-hover:text-white mb-3 transition-colors">{{ f.title }}</h3>
@@ -278,20 +285,22 @@ const hasFilter = computed(() =>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 <button v-for="parent in categoriesGrouped" :key="parent.id"
                         @click="router.get('/jobs', { category: parent.id })"
-                        class="bg-gray-50 hover:bg-blue-600 border border-gray-100 rounded-xl p-4 text-center
+                        class="hri-cat-btn bg-gray-50 border border-gray-100 rounded-xl p-4 text-center
                                transition-all hover:shadow-md hover:-translate-y-0.5 group cursor-pointer">
-                    <div class="text-sm font-semibold text-gray-700 group-hover:text-white transition-colors leading-snug">
+                    <div class="cat-name text-sm font-semibold leading-snug">
                         {{ parent.name }}
                     </div>
-                    <div class="text-xs text-gray-400 group-hover:text-blue-100 mt-1 transition-colors">
+                    <div class="cat-count text-xs mt-1">
                         {{ parent.children?.length ?? 0 }} {{ t('job_category.unit') }}
                     </div>
                 </button>
             </div>
             <div class="text-center mt-10">
                 <Link href="/jobs"
-                      class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold
-                             px-10 py-4 rounded-full transition shadow-lg">
+                      class="inline-block text-white font-bold px-10 py-4 rounded-full transition shadow-lg"
+                      style="background-color: #0F766E;"
+                      @mouseover="$event.target.style.backgroundColor='#0d6b63'"
+                      @mouseleave="$event.target.style.backgroundColor='#0F766E'">
                     {{ t('job_list.btn_all') }} →
                 </Link>
             </div>
@@ -313,17 +322,20 @@ const hasFilter = computed(() =>
                     {{ t('company_section.cta') }}
                 </Link>
             </div>
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 text-center">
-                <p class="text-5xl mb-4">🏢</p>
-                <p class="text-4xl font-extrabold text-indigo-600 mb-2">{{ t('company_section.days') }}</p>
-                <p class="text-gray-600 font-semibold mb-1">{{ t('company_section.days_label') }}</p>
-                <p class="text-gray-400 text-sm">{{ t('company_section.days_note') }}</p>
+            <div class="relative rounded-2xl p-8 text-center overflow-hidden min-h-[200px] flex flex-col items-center justify-center"
+                 style="background-image: url('/images/job-company-bg.png'); background-size: cover; background-position: center;">
+                <div class="absolute inset-0 bg-black/10 rounded-2xl"></div>
+                <div class="relative z-10 bg-black/60 rounded-2xl px-8 py-6 text-center m-6">
+                    <p class="text-4xl font-extrabold text-white mb-2">{{ t('company_section.days') }}</p>
+                    <p class="text-white font-semibold mb-1">{{ t('company_section.days_label') }}</p>
+                    <p class="text-white/80 text-sm">{{ t('company_section.days_note') }}</p>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- ===== 個人向けCTA ===== -->
-    <section class="py-20" style="background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #0ea5e9 100%);">
+    <section class="py-20" style="background: linear-gradient(135deg, #065f52 0%, #0f766e 60%, #14b8a6 100%);">
         <div class="max-w-3xl mx-auto px-4 text-center">
             <h2 class="text-3xl md:text-4xl font-black text-white mb-6">{{ t('cta.title') }}</h2>
             <p class="text-blue-100 mb-10 leading-relaxed">{{ t('cta.desc') }}</p>
@@ -362,6 +374,7 @@ const hasFilter = computed(() =>
                 <div class="flex gap-12">
                     <div>
                         <div class="text-white font-semibold mb-3 text-sm">{{ t('footer.nav_title') }}</div>
+                        <Link href="/about" class="block hover:text-white transition">{{ t('footer.about') }}</Link>
                         <div class="space-y-2 text-sm">
                             <Link href="/"        class="block hover:text-white transition">{{ t('nav.for_individual') }}</Link>
                             <Link href="/company" class="block hover:text-white transition">{{ t('nav.for_company') }}</Link>
@@ -381,8 +394,25 @@ const hasFilter = computed(() =>
                 </div>
             </div>
             <div class="mt-10 pt-6 border-t border-gray-800 text-xs text-center">
-                © {{ new Date().getFullYear() }} HRI Indonesia. {{ t('footer.copyright') }}
+                © 2026 PT. NIKI KINDAICHI THERR INDONESIA. HRI (Human Reliability Intelligence). Privacy, consent, and audit-log controls applied. All rights reserved.
             </div>
         </div>
     </footer>
 </template>
+
+<style scoped>
+/* カテゴリボタン */
+.hri-cat-btn .cat-name  { color: #374151; } /* gray-700 */
+.hri-cat-btn .cat-count { color: #9ca3af; } /* gray-400 */
+
+.hri-cat-btn:hover {
+    background-color: #0F766E;
+}
+.hri-cat-btn:hover .cat-name  { color: #ffffff; }
+.hri-cat-btn:hover .cat-count { color: #ccfbf1; } /* teal-100 */
+
+/* フィーチャーカード */
+.hri-feature-card:hover {
+    background-color: #0F766E;
+}
+</style>

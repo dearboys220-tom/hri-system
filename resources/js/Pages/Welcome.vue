@@ -101,7 +101,7 @@ const organizationSchema = computed(() => ({
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'HRI',
-    alternateName: 'Human Resource Integrity',
+    alternateName: 'Human Reliability Intelligence',
     url: canonicalUrl.value,
     logo: `${typeof window !== 'undefined' ? window.location.origin : ''}/images/logo.png`,
     description: t('welcome_schema.org_description'),
@@ -162,6 +162,20 @@ onMounted(() => {
     if (!isLoggedIn) {
         popupTimer = window.setTimeout(() => { openPopup() }, 9000)
     }
+
+    // ===== JSON-LD 構造化データを <head> に挿入 =====
+    const schemas = [
+        organizationSchema.value,
+        serviceSchema.value,
+        websiteSchema.value,
+        faqSchema.value,
+    ]
+    schemas.forEach(schema => {
+        const el = document.createElement('script')
+        el.type = 'application/ld+json'
+        el.text = JSON.stringify(schema)
+        document.head.appendChild(el)
+    })
 })
 
 onUnmounted(() => {
@@ -195,11 +209,6 @@ onUnmounted(() => {
         <meta name="twitter:title" :content="pageTitle" />
         <meta name="twitter:description" :content="pageDescription" />
         <meta name="twitter:image" :content="ogImage" />
-
-        <script type="application/ld+json">{{ JSON.stringify(organizationSchema) }}</script>
-        <script type="application/ld+json">{{ JSON.stringify(serviceSchema) }}</script>
-        <script type="application/ld+json">{{ JSON.stringify(websiteSchema) }}</script>
-        <script type="application/ld+json">{{ JSON.stringify(faqSchema) }}</script>
     </Head>
 
     <div class="bg-white text-slate-900 selection:bg-blue-100 selection:text-blue-900">
@@ -215,17 +224,17 @@ onUnmounted(() => {
                 'fixed top-0 inset-x-0 z-50 transition-all duration-300',
                 scrolled
                     ? 'bg-white/95 backdrop-blur shadow-md border-b border-slate-200'
-                    : 'bg-transparent'
+                    : 'bg-gradient-to-b from-black/30 to-transparent'
             ]"
         >
             <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
                 <Link href="/" class="flex items-center gap-3" aria-label="HRI Home">
-                    <img src="/images/logo.png" alt="HRI" class="h-10 w-auto" />
+                    <img src="/images/logo.png" alt="HRI" :class="['h-10 w-auto rounded-lg transition-all', scrolled ? '' : 'bg-white/90 p-1' ]"/>
                     <span
                         class="hidden sm:block text-xs font-semibold tracking-[0.18em] uppercase"
                         :class="scrolled ? 'text-slate-700' : 'text-white/90'"
                     >
-                        Human Resource Integrity
+                        Human Reliability Intelligence
                     </span>
                 </Link>
 
@@ -711,7 +720,7 @@ onUnmounted(() => {
 
             <section class="py-20 sm:py-24 bg-gradient-to-r from-[#123e88] to-[#103780]">
                 <div class="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-                    <h2 class="text-2xl sm:text-4xl font-black text-white mb-5 leading-tight">
+                    <h2 class="text-xl sm:text-2xl lg:text-3xl font-black text-white mb-5 leading-tight text-balance">
                         {{ $t('final.title') }}
                     </h2>
                     <p class="text-blue-100 mb-9 leading-8 text-sm sm:text-base">
@@ -874,6 +883,7 @@ onUnmounted(() => {
                     <div>
                         <div class="text-white font-semibold mb-3 text-sm uppercase tracking-[0.18em]">{{ $t('footer.legal_title') }}</div>
                         <div class="space-y-2 text-sm">
+                            <Link href="/about" class="block hover:text-white transition">{{ $t('footer.about') }}</Link>
                             <a
                                 href="https://hri-check.com/privacy-applicant/"
                                 target="_blank"
@@ -895,7 +905,7 @@ onUnmounted(() => {
                 </div>
 
                 <div class="mt-10 pt-6 border-t border-slate-800 text-xs text-center leading-6">
-                    © {{ new Date().getFullYear() }} HRI Indonesia. {{ $t('footer.copyright') }}
+                    © 2026 PT. NIKI KINDAICHI THERR INDONESIA. HRI (Human Reliability Intelligence). Privacy, consent, and audit-log controls applied. All rights reserved.
                 </div>
             </div>
         </footer>
