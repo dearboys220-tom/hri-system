@@ -24,6 +24,14 @@ import en_welcome from './locales/en/welcome.js'
 import en_company from './locales/en/company.js'
 import en_jobs    from './locales/en/jobs.js'
 
+// 利用可能な言語一覧（LanguageSwitcher.vue で使用）
+export const availableLocales = [
+    { code: 'id', label: 'Indonesia',  flag: '🇮🇩' },
+    { code: 'ja', label: '日本語',      flag: '🇯🇵' },
+    { code: 'ko', label: '한국어',      flag: '🇰🇷' },
+    { code: 'en', label: 'English',    flag: '🇬🇧' },
+]
+
 export const i18n = createI18n({
     legacy: false,
     locale: localStorage.getItem('hri_locale') || 'id',
@@ -35,5 +43,12 @@ export const i18n = createI18n({
         en: { ...en_common, ...en_welcome, ...en_company, ...en_jobs },
     },
 })
+
+// 言語切替関数（LanguageSwitcher.vue で使用）
+export const setLocale = (code) => {
+    i18n.global.locale.value = code
+    localStorage.setItem('hri_locale', code)
+    document.documentElement.lang = code
+}
 
 export default i18n
