@@ -71,7 +71,7 @@ export default {
         label: 'Pricing', title: 'Concise, clear, and easy to understand',
         desc: 'Pricing information is displayed briefly for easy reading on smartphones.',
         p1_label: 'First Verification', p1_note: 'Start more easily',       p1_price: 'Free',
-        p2_label: 'Re-verification',    p2_note: 'When needed per policy',   p2_price: 'Rp 350,000',
+        p2_label: 'Re-verification',    p2_note: 'When needed per policy',   p2_price: 'Rp 35,000',
         p3_label: 'Validity Period',    p3_note: 'Basic display for users',  p3_price: '3 Months',
         p4_label: 'Payment Method',     p4_note: 'Basic display for users',  p4_price: 'QRIS',
     },

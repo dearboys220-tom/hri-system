@@ -71,7 +71,7 @@ export default {
         label: '요금', title: '간결하고, 명확하고, 이해하기 쉬움',
         desc: '스마트폰에서 읽기 쉽도록 요금 정보가 간결하게 표시됩니다.',
         p1_label: '첫 번째 인증', p1_note: '더 쉽게 시작',          p1_price: '무료',
-        p2_label: '재인증',       p2_note: '정책에 따라 필요한 경우', p2_price: 'Rp 350.000',
+        p2_label: '재인증',       p2_note: '정책에 따라 필요한 경우', p2_price: 'Rp 35.000',
         p3_label: '유효 기간',    p3_note: '개인 사용자 기본 표시',   p3_price: '3개월',
         p4_label: '결제 방법',    p4_note: '개인 사용자 기본 표시',   p4_price: 'QRIS',
     },

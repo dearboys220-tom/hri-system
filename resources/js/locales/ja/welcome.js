@@ -71,7 +71,7 @@ export default {
         label: '料金', title: 'シンプルで、明確で、わかりやすい',
         desc: 'スマートフォンで読みやすいよう、料金情報は簡潔に表示されています。',
         p1_label: '初回認証',   p1_note: 'より簡単にスタート',          p1_price: '無料',
-        p2_label: '再認証',     p2_note: 'ポリシーに応じて必要な場合',   p2_price: 'Rp 350,000',
+        p2_label: '再認証',     p2_note: 'ポリシーに応じて必要な場合',   p2_price: 'Rp 35,000',
         p3_label: '有効期間',   p3_note: '個人ユーザー向け基本表示',     p3_price: '3ヶ月',
         p4_label: '支払い方法', p4_note: '個人ユーザー向け基本表示',     p4_price: 'QRIS',
     },

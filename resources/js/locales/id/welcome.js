@@ -80,7 +80,7 @@ export default {
         title: 'Ringkas, jelas, dan mudah dipahami',
         desc: 'Informasi harga ditampilkan singkat agar mudah dibaca di smartphone.',
         p1_label: 'Verifikasi Pertama', p1_note: 'Mulai lebih mudah',              p1_price: 'Gratis',
-        p2_label: 'Verifikasi Ulang',   p2_note: 'Bila diperlukan sesuai kebijakan', p2_price: 'Rp 350.000',
+        p2_label: 'Verifikasi Ulang',   p2_note: 'Bila diperlukan sesuai kebijakan', p2_price: 'Rp 35.000',
         p3_label: 'Masa Berlaku',        p3_note: 'Tampilan dasar untuk pengguna individual', p3_price: '3 Bulan',
         p4_label: 'Metode Pembayaran',   p4_note: 'Tampilan dasar untuk pengguna individual', p4_price: 'QRIS',
     },
