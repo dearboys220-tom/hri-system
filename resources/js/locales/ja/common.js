@@ -19,6 +19,7 @@ export default {
         privacy: 'プライバシーポリシー',
         policy: '重要ポリシー',
         policies: '約款一覧',
+        contact: 'お問い合わせ',
         copyright: 'All rights reserved.',
     },
 }

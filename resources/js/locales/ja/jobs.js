@@ -195,6 +195,7 @@ export default {
     about: '会社概要',
     privacy: 'プライバシーポリシー',
     policy: '重要なポリシー',
+    policies: '約款一覧',
     company_info: '企業情報',
   },
   category_names: {

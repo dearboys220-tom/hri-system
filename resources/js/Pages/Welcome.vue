@@ -865,31 +865,27 @@ onUnmounted(() => {
 
         <footer class="bg-slate-950 text-slate-400 py-12 pb-24 md:pb-12">
             <div class="max-w-6xl mx-auto px-4 sm:px-6">
-                <div class="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
-                    <div>
-                        <Link href="/"><img src="/images/logo.png" alt="HRI" class="h-8 w-auto mb-3 opacity-90" /></Link>
-                        <p class="text-sm max-w-sm leading-7">
-                            {{ $t('footer.desc') }}
-                        </p>
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+                    <div class="max-w-xs">
+                        <img src="/images/logo.png" alt="HRI" class="h-10 w-auto mb-3" />
+                        <p class="text-sm leading-relaxed">{{ $t('footer.desc') }}</p>
                     </div>
 
                     <div>
-                        <div class="text-white font-semibold mb-3 text-sm uppercase tracking-[0.18em]">{{ $t('footer.nav_title') }}</div>
-                        <div class="space-y-2 text-sm">
-                            <Link href="/job" class="block hover:text-white transition">{{ $t('nav.search_job') }}</Link>
-                            <Link href="/company" class="block hover:text-white transition">{{ $t('nav.for_company') }}</Link>
-                            <Link href="/login" class="block hover:text-white transition">{{ $t('nav.login') }}</Link>
+                     　　<div class="text-white font-semibold mb-3 text-sm uppercase tracking-[0.18em]">
+                            {{ $t('footer.legal_title') }}
                         </div>
-                    </div>
-
-                    <div>
-                        <div class="text-white font-semibold mb-3 text-sm uppercase tracking-[0.18em]">{{ $t('footer.legal_title') }}</div>
-                        <div class="space-y-2 text-sm">
-                            <Link href="/about" class="block hover:text-white transition">{{ $t('footer.about') }}</Link>
-                            <Link href="/policies" class="block hover:text-white transition">
-                                {{ $t('footer.policies') }}
-                            </Link>
-                        </div>
+                        <ul class="space-y-2 text-sm">
+                            <li>
+                                <Link href="/about" class="hover:text-white transition">{{ $t('footer.about') }}</Link>
+                            </li>
+                            <li>
+                                <Link href="/policies" class="hover:text-white transition">{{ $t('footer.policies') }}</Link>
+                            </li>
+                            <li>
+                                <Link href="/contact" class="hover:text-white transition">{{ $t('footer.contact') }}</Link>
+                            </li>
+                        </ul>
                     </div>
                 </div>
 

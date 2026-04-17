@@ -195,6 +195,7 @@ export default {
     about: '소개',
     privacy: '개인정보 처리방침',
     policy: '중요 정책',
+    policies: '약관 목록',
     company_info: '기업 정보',
   },
   category_names: {

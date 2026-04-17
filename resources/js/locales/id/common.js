@@ -19,6 +19,7 @@ export default {
         privacy: 'Kebijakan Privasi',
         policy: 'Kebijakan Penting',
         policies: 'Daftar Ketentuan',
+        contact: 'Hubungi Kami',
         copyright: 'Hak cipta dilindungi. Data diproses sesuai UU PDP Indonesia.',
     },
 }

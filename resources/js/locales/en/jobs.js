@@ -195,6 +195,7 @@ export default {
     about: 'About Us',
     privacy: 'Privacy Policy',
     policy: 'Important Policies',
+    policies: 'Policy List',
     company_info: 'Company Information',
   },
   category_names: {

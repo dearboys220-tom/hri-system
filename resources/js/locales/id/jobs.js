@@ -195,6 +195,7 @@ export default {
     about: 'Tentang Kami',
     privacy: 'Kebijakan Privasi',
     policy: 'Kebijakan Penting',
+    policies: 'Daftar Ketentuan',
     company_info: 'Informasi Perusahaan',
   },
 }

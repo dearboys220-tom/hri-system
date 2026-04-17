@@ -33,6 +33,7 @@ use App\Http\Controllers\Sales\OrderController;
 use App\Http\Controllers\Sales\InvoiceController;
 use App\Http\Controllers\Accounting\AccountingController;
 use App\Http\Controllers\PolicyController;
+use App\Http\Controllers\ContactController;
 
 // ================================================================
 // 公開ルート
@@ -51,6 +52,9 @@ Route::get('/about', function () {return Inertia::render('About');})->name('abou
 
 Route::get('/policies', [PolicyController::class, 'index'])->name('policies.index');
 Route::get('/policies/{slug}', [PolicyController::class, 'show'])->name('policies.show');
+
+Route::get('/contact', [ContactController::class, 'show'])->name('contact.show');
+Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 
 // ================================================================
 // 認証済みルート（共通）
