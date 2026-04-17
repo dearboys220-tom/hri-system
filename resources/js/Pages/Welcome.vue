@@ -89,11 +89,11 @@ const testimonials = computed(() => [
 ])
 
 const faqItems = computed(() => [
-    { q: t('faq.q1'), a: t('faq.a1') },
-    { q: t('faq.q2'), a: t('faq.a2') },
-    { q: t('faq.q3'), a: t('faq.a3') },
-    { q: t('faq.q4'), a: t('faq.a4') },
-    { q: t('faq.q5'), a: t('faq.a5') },
+    { q: t('welcome_faq.q1'), a: t('welcome_faq.a1') },
+    { q: t('welcome_faq.q2'), a: t('welcome_faq.a2') },
+    { q: t('welcome_faq.q3'), a: t('welcome_faq.a3') },
+    { q: t('welcome_faq.q4'), a: t('welcome_faq.a4') },
+    { q: t('welcome_faq.q5'), a: t('welcome_faq.a5') },
 ])
 
 // ===== 構造化データ（Schema.org） =====
@@ -682,11 +682,13 @@ onUnmounted(() => {
                         </Link>
                     </div>
 
-                    <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-3xl p-7 sm:p-8 text-center border border-indigo-100">
-                        <p class="text-5xl mb-4">🏢</p>
-                        <p class="text-4xl font-extrabold text-indigo-600 mb-2">HRI</p>
-                        <p class="text-slate-600 font-semibold mb-1">{{ $t('company.card_title') }}</p>
-                        <p class="text-slate-400 text-sm">{{ $t('company.card_desc') }}</p>
+                    <div class="relative rounded-3xl overflow-hidden shadow-xl min-h-[260px]">
+                      <img src="/images/job-company-bg.png"alt=""aria-hidden="true"class="absolute inset-0 w-full h-full object-cover"/>
+                      <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-7 bg-white/15">
+                        <p class="text-4xl font-extrabold text-black drop-shadow mb-2">HRI</p>
+                        <p class="text-black font-semibold mb-1 drop-shadow">{{ $t('company.card_title') }}</p>
+                        <p class="text-black/90 text-sm drop-shadow">{{ $t('company.card_desc') }}</p>
+                      </div>
                     </div>
                 </div>
             </section>
@@ -694,9 +696,9 @@ onUnmounted(() => {
             <section id="faq" class="py-16 sm:py-20 bg-white">
                 <div class="max-w-4xl mx-auto px-4 sm:px-6">
                     <div class="text-center mb-10 sm:mb-14">
-                        <span class="text-[#123e88] font-semibold text-xs sm:text-sm uppercase tracking-[0.22em]">{{ $t('faq.label') }}</span>
+                        <span class="text-[#123e88] font-semibold text-xs sm:text-sm uppercase tracking-[0.22em]">{{ $t('welcome_faq.label') }}</span>
                         <h2 class="text-2xl sm:text-4xl font-black text-slate-900 mt-3 leading-tight">
-                            {{ $t('faq.title') }}
+                            {{ $t('welcome_faq.title') }}
                         </h2>
                     </div>
 

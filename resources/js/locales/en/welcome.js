@@ -82,7 +82,7 @@ export default {
         card_title: 'Company information is separated',
         card_desc: 'This TOP page is prioritized for individual users to be more focused, more concise, and easier to understand.',
     },
-    faq: {
+    welcome_faq: {
         label: 'FAQ', title: 'Frequently asked questions',
         q1: 'Why is HRI verification important now?',
         a1: 'Because more and more people are pursuing job opportunities in Japan and foreign companies, while a clearer and more convincing CV is becoming increasingly important.',

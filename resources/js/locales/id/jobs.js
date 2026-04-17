@@ -160,7 +160,7 @@ export default {
     ],
   },
 
-  faq: {
+  job_faq: {
     label: 'Pertanyaan umum',
     title: 'FAQ HRI Job',
     items: [

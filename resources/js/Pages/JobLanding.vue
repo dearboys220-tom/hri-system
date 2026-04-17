@@ -102,7 +102,7 @@ const whyCards = computed(() => tm('job_why.cards') || [])
 const trustPoints = computed(() => tm('job_hero.chips') || [])
 const seoIntents = computed(() => tm('seo_block.intents') || [])
 const seoPoints = computed(() => tm('seo_block.points') || [])
-const faqs = computed(() => tm('faq.items') || [])
+const faqs = computed(() => tm('job_faq.items') || [])
 
 // カテゴリ名を現在の言語に翻訳する関数
 const translateCategory = (name) => {
@@ -579,11 +579,12 @@ const applyForJob = (jobId) => {
           </div>
         </div>
 
-        <div class="rounded-3xl bg-gradient-to-br from-teal-800 to-teal-600 p-6 md:p-10 text-center text-white shadow-xl">
-          <div class="mx-auto max-w-sm rounded-3xl bg-black/20 border border-white/10 p-8">
-            <div class="text-5xl md:text-6xl font-black">{{ t('company_section.days') }}</div>
-            <div class="mt-2 text-2xl font-black">{{ t('company_section.days_label') }}</div>
-            <p class="mt-3 text-cyan-50 leading-relaxed">{{ t('company_section.days_note') }}</p>
+        <div class="relative rounded-3xl overflow-hidden shadow-xl">
+          <img src="/images/company-promo.png"alt=""aria-hidden="true"class="w-full h-full object-cover"/>
+          <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 bg-white/10">
+            <div class="text-5xl md:text-6xl font-black text-slate-900">{{ t('company_section.days') }}</div>
+            <div class="mt-2 text-2xl font-black text-slate-900">{{ t('company_section.days_label') }}</div>
+            <p class="mt-3 text-slate-800 leading-relaxed">{{ t('company_section.days_note') }}</p>
           </div>
         </div>
       </div>
@@ -624,8 +625,8 @@ const applyForJob = (jobId) => {
     <section class="py-20 bg-slate-50 border-y border-slate-200">
       <div class="max-w-4xl mx-auto px-4 lg:px-6">
         <div class="text-center mb-12">
-          <span class="inline-block text-teal-700 font-black text-xs md:text-sm uppercase tracking-[0.22em]">{{ t('faq.label') }}</span>
-          <h2 class="mt-3 text-3xl md:text-4xl font-black text-slate-900 leading-tight">{{ t('faq.title') }}</h2>
+          <span class="inline-block text-teal-700 font-black text-xs md:text-sm uppercase tracking-[0.22em]">{{ t('job_faq.label') }}</span>
+          <h2 class="mt-3 text-3xl md:text-4xl font-black text-slate-900 leading-tight">{{ t('job_faq.title') }}</h2>
         </div>
 
         <div class="space-y-4">

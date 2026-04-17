@@ -160,7 +160,7 @@ export default {
     ],
   },
 
-  faq: {
+  job_faq: {
     label: 'Frequently asked questions',
     title: 'HRI Job FAQ',
     items: [

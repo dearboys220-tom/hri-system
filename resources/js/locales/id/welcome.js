@@ -92,7 +92,7 @@ export default {
         card_title: 'Informasi perusahaan dipisahkan',
         card_desc: 'TOP ini diprioritaskan untuk pengguna individual agar lebih fokus, lebih singkat, dan lebih mudah dipahami.',
     },
-    faq: {
+    welcome_faq: {
         label: 'FAQ',
         title: 'Pertanyaan yang sering diajukan',
         q1: 'Mengapa verifikasi HRI penting sekarang?',
