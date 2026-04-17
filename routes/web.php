@@ -32,6 +32,7 @@ use App\Http\Controllers\Sales\EstimateController;
 use App\Http\Controllers\Sales\OrderController;
 use App\Http\Controllers\Sales\InvoiceController;
 use App\Http\Controllers\Accounting\AccountingController;
+use App\Http\Controllers\PolicyController;
 
 // ================================================================
 // 公開ルート
@@ -47,6 +48,9 @@ Route::get('/company', [App\Http\Controllers\CompanyLandingController::class, 'i
 
 Route::get('/job', [App\Http\Controllers\JobLandingController::class, 'index'])->name('job.landing');
 Route::get('/about', function () {return Inertia::render('About');})->name('about');
+
+Route::get('/policies', [PolicyController::class, 'index'])->name('policies.index');
+Route::get('/policies/{slug}', [PolicyController::class, 'show'])->name('policies.show');
 
 // ================================================================
 // 認証済みルート（共通）

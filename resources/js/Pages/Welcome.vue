@@ -884,22 +884,9 @@ onUnmounted(() => {
                         <div class="text-white font-semibold mb-3 text-sm uppercase tracking-[0.18em]">{{ $t('footer.legal_title') }}</div>
                         <div class="space-y-2 text-sm">
                             <Link href="/about" class="block hover:text-white transition">{{ $t('footer.about') }}</Link>
-                            <a
-                                href="https://hri-check.com/privacy-applicant/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="block hover:text-white transition"
-                            >
-                                {{ $t('footer.privacy') }}
-                            </a>
-                            <a
-                                href="https://hri-check.com/important-policies/"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="block hover:text-white transition"
-                            >
-                                {{ $t('footer.policy') }}
-                            </a>
+                            <Link href="/policies" class="block hover:text-white transition">
+                                {{ $t('footer.policies') }}
+                            </Link>
                         </div>
                     </div>
                 </div>

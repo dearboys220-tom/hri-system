@@ -18,6 +18,7 @@ export default {
         about: 'Tentang Perusahaan',
         privacy: 'Kebijakan Privasi',
         policy: 'Kebijakan Penting',
+        policies: 'Daftar Ketentuan',
         copyright: 'Hak cipta dilindungi. Data diproses sesuai UU PDP Indonesia.',
     },
 }

@@ -10,6 +10,7 @@ export default {
         desc: 'HRI는 개인 사용자가 일본, 외국계, 해외 취업을 위해 더 신뢰받는 CV를 준비하는 것을 돕습니다.',
         about: '회사 소개',
         nav_title: '내비게이션', legal_title: '법적 정보',
+        policies: '약관 목록',
         privacy: '개인정보 보호정책', policy: '중요 정책', copyright: 'All rights reserved.',
     },
 }

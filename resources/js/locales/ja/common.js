@@ -18,6 +18,7 @@ export default {
         about: '会社概要',
         privacy: 'プライバシーポリシー',
         policy: '重要ポリシー',
+        policies: '約款一覧',
         copyright: 'All rights reserved.',
     },
 }
