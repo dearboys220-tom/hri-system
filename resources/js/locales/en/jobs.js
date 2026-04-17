@@ -17,16 +17,6 @@ export default {
     sub: 'A job platform focused on verification and trust',
   },
 
-  nav: {
-    search_job: 'Search Jobs',
-    for_individual: 'For Individuals',
-    for_company: 'For Companies',
-    about: 'About Us',
-    my_page: 'My Page',
-    login: 'Register / Sign In',
-    register_company: 'Register Company',
-  },
-
   job_hero: {
     badge: 'Job platform with employment history verification & CV context',
     title1: 'Become a talent that is',

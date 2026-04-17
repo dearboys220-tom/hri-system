@@ -262,7 +262,6 @@ const applyForJob = (jobId) => {
           <Link :class="[scrolled ? 'text-teal-700' : 'text-white', 'text-sm font-bold transition']" href="/job">{{ t('nav.search_job') }}</Link>
           <Link :class="[scrolled ? 'text-slate-700 hover:text-teal-700' : 'text-white hover:text-white/80', 'text-sm font-semibold transition']" href="/">{{ t('nav.for_individual') }}</Link>
           <Link :class="[scrolled ? 'text-slate-700 hover:text-teal-700' : 'text-white hover:text-white/80', 'text-sm font-semibold transition']" href="/company">{{ t('nav.for_company') }}</Link>
-          <Link :class="[scrolled ? 'text-slate-700 hover:text-teal-700' : 'text-white hover:text-white/80', 'text-sm font-semibold transition']" href="/about">{{ t('nav.about') }}</Link>
           <div :class="scrolled ? '[&_button]:!text-slate-700 [&_button]:!border-slate-300' : ''">
             <LanguageSwitcher />
           </div>
@@ -275,9 +274,6 @@ const applyForJob = (jobId) => {
           <template v-else>
             <Link :href="'/login'" :class="[scrolled ? 'border-slate-300 text-slate-700 hover:bg-slate-100' : 'border-white/35 text-white hover:bg-white/10', 'px-5 py-2.5 rounded-full text-sm font-bold border transition']">
               {{ t('nav.login') }}
-            </Link>
-            <Link :href="'/register/company'" :class="[scrolled ? 'bg-teal-700 text-white hover:bg-teal-800' : 'bg-white text-teal-700 hover:bg-slate-100', 'px-5 py-2.5 rounded-full text-sm font-bold transition']">
-              {{ t('nav.register_company') }}
             </Link>
           </template>
         </div>

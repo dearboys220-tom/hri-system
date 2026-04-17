@@ -126,11 +126,6 @@ const stepItems = computed(() => [
                           :class="scrolled ? 'border-gray-300 text-gray-700 hover:bg-gray-50' : 'border-white/40 text-white hover:bg-white/10'">
                         {{ t('nav.login') }}
                     </Link>
-                    <Link href="/register/company"
-                          class="px-4 py-2 rounded-full text-sm font-semibold transition"
-                          :class="scrolled ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-white text-blue-700 hover:bg-blue-50'">
-                        {{ t('nav.register_company') }}
-                    </Link>
                 </template>
             </div>
 

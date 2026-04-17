@@ -17,16 +17,6 @@ export default {
     sub: 'Platform lowongan kerja dengan fokus verifikasi dan kepercayaan',
   },
 
-  nav: {
-    search_job: 'Cari Lowongan',
-    for_individual: 'Untuk Individu',
-    for_company: 'Untuk Perusahaan',
-    about: 'Tentang Kami',
-    my_page: 'Halaman Saya',
-    login: 'Daftar / Masuk',
-    register_company: 'Daftar Perusahaan',
-  },
-
   job_hero: {
     badge: 'Platform lowongan dengan verifikasi riwayat & konteks CV',
     title1: 'Menjadi talenta yang',

@@ -17,16 +17,6 @@ export default {
     sub: '確認と信頼に特化した求人プラットフォーム',
   },
 
-  nav: {
-    search_job: '求人を探す',
-    for_individual: '個人の方へ',
-    for_company: '企業の方へ',
-    about: '会社概要',
-    my_page: 'マイページ',
-    login: '登録 / ログイン',
-    register_company: '企業登録',
-  },
-
   job_hero: {
     badge: '経歴確認・履歴書コンテキストに対応した求人プラットフォーム',
     title1: 'より信頼される',

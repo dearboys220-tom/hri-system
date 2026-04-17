@@ -17,16 +17,6 @@ export default {
     sub: '검증과 신뢰에 특화된 구인 플랫폼',
   },
 
-  nav: {
-    search_job: '일자리 검색',
-    for_individual: '개인 회원',
-    for_company: '기업 회원',
-    about: '소개',
-    my_page: '마이페이지',
-    login: '가입 / 로그인',
-    register_company: '기업 등록',
-  },
-
   job_hero: {
     badge: '이력 확인 및 CV 컨텍스트 기반 구인 플랫폼',
     title1: '더 신뢰받는',
