@@ -187,17 +187,6 @@ export default {
     btn_explore: 'Browse all jobs',
   },
 
-  footer: {
-    brand_line: 'International verified job platform',
-    desc: 'HRI Job helps users prepare a more trusted CV and professional context for foreign-affiliated companies, Japanese companies, and international job opportunities.',
-    nav_title: 'Navigation',
-    legal_title: 'Legal information',
-    about: 'About Us',
-    privacy: 'Privacy Policy',
-    policy: 'Important Policies',
-    policies: 'Policy List',
-    company_info: 'Company Information',
-  },
   category_names: {
     'Akuntansi & Keuangan': 'Accounting & Finance',
     'Administrasi & Support': 'Administration & Support',

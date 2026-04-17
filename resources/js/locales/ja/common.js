@@ -20,6 +20,6 @@ export default {
         policy: '重要ポリシー',
         policies: '約款一覧',
         contact: 'お問い合わせ',
-        copyright: 'All rights reserved.',
+        copyright: '© 2026 PT. NIKI KINDAICHI THERR INDONESIA. HRI (Human Reliability Intelligence). Privacy, consent, and audit-log controls applied. All rights reserved.',
     },
 }

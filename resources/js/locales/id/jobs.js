@@ -187,15 +187,4 @@ export default {
     btn_explore: 'Jelajahi semua lowongan',
   },
 
-  footer: {
-    brand_line: 'International verified job platform',
-    desc: 'HRI Job membantu pengguna menyiapkan CV dan konteks profesional yang lebih dipercaya untuk kebutuhan perusahaan asing, perusahaan Jepang, dan peluang kerja internasional.',
-    nav_title: 'Navigasi',
-    legal_title: 'Informasi hukum',
-    about: 'Tentang Kami',
-    privacy: 'Kebijakan Privasi',
-    policy: 'Kebijakan Penting',
-    policies: 'Daftar Ketentuan',
-    company_info: 'Informasi Perusahaan',
-  },
 }

@@ -3,6 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from '@/Components/LanguageSwitcher.vue'
+import SharedFooter from '@/Components/SharedFooter.vue'
 
 const { t, tm, locale } = useI18n()
 
@@ -663,46 +664,7 @@ const applyForJob = (jobId) => {
       </div>
     </section>
 
-    <footer class="bg-slate-950 text-slate-400 py-14">
-      <div class="max-w-7xl mx-auto px-4 lg:px-6">
-        <div class="grid md:grid-cols-[1.2fr_.8fr_.8fr] gap-10">
-          <div>
-            <Link href="/" class="inline-flex items-center gap-3">
-              <img src="/images/logo.png" alt="HRI Logo" class="h-10 w-10 rounded-xl bg-white p-1" />
-              <div>
-                <div class="text-xs font-black uppercase tracking-[0.18em] text-white">Human Reliability Intelligence</div>
-                <div class="text-xs text-slate-400">{{ t('footer.brand_line') }}</div>
-              </div>
-            </Link>
-            <p class="mt-4 text-sm leading-relaxed max-w-md">{{ t('footer.desc') }}</p>
-          </div>
-
-          <div>
-            <div class="text-sm font-black text-white mb-4">{{ t('footer.nav_title') }}</div>
-            <div class="space-y-2 text-sm">
-              <Link href="/about" class="block hover:text-white transition">{{ t('footer.about') }}</Link>
-              <Link href="/" class="block hover:text-white transition">{{ t('nav.for_individual') }}</Link>
-              <Link href="/company" class="block hover:text-white transition">{{ t('nav.for_company') }}</Link>
-              <Link href="/jobs" class="block hover:text-white transition">{{ t('nav.search_job') }}</Link>
-              <Link href="/login" class="block hover:text-white transition">{{ t('nav.login') }}</Link>
-            </div>
-          </div>
-
-          <div>
-            <div class="text-sm font-black text-white mb-4">{{ t('footer.legal_title') }}</div>
-            <div class="space-y-2 text-sm">
-              <a href="https://hri-check.com/privacy-applicant/" class="block hover:text-white transition">{{ t('footer.privacy') }}</a>
-              <a href="https://hri-check.com/important-policies/" class="block hover:text-white transition">{{ t('footer.policy') }}</a>
-              <a href="https://hri-check.com/about/" class="block hover:text-white transition">{{ t('footer.company_info') }}</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-10 pt-6 border-t border-white/10 text-xs text-center leading-relaxed">
-          © 2026 PT. NIKI KINDAICHI THERR INDONESIA. HRI (Human Reliability Intelligence). Privacy, consent, and audit-log controls applied. All rights reserved.
-        </div>
-      </div>
-    </footer>
+    <SharedFooter />
 
     <div class="fixed bottom-4 inset-x-0 px-4 md:hidden z-40">
       <button

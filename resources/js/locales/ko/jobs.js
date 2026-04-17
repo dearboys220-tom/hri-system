@@ -187,17 +187,6 @@ export default {
     btn_explore: '전체 구인 보기',
   },
 
-  footer: {
-    brand_line: '국제 인증 구인 플랫폼',
-    desc: 'HRI Job은 외국계 기업·일본계 기업·국제 취업 기회를 위해 더 신뢰받는 CV·전문 컨텍스트 준비를 지원합니다.',
-    nav_title: '탐색',
-    legal_title: '법적 정보',
-    about: '소개',
-    privacy: '개인정보 처리방침',
-    policy: '중요 정책',
-    policies: '약관 목록',
-    company_info: '기업 정보',
-  },
   category_names: {
     'Akuntansi & Keuangan': '회계 & 재무',
     'Administrasi & Support': '행정 & 지원',

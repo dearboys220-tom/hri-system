@@ -20,6 +20,6 @@ export default {
         policy: 'Kebijakan Penting',
         policies: 'Daftar Ketentuan',
         contact: 'Hubungi Kami',
-        copyright: 'Hak cipta dilindungi. Data diproses sesuai UU PDP Indonesia.',
+        copyright: '© 2026 PT. NIKI KINDAICHI THERR INDONESIA. HRI (Human Reliability Intelligence). Privacy, consent, and audit-log controls applied. All rights reserved.',
     },
 }

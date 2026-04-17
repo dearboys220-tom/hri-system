@@ -11,6 +11,7 @@ export default {
         about: '회사 소개',
         nav_title: '내비게이션', legal_title: '법적 정보',
         policies: '약관 목록', contact: '문의하기',
-        privacy: '개인정보 보호정책', policy: '중요 정책', copyright: 'All rights reserved.',
+        privacy: '개인정보 보호정책', policy: '중요 정책', 
+        copyright: '© 2026 PT. NIKI KINDAICHI THERR INDONESIA. HRI (Human Reliability Intelligence). Privacy, consent, and audit-log controls applied. All rights reserved.',
     },
 }

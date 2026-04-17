@@ -3,6 +3,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from '@/Components/LanguageSwitcher.vue'
+import SharedFooter from '@/Components/SharedFooter.vue'
 
 const auth       = usePage().props.auth
 const isLoggedIn = !!auth?.user
@@ -863,36 +864,6 @@ onUnmounted(() => {
             </div>
         </transition>
 
-        <footer class="bg-slate-950 text-slate-400 py-12 pb-24 md:pb-12">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6">
-                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
-                    <div class="max-w-xs">
-                        <img src="/images/logo.png" alt="HRI" class="h-10 w-auto mb-3" />
-                        <p class="text-sm leading-relaxed">{{ $t('footer.desc') }}</p>
-                    </div>
-
-                    <div>
-                     　　<div class="text-white font-semibold mb-3 text-sm uppercase tracking-[0.18em]">
-                            {{ $t('footer.legal_title') }}
-                        </div>
-                        <ul class="space-y-2 text-sm">
-                            <li>
-                                <Link href="/about" class="hover:text-white transition">{{ $t('footer.about') }}</Link>
-                            </li>
-                            <li>
-                                <Link href="/policies" class="hover:text-white transition">{{ $t('footer.policies') }}</Link>
-                            </li>
-                            <li>
-                                <Link href="/contact" class="hover:text-white transition">{{ $t('footer.contact') }}</Link>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="mt-10 pt-6 border-t border-slate-800 text-xs text-center leading-6">
-                    © 2026 PT. NIKI KINDAICHI THERR INDONESIA. HRI (Human Reliability Intelligence). Privacy, consent, and audit-log controls applied. All rights reserved.
-                </div>
-            </div>
-        </footer>
+        <SharedFooter />
     </div>
 </template>

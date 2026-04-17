@@ -187,17 +187,6 @@ export default {
     btn_explore: 'すべての求人を見る',
   },
 
-  footer: {
-    brand_line: '国際認証済み求人プラットフォーム',
-    desc: 'HRI Jobは、外資系企業・日系企業・国際就労機会に向けて、より信頼されるCV・プロフェッショナルコンテキストの準備をサポートします。',
-    nav_title: 'ナビゲーション',
-    legal_title: '法的情報',
-    about: '会社概要',
-    privacy: 'プライバシーポリシー',
-    policy: '重要なポリシー',
-    policies: '約款一覧',
-    company_info: '企業情報',
-  },
   category_names: {
     'Akuntansi & Keuangan': '会計・財務',
     'Administrasi & Support': '管理・サポート',
