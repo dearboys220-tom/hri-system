@@ -117,7 +117,7 @@ export default {
     unit: 'subcategories',
   },
 
-  company_section: {
+  job_company_section: {
     badge: 'For companies',
     title: 'Guide company actions toward a clearer path.',
     desc: 'Job postings, Verified Resume context, and employment verification needs are consolidated into one flow so companies don\'t have to wonder where to start.',

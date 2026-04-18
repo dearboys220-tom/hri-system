@@ -117,7 +117,7 @@ export default {
     unit: 'サブカテゴリ',
   },
 
-  company_section: {
+  job_company_section: {
     badge: '企業の方へ',
     title: '企業のアクションをより明確な経路へ。',
     desc: '求人掲載・Verified Resumeコンテキスト・経歴確認ニーズを1つのフローに集約し、企業が最初のステップに迷わないようにしています。',

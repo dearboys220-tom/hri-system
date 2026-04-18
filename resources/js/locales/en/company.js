@@ -11,6 +11,7 @@ export default {
         desc: 'HRI is a third-party CV verification system that helps address recruitment challenges in Indonesia.',
         cta_register: 'Company Registration — Free',
         cta_dashboard: 'Company Dashboard',
+        cta_service: 'Service confirmation',
     },
     features: {
         label: 'About Us',
@@ -95,6 +96,7 @@ export default {
         w3: 'More efficient for HR — initial screening becomes more targeted',
         card_title: 'HRI Verified Resume',
         card_sub: 'Verified by a Professional Team',
+        card_desc: 'Verified resumes are provided as reference-only materials, helping companies assess candidates more clearly without exposing sensitive data freely.',
     },
     company_section: {
         badge: 'For Companies',

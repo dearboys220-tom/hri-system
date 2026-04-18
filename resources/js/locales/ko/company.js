@@ -11,6 +11,7 @@ export default {
         desc: 'HRI는 인도네시아의 채용 과제를 해결하는 제3자 CV 인증 시스템입니다.',
         cta_register: '기업 등록 — 무료',
         cta_dashboard: '기업 대시보드',
+        cta_service: '서비스 확인',
     },
     features: {
         label: '서비스 개요',
@@ -95,6 +96,7 @@ export default {
         w3: 'HR 효율화 — 초기 스크리닝이 더 정확하게',
         card_title: 'HRI Verified Resume',
         card_sub: '전문 팀에 의한 검증',
+        card_desc: '인증된 이력서는 참조 전용 자료로 제공되어 기업이 지원자를 더 명확하게 평가할 수 있도록 돕습니다. 민감한 데이터는 무제한으로 공개되지 않습니다.',
     },
     company_section: {
         badge: '기업용',

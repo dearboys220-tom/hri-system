@@ -117,7 +117,7 @@ export default {
     unit: 'subkategori',
   },
 
-  company_section: {
+  job_company_section: {
     badge: 'Untuk perusahaan',
     title: 'Arahkan tindakan perusahaan ke jalur yang lebih jelas.',
     desc: 'Posting lowongan, konteks Verified Resume, dan kebutuhan verifikasi riwayat diposisikan dalam satu alur agar perusahaan tidak bingung menentukan langkah awal.',

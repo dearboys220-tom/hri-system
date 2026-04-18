@@ -11,6 +11,7 @@ export default {
         desc: 'HRIはインドネシアの採用課題を解決する第三者CV認証システムです。',
         cta_register: '企業登録 — 無料',
         cta_dashboard: '企業ダッシュボード',
+        cta_service: 'サービス確認',
     },
     features: {
         label: 'サービス概要',
@@ -95,6 +96,7 @@ export default {
         w3: 'HR効率化 — 初期スクリーニングがより的確に',
         card_title: 'HRI Verified Resume',
         card_sub: 'プロフェッショナルチームによる検証',
+        card_desc: '認証済みレジュメは参照専用の資料として提供され、企業が候補者をより明確に評価できるよう支援します。機密データが無制限に公開されることはありません。',
     },
     company_section: {
         badge: '企業向け',
@@ -104,7 +106,7 @@ export default {
         b2: 'HRIスコア付き認証CVにアクセス',
         b3: '応募管理が簡単',
         cta: '企業登録 →',
-        days: '30日間', days_label: '求人掲載無料', days_note: '新規登録企業向け',
+        days: '30日間', days_label: '求人掲載無料', days_note: '新規企業向け無料求人掲載プログラムのプロモーションスペース',
     },
     cta: {
         title: '今日からより信頼性の高いCVを構築',

@@ -117,7 +117,7 @@ export default {
     unit: '서브카테고리',
   },
 
-  company_section: {
+  job_company_section: {
     badge: '기업 회원',
     title: '기업의 행동을 더 명확한 경로로.',
     desc: '구인 게재·Verified Resume 컨텍스트·이력 확인 수요를 하나의 흐름으로 집약하여 기업이 첫 단계에 망설이지 않도록 했습니다.',

@@ -56,7 +56,31 @@ const onScroll = () => {
 }
 
 onMounted(() => {
-  window.addEventListener('scroll', onScroll)
+    window.addEventListener('scroll', onScroll)
+
+    // JSON-LD 構造化データを <head> に挿入（SEO用）
+    try {
+        const schemas = [
+            schemaWebsite.value,
+            schemaOrganization.value,
+            schemaCollectionPage.value,
+        ]
+
+        // FAQはアイテムがある場合のみ追加
+        if (faqs.value && faqs.value.length > 0) {
+            schemas.push(schemaFAQ.value)
+        }
+
+        schemas.forEach(schema => {
+            if (!schema) return
+            const el = document.createElement('script')
+            el.type = 'application/ld+json'
+            el.text = JSON.stringify(schema)
+            document.head.appendChild(el)
+        })
+    } catch (e) {
+        console.warn('JSON-LD挿入エラー:', e)
+    }
 })
 
 onUnmounted(() => {
@@ -220,10 +244,6 @@ const applyForJob = (jobId) => {
     <meta name="twitter:description" :content="t('jobs_seo.description')" />
     <meta name="twitter:image" content="https://hri-check.com/images/og-hri-job.jpg" />
 
-    <script type="application/ld+json">{{ JSON.stringify(schemaWebsite) }}</script>
-    <script type="application/ld+json">{{ JSON.stringify(schemaOrganization) }}</script>
-    <script type="application/ld+json">{{ JSON.stringify(schemaCollectionPage) }}</script>
-    <script type="application/ld+json">{{ JSON.stringify(schemaFAQ) }}</script>
   </Head>
 
   <a
@@ -562,16 +582,16 @@ const applyForJob = (jobId) => {
       <div class="max-w-6xl mx-auto px-4 lg:px-6 grid lg:grid-cols-2 gap-8 items-center">
         <div>
           <span class="inline-block rounded-full border border-orange-200 bg-orange-100 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-orange-700">
-            {{ t('company_section.badge') }}
+            {{ t('job_company_section.badge') }}
           </span>
-          <h2 class="mt-4 text-3xl md:text-4xl font-black text-slate-900 leading-tight">{{ t('company_section.title') }}</h2>
-          <p class="mt-4 text-slate-600 leading-relaxed text-base md:text-lg">{{ t('company_section.desc') }}</p>
+          <h2 class="mt-4 text-3xl md:text-4xl font-black text-slate-900 leading-tight">{{ t('job_company_section.title') }}</h2>
+          <p class="mt-4 text-slate-600 leading-relaxed text-base md:text-lg">{{ t('job_company_section.desc') }}</p>
           <div class="mt-6 flex flex-wrap gap-3">
             <Link href="/company" class="inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm md:text-base font-black text-white transition hover:bg-orange-600 shadow-md">
-              {{ t('company_section.cta') }}
+              {{ t('job_company_section.cta') }}
             </Link>
             <Link href="/register/company" class="inline-flex items-center justify-center rounded-full border border-slate-300 px-6 py-3 text-sm md:text-base font-bold text-slate-700 transition hover:bg-white">
-              {{ t('company_section.cta_secondary') }}
+              {{ t('job_company_section.cta_secondary') }}
             </Link>
           </div>
         </div>
@@ -579,9 +599,9 @@ const applyForJob = (jobId) => {
         <div class="relative rounded-3xl overflow-hidden shadow-xl">
           <img src="/images/company-promo.png"alt=""aria-hidden="true"class="w-full h-full object-cover"/>
           <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 bg-white/10">
-            <div class="text-5xl md:text-6xl font-black text-slate-900">{{ t('company_section.days') }}</div>
-            <div class="mt-2 text-2xl font-black text-slate-900">{{ t('company_section.days_label') }}</div>
-            <p class="mt-3 text-slate-800 leading-relaxed">{{ t('company_section.days_note') }}</p>
+            <div class="text-5xl md:text-6xl font-black text-slate-900">{{ t('job_company_section.days') }}</div>
+            <div class="mt-2 text-2xl font-black text-slate-900">{{ t('job_company_section.days_label') }}</div>
+            <p class="mt-3 text-slate-800 leading-relaxed">{{ t('job_company_section.days_note') }}</p>
           </div>
         </div>
       </div>
