@@ -223,6 +223,15 @@ Route::middleware('auth')->group(function () {
         [App\Http\Controllers\StaffDashboardController::class, 'index']
     )->name('staff.mypage')->middleware(['auth', 'education:company_rules']);
 
+    // AIチャット（スタッフ共通）★ v2.9追加
+    Route::post('/staff/chat/send',
+        [\App\Http\Controllers\StaffChatController::class, 'send']
+    )->name('staff.chat.send');
+
+    Route::get('/staff/chat/history',
+        [\App\Http\Controllers\StaffChatController::class, 'history']
+    )->name('staff.chat.history');
+
     // ================================================================
     // スタッフ共通ルート（全社内ロール）
     // ★ company_rules 完了必須
