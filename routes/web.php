@@ -314,7 +314,14 @@ Route::prefix('manager')
 
         // ダッシュボード
         Route::get('/dashboard', function () {
-            return Inertia::render('Manager/Dashboard');
+            $allStaff = \App\Models\User::whereIn('role_type', [
+                'investigator_user', 'admin_user', 'em_staff',
+                'strategy_user', 'ai_dev_user', 'marketing_user',
+            ])->where('status', 'active')->get(['id', 'name', 'role_type']);
+            
+            return \Inertia\Inertia::render('Manager/Dashboard', [
+                'allStaff' => $allStaff,
+            ]);
         })->name('dashboard');
 
         // スタッフ管理
@@ -379,6 +386,10 @@ Route::prefix('manager')
             Route::post('/payroll/{payroll}/failed',
                 [PayrollRecordController::class, 'markFailed'])->name('payroll.failed');
         });
+
+        // AIチャット（manager）
+        Route::post('/chat/send',    [\App\Http\Controllers\Manager\ManagerChatController::class, 'send'])->name('chat.send');
+        Route::get('/chat/history',  [\App\Http\Controllers\Manager\ManagerChatController::class, 'history'])->name('chat.history');
 
         Route::prefix('subprompt')
             ->name('subprompt.')
