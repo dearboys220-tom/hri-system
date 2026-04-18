@@ -155,6 +155,25 @@ class AiChatController extends Controller
         ]);
     }
 
+    // ================================================================
+// チャット履歴取得
+// ================================================================
+public function history(Request $request)
+{
+    $user = Auth::user();
+
+    $logs = AiChatLog::where('user_id', $user->id)
+        ->orderBy('created_at', 'asc')
+        ->limit(200)
+        ->get([
+            'id', 'case_no', 'session_id',
+            'message_role', 'message_content',
+            'created_at',
+        ]);
+
+    return response()->json(['history' => $logs]);
+}
+
     // ──────────────────────────────────────────────
     // Private: システムプロンプト構築
     // ──────────────────────────────────────────────

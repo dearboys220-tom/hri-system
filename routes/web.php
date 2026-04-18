@@ -294,6 +294,7 @@ Route::prefix('admin')
 
         // AIチャット送信（共通 API エンドポイント）
         Route::post('/ai-chat/send', [AiChatController::class, 'send'])->name('ai-chat.send');
+        Route::get('/ai-chat/history',  [AiChatController::class, 'history'])->name('ai-chat.history');
     });
 
 // ================================================================
